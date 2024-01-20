@@ -8,21 +8,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowLeft, Scan } from "@phosphor-icons/react";
-import { useRouter } from "next/navigation";
 import React from "react";
 
-const SendAmount = () => {
-  const router = useRouter();
-  
-  const handleSend = () => {
-    router.replace("/send")
-  }
+const ReceiveAmount = () => {
   return (
     <section className="home-background h-screen flex flex-col p-5 xl:px-[200px] ">
       <div className="flex justify-between">
         <ArrowLeft size={24} color="#ffffff" />
         <span className="flex flex-col items-center">
-          <h3 className="text-white text-xl">Send Crypto</h3>
+          <h3 className="text-white text-xl">Receive Crypto</h3>
           <h5 className="text-sm text-[#A4A4A4]">200.00 USDC Available </h5>
         </span>
         <Scan size={24} color="#ffffff" />
@@ -51,4 +45,4 @@ const SendAmount = () => {
   );
 };
 
-export default SendAmount;
+export default ReceiveAmount;

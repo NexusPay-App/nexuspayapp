@@ -18,6 +18,14 @@ const Home = () => {
       router.replace("/send")
     }
 
+    const handleReceive = () => {
+      router.replace("/receive")
+    }
+
+    const handlePay = () => {
+      router.replace("/pay")
+    }
+
   return (
     <section className="home-background">
       <article className="bg-[#0B0811] flex flex-col p-5 xl:px-[200px] border-0 border-b border-[#642CDC]">
@@ -36,13 +44,13 @@ const Home = () => {
             </span>
             <h4 className="text-white my-1">Send</h4>
           </div>
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col items-center"  onClick={handleReceive}>
             <span className="border border-[#642CDC] rounded-full p-4 bg-[#0B0811]">
               <ArrowCircleDown size={24} color="#ffffff" />
             </span>
             <h4 className="text-white my-1">Receive</h4>
           </div>
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col items-center" onClick={handlePay}>
             <span className="border border-[#642CDC] rounded-full p-4 bg-[#0B0811]">
               <CreditCard size={24} color="#ffffff" />
             </span>

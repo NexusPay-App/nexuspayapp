@@ -13,6 +13,8 @@ const config: Config = {
        },
       backgroundImage: {
         "app-bg":"url('/svg/app-bg.svg')",
+        "onboarding-bg":"url('/svg/onboarding-bg.svg')",
+        "wallet-bg":"url('/svg/wallet-bg.svg')",
       },
     },
     screens: {

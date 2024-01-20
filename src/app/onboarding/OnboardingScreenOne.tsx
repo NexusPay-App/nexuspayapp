@@ -7,13 +7,13 @@ import React from "react";
 
 const OnboardingScreenOne = () => {
   const router = useRouter();
-
-  setTimeout(()=>{
-    router.replace("/onboarding")
-  }, 3000)
+  
+  const handleNavigate = () => {
+    router.replace("/signup")
+  }
 
   return (
-    <main className="app-background">
+    <main className="onboarding-bg" onClick={handleNavigate}>
       <Image src={NexusLogo} alt="" />
       <article className="">
         <h2 className="text-4xl text-white font-bold">

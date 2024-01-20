@@ -12,7 +12,7 @@ const config: Config = {
         'poppins' :['Poppins', 'sans-serif']
        },
       backgroundImage: {
-        
+        "app-bg":"url('/svg/app-bg.svg')",
       },
     },
     screens: {

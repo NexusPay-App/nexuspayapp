@@ -1,8 +1,10 @@
+import SplashScreen from "@/components/splashscreen/SplashScreen";
+
 
 export default function Home() {
   return (
-    <section>
-      <h1>Hello Nexus</h1>
+    <section className="app-background">
+      <SplashScreen />
     </section>
   );
 }

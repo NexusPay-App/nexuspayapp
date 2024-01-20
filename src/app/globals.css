@@ -7,3 +7,14 @@
 *{
   /* border: 1px solid red; */
 }
+
+/* className="bg-app-bg h-screen bg-no-repeat bg-cover bg-center font-poppins flex justify-center items-center" */
+
+.app-background {
+  background-image: url("../../public/svg/app-bg.svg");
+  height:100vh;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  font-family: "Poppins", sans-serif;
+}

@@ -8,11 +8,18 @@ import {
   List,
   PaperPlaneTilt,
 } from "@phosphor-icons/react";
+import { useRouter } from "next/navigation";
 import React from "react";
 
 const Home = () => {
+    const router = useRouter();
+  
+    const handleSend = () => {
+      router.replace("/send")
+    }
+
   return (
-    <section className="home-background justify-start">
+    <section className="home-background">
       <article className="bg-[#0B0811] flex flex-col p-5 xl:px-[200px] border-0 border-b border-[#642CDC]">
         <div className="flex justify-between">
           <List size={24} color="#ffffff" weight="fill" />
@@ -23,7 +30,7 @@ const Home = () => {
           <h1 className="text-4xl text-white font-bold mb-3"> 40,000</h1>
         </div>
         <div className="flex justify-around relative top-20 ">
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col items-center" onClick={handleSend}>
             <span className="border border-[#642CDC] rounded-full p-4 bg-[#0B0811]">
               <PaperPlaneTilt size={24} color="#ffffff" weight="fill" />
             </span>

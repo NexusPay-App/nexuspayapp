@@ -12,19 +12,19 @@ import { useRouter } from "next/navigation";
 import React from "react";
 
 const Home = () => {
-    const router = useRouter();
-  
-    const handleSend = () => {
-      router.replace("/send")
-    }
+  const router = useRouter();
 
-    const handleReceive = () => {
-      router.replace("/receive")
-    }
+  const handleSend = () => {
+    router.replace("/send");
+  };
 
-    const handlePay = () => {
-      router.replace("/pay")
-    }
+  const handleReceive = () => {
+    router.replace("/receive");
+  };
+
+  const handlePay = () => {
+    router.replace("/pay");
+  };
 
   return (
     <section className="home-background">
@@ -44,7 +44,7 @@ const Home = () => {
             </span>
             <h4 className="text-white my-1">Send</h4>
           </div>
-          <div className="flex flex-col items-center"  onClick={handleReceive}>
+          <div className="flex flex-col items-center" onClick={handleReceive}>
             <span className="border border-[#642CDC] rounded-full p-4 bg-[#0B0811]">
               <ArrowCircleDown size={24} color="#ffffff" />
             </span>
@@ -59,17 +59,13 @@ const Home = () => {
         </div>
       </article>
       <article className="mt-20 flex flex-col items-center p-5  xl:px-[200px]">
-        <div className="flex flex-col rounded-xl w-full overflow-hidden ">
-          <span className="bg-wallet-bg bg-cover p-5 h-[100px]">
-            <h3 className="text-white text-xl my-1 font-semibold">
-              Buy Crypto Assets, Tokens in a Securely.
-            </h3>
-          </span>
-          <span className="bg-[#0B0811] p-2">
-            <button className="bg-white font-bold text-lg p-3 rounded-xl w-[150px]">
-              Buy Crypto
-            </button>
-          </span>
+        <div className="flex flex-col justify-around rounded-xl w-full overflow-hidden bg-wallet-bg bg-cover p-5 h-[180px]">
+          <h3 className="text-white text-xl my-1 font-semibold">
+            Buy Crypto Assets, Tokens Securely.
+          </h3>
+          <button className="bg-white font-bold text-lg p-3 rounded-xl w-[150px]">
+            Buy Crypto
+          </button>
         </div>
       </article>
       <Transactions />

@@ -8,6 +8,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowLeft, Scan } from "@phosphor-icons/react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React from "react";
 
@@ -20,7 +21,7 @@ const SendAmount = () => {
   return (
     <section className="home-background h-screen flex flex-col p-5 xl:px-[200px] ">
       <div className="flex justify-between">
-        <ArrowLeft size={24} color="#ffffff" />
+      <Link href="/send"><ArrowLeft size={24} color="#ffffff" /></Link>
         <span className="flex flex-col items-center">
           <h3 className="text-white text-xl">Send Crypto</h3>
           <h5 className="text-sm text-[#A4A4A4]">200.00 USDC Available </h5>
@@ -36,7 +37,7 @@ const SendAmount = () => {
           <SelectTrigger className=" border border-[#642CDC] rounded-lg px-4 py-6 bg-transparent text-white text-sm outline-none">
             <SelectValue placeholder="Select Currency" />
           </SelectTrigger>
-          <SelectContent className="border border-[#642CDC] rounded-lg bg-transparent text-white text-sm outline-none">
+          <SelectContent className="border border-[#642CDC] rounded-lg bg-black text-white text-sm outline-none">
             <SelectItem value="usdc">USDC</SelectItem>
             <SelectItem value="ksh">KSH</SelectItem>
             <SelectItem value="eth">ETH</SelectItem>

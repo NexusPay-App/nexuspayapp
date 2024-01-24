@@ -3,6 +3,7 @@
 import Contact from "@/components/contact/Contact";
 import { recentContactSource } from "@/helpers/recentContactSource";
 import { ArrowLeft, CaretRight } from "@phosphor-icons/react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React from "react";
 
@@ -16,7 +17,7 @@ const Send = () => {
   return (
     <section className="home-background flex flex-col p-5 xl:px-[200px] ">
       <div className="flex justify-between">
-        <ArrowLeft size={24} color="#ffffff" />
+        <Link href="/home"><ArrowLeft size={24} color="#ffffff" /></Link>
         <h3 className="text-white text-xl">Send Crypto</h3>
         <span></span>
       </div>
@@ -33,7 +34,7 @@ const Send = () => {
         </span>
         <article className="flex flex-col mt-5">
           <div className="flex justify-between mb-5">
-            <h3 className="text-white font-semibold">Recent Transactions</h3>
+            <h3 className="text-white font-semibold">Recent Contacts</h3>
             <CaretRight size={24} color="#ffffff" />
           </div>
           {recentContactSource.map((element, index) => {

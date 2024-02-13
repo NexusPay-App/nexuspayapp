@@ -16,32 +16,32 @@ const Pay = () => {
         <span className="flex justify-around w-full mt-2">
           <input
             type="number"
-            className="border border-[#642CDC] rounded-lg p-4 bg-[#0B0811] text-white text-lg w-[50px]"
+            className="border border-[#0795B0] rounded-lg p-4 bg-[#0A0E0E] text-white text-lg w-[50px]"
             maxLength={1}
           />
           <input
             type="number"
-            className="border border-[#642CDC] rounded-lg p-4 bg-[#0B0811] text-white text-lg w-[50px]"
+            className="border border-[#0795B0] rounded-lg p-4 bg-[#0A0E0E] text-white text-lg w-[50px]"
             maxLength={1}
           />
           <input
             type="number"
-            className="border border-[#642CDC] rounded-lg p-4 bg-[#0B0811] text-white text-lg w-[50px]"
+            className="border border-[#0795B0] rounded-lg p-4 bg-[#0A0E0E] text-white text-lg w-[50px]"
             maxLength={1}
           />
           <input
             type="number"
-            className="border border-[#642CDC] rounded-lg p-4 bg-[#0B0811] text-white text-lg w-[50px]"
+            className="border border-[#0795B0] rounded-lg p-4 bg-[#0A0E0E] text-white text-lg w-[50px]"
             maxLength={1}
           />
           <input
             type="number"
-            className="border border-[#642CDC] rounded-lg p-4 bg-[#0B0811] text-white text-lg w-[50px]"
+            className="border border-[#0795B0] rounded-lg p-4 bg-[#0A0E0E] text-white text-lg w-[50px]"
             maxLength={1}
           />
         </span>
       </div>
-      <div className="border border-[#642CDC] rounded-lg p-4 bg-[#0B0811] text-white text-lg mt-10">
+      <div className="border border-[#0795B0] rounded-lg p-4 bg-[#0A0E0E] text-white text-lg mt-10">
         <h5>200.00 USDC Available </h5>
         <span className="flex mt-3 items-center justify-between">
           <h3 className="text-4xl text-white font-bold">ksh 500</h3>

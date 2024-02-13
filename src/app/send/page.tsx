@@ -8,16 +8,18 @@ import { useRouter } from "next/navigation";
 import React from "react";
 
 const Send = () => {
-    const router = useRouter();
-  
-    const handleContinue = () => {
-        event?.preventDefault();
-      router.replace("/send/amount")
-    }
+  const router = useRouter();
+
+  const handleContinue = () => {
+    event?.preventDefault();
+    router.replace("/send/amount");
+  };
   return (
     <section className="home-background flex flex-col p-5 xl:px-[200px] ">
       <div className="flex justify-between">
-        <Link href="/home"><ArrowLeft size={24} color="#ffffff" /></Link>
+        <Link href="/home">
+          <ArrowLeft size={24} color="#ffffff" />
+        </Link>
         <h3 className="text-white text-xl">Send Crypto</h3>
         <span></span>
       </div>
@@ -29,7 +31,7 @@ const Send = () => {
           <input
             type="number"
             placeholder="Enter Recipient’s Phone Number"
-            className="border border-[#642CDC] rounded-lg p-4 bg-[#0B0811] text-white text-sm "
+            className="border border-[#0795B0] rounded-lg p-4 bg-[#0A0E0E] text-white text-sm "
           />
         </span>
         <article className="flex flex-col mt-5">

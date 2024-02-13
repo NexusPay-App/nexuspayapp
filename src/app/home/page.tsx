@@ -28,7 +28,7 @@ const Home = () => {
 
   return (
     <section className="home-background">
-      <article className="bg-[#0B0811] flex flex-col p-5 xl:px-[200px] border-0 border-b border-[#642CDC]">
+      <article className="bg-[#0A0E0E] flex flex-col p-5 xl:px-[200px] border-0 border-b border-[#0795B0]">
         <div className="flex justify-between">
           <List size={24} color="#ffffff" weight="fill" />
           <BellSimple size={24} color="#ffffff" weight="fill" />
@@ -39,19 +39,19 @@ const Home = () => {
         </div>
         <div className="flex justify-around relative top-20 ">
           <div className="flex flex-col items-center" onClick={handleSend}>
-            <span className="border border-[#642CDC] rounded-full p-4 bg-[#0B0811]">
+            <span className="border border-[#0795B0] rounded-full p-4 bg-[#0A0E0E]">
               <PaperPlaneTilt size={24} color="#ffffff" weight="fill" />
             </span>
             <h4 className="text-white my-1">Send</h4>
           </div>
           <div className="flex flex-col items-center" onClick={handleReceive}>
-            <span className="border border-[#642CDC] rounded-full p-4 bg-[#0B0811]">
+            <span className="border border-[#0795B0] rounded-full p-4 bg-[#0A0E0E]">
               <ArrowCircleDown size={24} color="#ffffff" />
             </span>
             <h4 className="text-white my-1">Receive</h4>
           </div>
           <div className="flex flex-col items-center" onClick={handlePay}>
-            <span className="border border-[#642CDC] rounded-full p-4 bg-[#0B0811]">
+            <span className="border border-[#0795B0] rounded-full p-4 bg-[#0A0E0E]">
               <CreditCard size={24} color="#ffffff" />
             </span>
             <h4 className="text-white my-1">Pay</h4>

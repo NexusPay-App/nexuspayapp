@@ -24,7 +24,7 @@ const ShareQr = () => {
           <label htmlFor="phoneNumber" className="text-[#909090] p-1">
             Copy Wallet Address
           </label>
-          <span className="border border-[#642CDC] rounded-lg p-4 bg-[#0B0811] text-white text-sm flex justify-between ">
+          <span className="border border-[#0795B0] rounded-lg p-4 bg-[#0A0E0E] text-white text-sm flex justify-between ">
             <button>0xbb0f...17c8</button>
             <Copy size={24} color="#ffffff" />
           </span>
@@ -33,7 +33,7 @@ const ShareQr = () => {
           <label htmlFor="phoneNumber" className="text-[#909090] p-1">
             Copy Phone Address
           </label>
-          <span className="border border-[#642CDC] rounded-lg p-4 bg-[#0B0811] text-white text-sm flex justify-between ">
+          <span className="border border-[#0795B0] rounded-lg p-4 bg-[#0A0E0E] text-white text-sm flex justify-between ">
             <button>0xbb0f...17c8</button>
             <Copy size={24} color="#ffffff" />
           </span>

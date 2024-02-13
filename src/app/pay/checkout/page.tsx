@@ -21,10 +21,10 @@ const PayCheckout = () => {
         <h3 className="text-white text-xl">Pay Utilities</h3>
         <span></span>
       </div>
-      <div className="border border-[#642CDC] rounded-lg p-2 sm:p-4 bg-[#0B0811] grid grid-cols-4 justify-around">
+      <div className="border border-[#0795B0] rounded-lg p-2 sm:p-4 bg-[#0A0E0E] grid grid-cols-4 justify-around">
         <span>
           <div className="flex flex-col items-center">
-            <span className="border border-[#642CDC] rounded-full p-4 bg-[#0B0811]">
+            <span className="border border-[#0795B0] rounded-full p-4 bg-[#0A0E0E]">
               <Lightning size={24} color="#ffffff" />
             </span>
             <h4 className="text-white my-1 text-center">Electricity</h4>
@@ -32,7 +32,7 @@ const PayCheckout = () => {
         </span>
         <span>
           <div className="flex flex-col items-center">
-            <span className="border border-[#642CDC] rounded-full p-4 bg-[#0B0811]">
+            <span className="border border-[#0795B0] rounded-full p-4 bg-[#0A0E0E]">
               <Drop size={24} color="#ffffff" />
             </span>
             <h4 className="text-white my-1 text-center">Water Bills</h4>
@@ -40,7 +40,7 @@ const PayCheckout = () => {
         </span>
         <span>
           <div className="flex flex-col items-center">
-            <span className="border border-[#642CDC] rounded-full p-4 bg-[#0B0811]">
+            <span className="border border-[#0795B0] rounded-full p-4 bg-[#0A0E0E]">
               <WifiHigh size={24} color="#ffffff" />
             </span>
             <h4 className="text-white my-1 text-center">Internet Bills</h4>
@@ -48,7 +48,7 @@ const PayCheckout = () => {
         </span>
         <span>
           <div className="flex flex-col items-center">
-            <span className="border border-[#642CDC] rounded-full p-4 bg-[#0B0811]">
+            <span className="border border-[#0795B0] rounded-full p-4 bg-[#0A0E0E]">
               <HouseSimple size={24} color="#ffffff" />
             </span>
             <h4 className="text-white my-1 text-center">Rent</h4>
@@ -56,7 +56,7 @@ const PayCheckout = () => {
         </span>
         <span>
           <div className="flex flex-col items-center">
-            <span className="border border-[#642CDC] rounded-full p-4 bg-[#0B0811]">
+            <span className="border border-[#0795B0] rounded-full p-4 bg-[#0A0E0E]">
               <Fire size={24} color="#ffffff" />
             </span>
             <h4 className="text-white my-1 text-center">Gas</h4>
@@ -64,7 +64,7 @@ const PayCheckout = () => {
         </span>
         <span>
           <div className="flex flex-col items-center">
-            <span className="border border-[#642CDC] rounded-full p-4 bg-[#0B0811]">
+            <span className="border border-[#0795B0] rounded-full p-4 bg-[#0A0E0E]">
               <GasPump size={24} color="#ffffff" />
             </span>
             <h4 className="text-white my-1 text-center">Fuel</h4>
@@ -76,32 +76,32 @@ const PayCheckout = () => {
         <span className="flex justify-around w-full mt-2">
           <input
             type="number"
-            className="border border-[#642CDC] rounded-lg p-4 bg-[#0B0811] text-white text-lg w-[50px]"
+            className="border border-[#0795B0] rounded-lg p-4 bg-[#0A0E0E] text-white text-lg w-[50px]"
             maxLength={1}
           />
           <input
             type="number"
-            className="border border-[#642CDC] rounded-lg p-4 bg-[#0B0811] text-white text-lg w-[50px]"
+            className="border border-[#0795B0] rounded-lg p-4 bg-[#0A0E0E] text-white text-lg w-[50px]"
             maxLength={1}
           />
           <input
             type="number"
-            className="border border-[#642CDC] rounded-lg p-4 bg-[#0B0811] text-white text-lg w-[50px]"
+            className="border border-[#0795B0] rounded-lg p-4 bg-[#0A0E0E] text-white text-lg w-[50px]"
             maxLength={1}
           />
           <input
             type="number"
-            className="border border-[#642CDC] rounded-lg p-4 bg-[#0B0811] text-white text-lg w-[50px]"
+            className="border border-[#0795B0] rounded-lg p-4 bg-[#0A0E0E] text-white text-lg w-[50px]"
             maxLength={1}
           />
           <input
             type="number"
-            className="border border-[#642CDC] rounded-lg p-4 bg-[#0B0811] text-white text-lg w-[50px]"
+            className="border border-[#0795B0] rounded-lg p-4 bg-[#0A0E0E] text-white text-lg w-[50px]"
             maxLength={1}
           />
         </span>
       </div>
-      <div className="border border-[#642CDC] rounded-lg p-4 bg-[#0B0811] text-white text-lg mt-10">
+      <div className="border border-[#0795B0] rounded-lg p-4 bg-[#0A0E0E] text-white text-lg mt-10">
         <h5>200.00 USDC Available </h5>
         <span className="flex mt-3 items-center justify-between">
           <h3 className="text-4xl text-white font-bold">ksh 500</h3>

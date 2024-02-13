@@ -27,16 +27,22 @@ const ReceiveAmount = () => {
       </div>
       <form className="mt-10">
         <Select>
-          <SelectTrigger className=" border border-[#642CDC] rounded-lg px-4 py-6 bg-transparent text-white text-sm outline-none">
+          <SelectTrigger className=" border border-[#0795B0] rounded-lg px-4 py-6 bg-transparent text-white text-sm outline-none">
             <SelectValue placeholder="Select Currency" />
           </SelectTrigger>
-          <SelectContent className="border border-[#642CDC] rounded-lg bg-transparent text-white text-sm outline-none">
+          <SelectContent className="border border-[#0795B0] rounded-lg bg-transparent text-white text-sm outline-none">
             <SelectItem value="usdc">USDC</SelectItem>
             <SelectItem value="ksh">KSH</SelectItem>
             <SelectItem value="eth">ETH</SelectItem>
           </SelectContent>
         </Select>
-        <input type="text" name="" id="" placeholder="Additional Notes" className=" border border-[#642CDC] w-full rounded-lg px-4 py-6 bg-transparent text-white text-sm outline-none mt-5" />
+        <input
+          type="text"
+          name=""
+          id=""
+          placeholder="Additional Notes"
+          className=" border border-[#0795B0] w-full rounded-lg px-4 py-6 bg-transparent text-white text-sm outline-none mt-5"
+        />
         <button className="bg-white font-bold text-lg p-3 rounded-xl w-full mt-5">
           Continue
         </button>

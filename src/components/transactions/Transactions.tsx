@@ -11,7 +11,7 @@ const Transactions = () => {
       <div>
         <span className="flex justify-between my-2">
           <span className="flex">
-            <span className="border border-[#642CDC] rounded-full p-4 bg-[#0B0811]">
+            <span className="border border-[#0795B0] rounded-full p-4 bg-[#0A0E0E]">
               <ArrowCircleDown size={24} color="#ffffff" />
             </span>
             <span className="ml-3">
@@ -25,7 +25,7 @@ const Transactions = () => {
         </span>
         <span className="flex justify-between my-2">
           <span className="flex">
-            <span className="border border-[#642CDC] rounded-full p-4 bg-[#0B0811]">
+            <span className="border border-[#0795B0] rounded-full p-4 bg-[#0A0E0E]">
               <ArrowCircleDown size={24} color="#ffffff" />
             </span>
             <span className="ml-3">
@@ -39,7 +39,7 @@ const Transactions = () => {
         </span>
         <span className="flex justify-between my-2">
           <span className="flex">
-            <span className="border border-[#642CDC] rounded-full p-4 bg-[#0B0811]">
+            <span className="border border-[#0795B0] rounded-full p-4 bg-[#0A0E0E]">
               <ArrowCircleDown size={24} color="#ffffff" />
             </span>
             <span className="ml-3">
@@ -53,7 +53,7 @@ const Transactions = () => {
         </span>
         <span className="flex justify-between my-2">
           <span className="flex">
-            <span className="border border-[#642CDC] rounded-full p-4 bg-[#0B0811]">
+            <span className="border border-[#0795B0] rounded-full p-4 bg-[#0A0E0E]">
               <ArrowCircleDown size={24} color="#ffffff" />
             </span>
             <span className="ml-3">
@@ -67,7 +67,7 @@ const Transactions = () => {
         </span>
         <span className="flex justify-between my-2">
           <span className="flex">
-            <span className="border border-[#642CDC] rounded-full p-4 bg-[#0B0811]">
+            <span className="border border-[#0795B0] rounded-full p-4 bg-[#0A0E0E]">
               <ArrowCircleDown size={24} color="#ffffff" />
             </span>
             <span className="ml-3">

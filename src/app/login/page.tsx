@@ -8,48 +8,19 @@ const Signup = () => {
 
   const handleNavigate = () => {
     event?.preventDefault();
-    router.replace("/login");
+    router.replace("/home");
   };
 
   return (
     <section className="app-background">
       <article className="">
-        <h2 className="text-4xl text-white font-bold">Sign Up to NexusPay</h2>
+        <h2 className="text-4xl text-white font-bold">Sign in with Password</h2>
         <h4 className="text-white my-5">
-          Enter your Details to SignUp to NexusPay
+          Enter your Phone Number to Login to NexusPay
         </h4>
         <form onSubmit={() => handleNavigate()}>
           <span className="flex flex-col">
-            <label
-              htmlFor="firstName"
-              className="text-[#909090] p-1 text-sm mt-4"
-            >
-              First Name
-            </label>
-            <input
-              type="number"
-              placeholder="Enter your First Name"
-              className="p-3 rounded-full text-sm"
-            />
-          </span>
-          <span className="flex flex-col">
-            <label
-              htmlFor="lastName"
-              className="text-[#909090] p-1 text-sm mt-4"
-            >
-              Last Name
-            </label>
-            <input
-              type="number"
-              placeholder="Enter your Last Name"
-              className="p-3 rounded-full text-sm"
-            />
-          </span>
-          <span className="flex flex-col">
-            <label
-              htmlFor="phoneNumber"
-              className="text-[#909090] p-1 text-sm mt-4"
-            >
+            <label htmlFor="phoneNumber" className="text-[#909090] p-1 text-sm">
               Phone Number
             </label>
             <input
@@ -59,10 +30,7 @@ const Signup = () => {
             />
           </span>
           <span className="flex flex-col mt-5">
-            <label
-              htmlFor="password"
-              className="text-[#909090] p-1 text-sm mt-4"
-            >
+            <label htmlFor="password" className="text-[#909090] p-1 text-sm">
               Password
             </label>
             <input
@@ -72,7 +40,7 @@ const Signup = () => {
             />
           </span>
           <span className="flex justify-end mb-5">
-            <h5 className="text-[#909090] p-1 text-sm mt-4 font-semibold">
+            <h5 className="text-[#909090] p-1 text-sm font-semibold">
               Forgot Password?
             </h5>
           </span>

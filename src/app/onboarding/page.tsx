@@ -8,6 +8,13 @@ import { useRouter } from "next/navigation";
 import { onboardingSource } from "@/helpers/onboardingSource";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -40,24 +47,27 @@ const Onboarding = () => {
           Send and receive crypto using your phone number
         </h4>
       </article> */}
-      <article
-        className="flex overflow-x-scroll hide-scroll-bar animate min-w-screen"
-        id="animate"
-      >
-        {onboardingSource.map((element, index) => {
-          return (
-            <div key={index} className="min-w-[300px]">
-              <h2 className="text-4xl text-white font-bold">{element.title}</h2>
-              <h4 className="text-white my-5">{element.subtitle}</h4>
-            </div>
-          );
-        })}
-      </article>
-      <article className="flex my-[100px]">
-        <hr className="line w-[150px]" />
-        <hr className="line w-[50px]" />
-        <hr className="line w-[50px]" />
-      </article>
+      <Carousel>
+        <CarouselContent>
+          {onboardingSource.map((element, index) => {
+            return (
+              <CarouselItem key={index}>
+                <div className="flex flex-col justify-around h-[300px]">
+                  <h2 className="text-4xl text-white font-bold">
+                    {element.title}
+                  </h2>
+                  <h4 className="text-white my-5">{element.subtitle}</h4>
+                  <article className="flex">
+                    <hr className="line" style={ index == 0 ? {width:"150px"}:{width:"50px"}} />
+                    <hr className="line" style={ index == 1 ? {width:"150px"}:{width:"50px"}} />
+                    <hr className="line" style={ index == 2 ? {width:"150px"}:{width:"50px"}} />
+                  </article>
+                </div>
+              </CarouselItem>
+            );
+          })}
+        </CarouselContent>
+      </Carousel>
     </main>
   );
 };

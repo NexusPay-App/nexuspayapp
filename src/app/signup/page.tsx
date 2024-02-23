@@ -2,12 +2,21 @@
 
 import { useRouter } from "next/navigation";
 import React from "react";
+import { useForm } from "react-hook-form";
 
 const Signup = () => {
   const router = useRouter();
 
-  const handleNavigate = () => {
-    event?.preventDefault();
+  // Form Hook for SignUp
+  const {
+    register: registerSignUp,
+    handleSubmit: handleSubmitSignUp,
+    setValue: setSignUpValue,
+    formState: { errors: errorsSignUp },
+    control: controlSignUp,
+  } = useForm();
+
+  const submitSignUp = () => {
     router.replace("/login");
   };
 
@@ -18,30 +27,18 @@ const Signup = () => {
         <h4 className="text-white my-5">
           Enter your Details to SignUp to NexusPay
         </h4>
-        <form onSubmit={() => handleNavigate()}>
+        <form onSubmit={handleSubmitSignUp(submitSignUp)}>
           <span className="flex flex-col">
             <label
-              htmlFor="firstName"
+              htmlFor="userName"
               className="text-[#909090] p-1 text-sm mt-4"
             >
-              First Name
+              User Name
             </label>
             <input
+              {...registerSignUp("userName")}
               type="number"
-              placeholder="Enter your First Name"
-              className="p-3 rounded-full text-sm"
-            />
-          </span>
-          <span className="flex flex-col">
-            <label
-              htmlFor="lastName"
-              className="text-[#909090] p-1 text-sm mt-4"
-            >
-              Last Name
-            </label>
-            <input
-              type="number"
-              placeholder="Enter your Last Name"
+              placeholder="Enter your User Name"
               className="p-3 rounded-full text-sm"
             />
           </span>
@@ -50,15 +47,21 @@ const Signup = () => {
               htmlFor="phoneNumber"
               className="text-[#909090] p-1 text-sm mt-4"
             >
-              Phone Number
+              Phone Number eg (+254720****20)
             </label>
-            <input
-              type="number"
-              placeholder="Enter your Phone Number"
-              className="p-3 rounded-full text-sm"
-            />
+            <span className="flex">
+              <h4 className="p-3 rounded-full bg-white mr-1 text-sm font-semibold">
+                +254
+              </h4>
+              <input
+                {...registerSignUp("phoneNumber")}
+                type="number"
+                placeholder="Enter your Phone Number"
+                className="p-3 rounded-full text-sm w-full"
+              />
+            </span>
           </span>
-          <span className="flex flex-col mt-5">
+          <span className="flex flex-col ">
             <label
               htmlFor="password"
               className="text-[#909090] p-1 text-sm mt-4"
@@ -66,6 +69,7 @@ const Signup = () => {
               Password
             </label>
             <input
+              {...registerSignUp("password")}
               type="password"
               placeholder="Enter your Password"
               className="p-3 rounded-full text-sm"

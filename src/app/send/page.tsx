@@ -1,14 +1,28 @@
 "use client";
 
 import Contact from "@/components/contact/Contact";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { recentContactSource } from "@/helpers/recentContactSource";
 import { ArrowLeft, CaretRight } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React from "react";
+import { Controller, useForm } from "react-hook-form";
 
 const Send = () => {
   const router = useRouter();
+  const {
+    register,
+    handleSubmit,
+    control,
+    formState: { errors },
+  } = useForm();
 
   const handleContinue = () => {
     event?.preventDefault();
@@ -23,7 +37,35 @@ const Send = () => {
         <h3 className="text-white text-xl">Send Crypto</h3>
         <span></span>
       </div>
-      <form onSubmit={handleContinue} className="my-5">
+      <form onSubmit={handleContinue} className="my-2">
+        <label htmlFor="chain" className="text-[#909090] p-1">
+          Select Chain
+        </label>
+        <Controller
+          name="region"
+          control={control}
+          render={({ field }) => (
+            <Select
+              defaultValue="USDC"
+              onValueChange={(value: string) => {
+                field.onChange;
+              }}
+              value={field.value}
+            >
+              <SelectTrigger className="w-full my-[5px] p-3">
+                <SelectValue defaultValue="USDC" placeholder="Select Chain" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="USDC">USDC</SelectItem>
+                <SelectItem value="ARB">Arbitrum</SelectItem>
+                <SelectItem value="ICP">ICP</SelectItem>
+                <SelectItem value="CELO">CELO</SelectItem>
+                <SelectItem value="BASE">BASE</SelectItem>
+                <SelectItem value="POLY">Polygon</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+        />
         <span className="flex flex-col">
           <label htmlFor="phoneNumber" className="text-[#909090] p-1">
             Phone Number

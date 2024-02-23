@@ -2,17 +2,34 @@
 
 import Transactions from "@/components/transactions/Transactions";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ARB } from "@/constants/svg";
+import {
   ArrowCircleDown,
   BellSimple,
   CreditCard,
   List,
   PaperPlaneTilt,
 } from "@phosphor-icons/react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
-import React from "react";
+import React, { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 
 const Home = () => {
+  const [chain, setChain] = useState("USDC");
   const router = useRouter();
+  const {
+    register,
+    handleSubmit,
+    control,
+    formState: { errors },
+  } = useForm();
 
   const handleSend = () => {
     router.replace("/send");
@@ -33,9 +50,41 @@ const Home = () => {
           <List size={24} color="#ffffff" weight="fill" />
           <BellSimple size={24} color="#ffffff" weight="fill" />
         </div>
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-center my-[20px]">
+          <Controller
+            name="region"
+            control={control}
+            render={({ field }) => (
+              <Select
+                defaultValue="USDC"
+                onValueChange={(value: string) => {
+                  field.onChange;
+                  setChain(value);
+                }}
+                value={field.value}
+              >
+                <SelectTrigger className="w-full my-[20px] p-3">
+                  <SelectValue
+                    defaultValue="USDC"
+                    placeholder="Select Chain"
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USDC">USDC</SelectItem>
+                  <SelectItem value="ARB">Arbitrum</SelectItem>
+                  <SelectItem value="ICP">ICP</SelectItem>
+                  <SelectItem value="CELO">CELO</SelectItem>
+                  <SelectItem value="BASE">BASE</SelectItem>
+                  <SelectItem value="POLY">Polygon</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          />
           <h3 className="text-white my-1">Wallet Balance</h3>
-          <h1 className="text-4xl text-white font-bold mb-3"> 40,000</h1>
+          <h1 className="text-4xl text-white font-bold mb-3">
+            {" "}
+            40,000 {chain}
+          </h1>
         </div>
         <div className="flex justify-around relative top-20 ">
           <div className="flex flex-col items-center" onClick={handleSend}>

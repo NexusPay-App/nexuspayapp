@@ -1,6 +1,13 @@
 "use client";
 
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -10,10 +17,36 @@ import {
 import { ArrowLeft, Scan } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React from "react";
+import React, { useState } from "react";
+import { useForm } from "react-hook-form";
 
 const SendAmount = () => {
   const router = useRouter();
+  const [openPassWord, setOpenPassWord] = useState(false);
+
+  // Form Hook for
+  const {
+    register: register,
+    handleSubmit: handleSubmit,
+    setValue: setValue,
+    formState: { errors: errors },
+    control: control,
+  } = useForm();
+
+  const submit = () => {
+    setOpenPassWord(true);
+  };
+
+  // Form Hook for PassWord
+  const {
+    register: registerPassWord,
+    handleSubmit: handleSubmitPassWord,
+    setValue: setPassWordValue,
+    formState: { errors: errorsPassWord },
+    control: controlPassWord,
+  } = useForm();
+
+  const submitPassWord = () => {};
 
   const handleSend = () => {
     router.replace("/send");
@@ -34,7 +67,35 @@ const SendAmount = () => {
         <h3 className="text-4xl text-white font-bold">ksh 500</h3>
         <h5 className="text-xl text-white">3.12 USDC</h5>
       </div>
-      <form className="mt-10">
+
+      <Dialog open={openPassWord} onOpenChange={setOpenPassWord}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-black"> Confirm Password</DialogTitle>
+            <DialogDescription></DialogDescription>
+            <hr className="my-4" />
+            <form
+              className="flex flex-col justify-around h-[200px]"
+              onSubmit={handleSubmitPassWord(submitPassWord)}
+            >
+              <input
+                {...registerPassWord("passWord")}
+                id=""
+                type="number"
+                placeholder="Enter PassWord"
+                className="flex justify-around border border-gray-300 bg-white rounded-md py-3 px-6  w-full focus:outline-none ring-offset-[#A5A5A533] focus-visible:bg-transparent text-black"
+              />
+              <button
+                type="submit"
+                className="bg-black text-white font-semibold rounded-lg p-3"
+              >
+                Confirm PassWord
+              </button>
+            </form>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+      <form onSubmit={handleSubmit(submit)} className="mt-10">
         <Select>
           <SelectTrigger className=" border border-[#0795B0] rounded-lg px-4 py-6 bg-transparent text-white text-sm outline-none">
             <SelectValue placeholder="Select Currency" />

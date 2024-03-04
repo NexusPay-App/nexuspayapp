@@ -1,125 +1,218 @@
+// "use client";
+
+// import {
+//   Dialog,
+//   DialogContent,
+//   DialogDescription,
+//   DialogHeader,
+//   DialogTitle,
+// } from "@/components/ui/dialog";
+// import { useRouter } from "next/navigation";
+// import React, { useState } from "react";
+// import { useForm } from "react-hook-form";
+
+// const Login = () => {
+//   const [openOTP, setOpenOTP] = useState(false);
+//   const router = useRouter();
+
+//   // Form Hook for Login
+//   const {
+//     register: registerLogin,
+//     handleSubmit: handleSubmitLogin,
+//     setValue: setLoginValue,
+//     formState: { errors: errorsLogin },
+//     control: controlLogin,
+//   } = useForm();
+
+//   const submitLogin = () => {
+//     setOpenOTP(true);
+//   };
+
+//   // Form Hook for OTP
+//   const {
+//     register: registerOTP,
+//     handleSubmit: handleSubmitOTP,
+//     setValue: setOTPValue,
+//     formState: { errors: errorsOTP },
+//     control: controlOTP,
+//   } = useForm();
+
+//   const submitOTP = () => {
+//     router.replace("/home");
+//   };
+
+//   return (
+//     <section className="app-background">
+//       <Dialog open={openOTP} onOpenChange={setOpenOTP}>
+//         <DialogContent>
+//           <DialogHeader>
+//             <DialogTitle className="text-black">
+//               {" "}
+//               Confirm OPT-code sent to Phone Number{" "}
+//             </DialogTitle>
+//             <DialogDescription></DialogDescription>
+//             <hr className="my-4" />
+//             <form
+//               className="flex flex-col justify-around h-[200px]"
+//               onSubmit={handleSubmitOTP(submitOTP)}
+//             >
+//               <label
+//                 htmlFor="otpcode"
+//                 className="text-black font-semibold mb-2"
+//               >
+//                 OTP-Code
+//               </label>
+//               <input
+//                 {...registerOTP("otp")}
+//                 id=""
+//                 type="number"
+//                 placeholder="Enter OTP"
+//                 className="flex justify-around border border-gray-300 bg-white rounded-md py-3 px-6  w-full focus:outline-none ring-offset-[#A5A5A533] focus-visible:bg-transparent text-black"
+//               />
+//               <button
+//                 type="submit"
+//                 className="bg-black text-white font-semibold rounded-lg p-3"
+//               >
+//                 Confirm OTP Code
+//               </button>
+//             </form>
+//           </DialogHeader>
+//         </DialogContent>
+//       </Dialog>
+//       <article className="">
+//         <h2 className="text-4xl text-white font-bold">Sign in with Password</h2>
+//         <h4 className="text-white my-5">
+//           Enter your Phone Number to Login to NexusPay
+//         </h4>
+//         <form onSubmit={handleSubmitLogin(submitLogin)}>
+//           <span className="flex flex-col">
+//             <label
+//               htmlFor="phoneNumber"
+//               className="text-[#909090] p-1 text-sm mt-4"
+//             >
+//               Phone Number eg (+254720****20)
+//             </label>
+//             <span className="flex">
+//               <h4 className="p-3 rounded-full bg-white mr-1 text-sm font-semibold">
+//                 +254
+//               </h4>
+//               <input
+//                 {...registerLogin("phoneNumber")}
+//                 type="number"
+//                 placeholder="Enter your Phone Number"
+//                 className="p-3 rounded-full text-sm w-full"
+//               />
+//             </span>
+//           </span>
+//           <span className="flex flex-col mt-5">
+//             <label htmlFor="password" className="text-[#909090] p-1 text-sm">
+//               Password
+//             </label>
+//             <input
+//               {...registerLogin("phoneNumber")}
+//               type="password"
+//               placeholder="Enter your Password"
+//               className="p-3 rounded-full text-sm"
+//             />
+//           </span>
+//           <span className="flex justify-end mb-5">
+//             <h5 className="text-[#909090] p-1 text-sm font-semibold">
+//               Forgot Password?
+//             </h5>
+//           </span>
+//           <input
+//             type="submit"
+//             value="Connect"
+//             className="bg-white p-3 rounded-full font-bold w-full cursor-pointer"
+//           />
+//         </form>
+//       </article>
+//     </section>
+//   );
+// };
+
+// export default Login;
+
+
+
+
 "use client";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { useRouter } from "next/navigation";
-import React, { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useRouter } from "next/navigation"; // Correcting import for useRouter
+import React from "react";
+import { SubmitHandler, useForm } from "react-hook-form";
+
+interface LoginFormFields {
+  phoneNumber: string;
+  password: string;
+}
+
 
 const Login = () => {
-  const [openOTP, setOpenOTP] = useState(false);
   const router = useRouter();
 
-  // Form Hook for Login
-  const {
-    register: registerLogin,
-    handleSubmit: handleSubmitLogin,
-    setValue: setLoginValue,
-    formState: { errors: errorsLogin },
-    control: controlLogin,
-  } = useForm();
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormFields>();
 
-  const submitLogin = () => {
-    setOpenOTP(true);
-  };
+  const submitLogin: SubmitHandler<LoginFormFields> = async (data) => {
+    try {
+      const response = await fetch('http://localhost:8000/api/auth/login', { // Adjust the URL to your API endpoint
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
 
-  // Form Hook for OTP
-  const {
-    register: registerOTP,
-    handleSubmit: handleSubmitOTP,
-    setValue: setOTPValue,
-    formState: { errors: errorsOTP },
-    control: controlOTP,
-  } = useForm();
+      if (!response.ok) {
+        throw new Error('Failed to login');
+      }
 
-  const submitOTP = () => {
-    router.replace("/home");
+      const responseData = await response.json();
+      console.log('Login successful:', responseData); // Process your login here (e.g., redirect, store token)
+
+      router.replace("/home"); // Navigate to home on successful login
+    } catch (error) {
+      console.error("Login error:", error);
+      // Handle login errors, e.g., show a message to the user
+    }
   };
 
   return (
     <section className="app-background">
-      <Dialog open={openOTP} onOpenChange={setOpenOTP}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="text-black">
-              {" "}
-              Confirm OPT-code sent to Phone Number{" "}
-            </DialogTitle>
-            <DialogDescription></DialogDescription>
-            <hr className="my-4" />
-            <form
-              className="flex flex-col justify-around h-[200px]"
-              onSubmit={handleSubmitOTP(submitOTP)}
-            >
-              <label
-                htmlFor="otpcode"
-                className="text-black font-semibold mb-2"
-              >
-                OTP-Code
-              </label>
-              <input
-                {...registerOTP("otp")}
-                id=""
-                type="number"
-                placeholder="Enter OTP"
-                className="flex justify-around border border-gray-300 bg-white rounded-md py-3 px-6  w-full focus:outline-none ring-offset-[#A5A5A533] focus-visible:bg-transparent text-black"
-              />
-              <button
-                type="submit"
-                className="bg-black text-white font-semibold rounded-lg p-3"
-              >
-                Confirm OTP Code
-              </button>
-            </form>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>
-      <article className="">
+      <article>
         <h2 className="text-4xl text-white font-bold">Sign in with Password</h2>
         <h4 className="text-white my-5">
-          Enter your Phone Number to Login to NexusPay
+          Enter your Phone Number to Login
         </h4>
-        <form onSubmit={handleSubmitLogin(submitLogin)}>
-          <span className="flex flex-col">
-            <label
-              htmlFor="phoneNumber"
-              className="text-[#909090] p-1 text-sm mt-4"
-            >
+        <form onSubmit={handleSubmit(submitLogin)}>
+
+          <div className="flex flex-col">
+            <label htmlFor="phoneNumber" className="text-[#909090] p-1 text-sm mt-4">
               Phone Number eg (+254720****20)
             </label>
-            <span className="flex">
-              <h4 className="p-3 rounded-full bg-white mr-1 text-sm font-semibold">
-                +254
-              </h4>
-              <input
-                {...registerLogin("phoneNumber")}
-                type="number"
-                placeholder="Enter your Phone Number"
-                className="p-3 rounded-full text-sm w-full"
-              />
-            </span>
-          </span>
-          <span className="flex flex-col mt-5">
+            <input
+              {...register("phoneNumber", { required: true })}
+              type="text"
+              placeholder="Enter your Phone Number"
+              className="p-3 rounded-full text-sm w-full"
+            />
+          </div>
+          <div className="flex flex-col mt-5">
             <label htmlFor="password" className="text-[#909090] p-1 text-sm">
               Password
             </label>
             <input
-              {...registerLogin("phoneNumber")}
+              {...register("password", { required: true })}
               type="password"
               placeholder="Enter your Password"
               className="p-3 rounded-full text-sm"
             />
-          </span>
-          <span className="flex justify-end mb-5">
-            <h5 className="text-[#909090] p-1 text-sm font-semibold">
+          </div>
+          <div className="flex justify-end mb-5">
+            <p className="text-[#909090] p-1 text-sm font-semibold">
               Forgot Password?
-            </h5>
-          </span>
+            </p>
+          </div>
           <input
             type="submit"
             value="Connect"

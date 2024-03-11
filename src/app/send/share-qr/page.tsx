@@ -3,9 +3,18 @@
 import { QRCode } from "@/constants/svg";
 import { ArrowLeft, Copy, Scan } from "@phosphor-icons/react";
 import Image from "next/image";
-import React from "react";
+import router from "next/router";
+import React, { useEffect } from "react";
 
 const ShareQr = () => {
+  useEffect(() => {
+    // Check if the user is logged in
+    const user = localStorage.getItem('user'); // Assuming 'user' is saved in localStorage on login
+    if (!user) {
+      // If not logged in, redirect to the login page
+      router.replace('/login'); // Adjust the path as needed
+    }
+  }, [router]);
   return (
     <section className="home-background flex flex-col p-5 xl:px-[200px] ">
       <div className="flex justify-between">

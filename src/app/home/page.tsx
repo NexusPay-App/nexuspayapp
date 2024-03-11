@@ -18,7 +18,7 @@ import {
 } from "@phosphor-icons/react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 const Home = () => {
@@ -31,6 +31,14 @@ const Home = () => {
     formState: { errors },
   } = useForm();
 
+  useEffect(() => {
+    // Check if the user is logged in
+    const user = localStorage.getItem('user'); // Assuming 'user' is saved in localStorage on login
+    if (!user) {
+      // If not logged in, redirect to the login page
+      router.replace('/login'); // Adjust the path as needed
+    }
+  }, [router]);
   const handleSend = () => {
     router.replace("/send");
   };

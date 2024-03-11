@@ -9,7 +9,7 @@ const OnboardingScreenOne = () => {
   const router = useRouter();
   
   const handleNavigate = () => {
-    router.replace("/signup")
+    router.replace("/login")
   }
 
   return (
@@ -17,7 +17,7 @@ const OnboardingScreenOne = () => {
       <Image src={NexusLogo} alt="" />
       <article className="">
         <h2 className="text-4xl text-white font-bold">
-          Effortless Crypto Transactions
+          Effortless Crypto Transactionsss
         </h2>
         <h4 className="text-white my-5">
           Send and receive crypto using your phone number

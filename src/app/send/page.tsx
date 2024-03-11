@@ -12,7 +12,7 @@ import { recentContactSource } from "@/helpers/recentContactSource";
 import { ArrowLeft, CaretRight } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React from "react";
+import React, { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 const Send = () => {
@@ -23,7 +23,14 @@ const Send = () => {
     control,
     formState: { errors },
   } = useForm();
-
+  useEffect(() => {
+    // Check if the user is logged in
+    const user = localStorage.getItem('user'); // Assuming 'user' is saved in localStorage on login
+    if (!user) {
+      // If not logged in, redirect to the login page
+      router.replace('/login'); // Adjust the path as needed
+    }
+  }, [router]);
   const handleContinue = () => {
     event?.preventDefault();
     router.replace("/send/amount");

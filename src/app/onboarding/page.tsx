@@ -33,7 +33,7 @@ const Onboarding = () => {
   }, []);
 
   const handleNavigate = () => {
-    router.replace("/signup");
+    router.replace("/login");
   };
 
   return (

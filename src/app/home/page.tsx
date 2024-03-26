@@ -40,7 +40,7 @@ const Home = () => {
     }
   }, [router]);
   const handleSend = () => {
-    router.replace("/send");
+    router.replace("/send/amount");
   };
 
   const handleReceive = () => {
@@ -64,7 +64,7 @@ const Home = () => {
             control={control}
             render={({ field }) => (
               <Select
-                defaultValue="USDC"
+                defaultValue="ARB"
                 onValueChange={(value: string) => {
                   field.onChange;
                   setChain(value);
@@ -73,17 +73,16 @@ const Home = () => {
               >
                 <SelectTrigger className="w-full my-[20px] p-3">
                   <SelectValue
-                    defaultValue="USDC"
+                    defaultValue="Arbitrum One"
                     placeholder="Select Chain"
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="USDC">USDC</SelectItem>
                   <SelectItem value="ARB">Arbitrum</SelectItem>
-                  <SelectItem value="ICP">ICP</SelectItem>
+                  {/* <SelectItem value="ICP">ICP</SelectItem>
                   <SelectItem value="CELO">CELO</SelectItem>
                   <SelectItem value="BASE">BASE</SelectItem>
-                  <SelectItem value="POLY">Polygon</SelectItem>
+                  <SelectItem value="POLY">Polygon</SelectItem> */}
                 </SelectContent>
               </Select>
             )}
@@ -91,7 +90,7 @@ const Home = () => {
           <h3 className="text-white my-1">Wallet Balance</h3>
           <h1 className="text-4xl text-white font-bold mb-3">
             {" "}
-            40,000 {chain}
+            40,000 KES
           </h1>
         </div>
         <div className="flex justify-around relative top-20 ">

@@ -20,9 +20,11 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-
+import { useBalance } from "@/context/BalanceContext";
 const Home = () => {
   const [chain, setChain] = useState("USDC");
+  const { balance, loading } = useBalance(); // Use the useBalance hook to get balance and loading state
+
   const router = useRouter();
   const {
     register,
@@ -79,19 +81,22 @@ const Home = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ARB">Arbitrum</SelectItem>
-                  {/* <SelectItem value="ICP">ICP</SelectItem>
-                  <SelectItem value="CELO">CELO</SelectItem>
-                  <SelectItem value="BASE">BASE</SelectItem>
-                  <SelectItem value="POLY">Polygon</SelectItem> */}
+                 
                 </SelectContent>
               </Select>
             )}
           />
-          <h3 className="text-white my-1">Wallet Balance</h3>
+         
+
+<h3 className="text-white my-1">Wallet Balance</h3>
           <h1 className="text-4xl text-white font-bold mb-3">
-            {" "}
-            40,000 KES
+            {/* {balance.balanceInKES} KES / {balance.balanceInUSDC} USDC */}
+            {parseFloat(balance.balanceInKES).toFixed(2)} KES / {parseFloat(balance.balanceInUSDC).toFixed(2)} USDC
           </h1>
+          <p className="text-xl text-white">
+            {/* Current Rate: 1 USDC = {balance.rate} KES */}
+            Current Rate: 1 USDC = {parseFloat(balance.rate).toFixed(2)} KES
+          </p>
         </div>
         <div className="flex justify-around relative top-20 ">
           <div className="flex flex-col items-center" onClick={handleSend}>

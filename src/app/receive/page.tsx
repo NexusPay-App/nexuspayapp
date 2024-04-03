@@ -6,11 +6,18 @@ import { recentContactSource } from "@/helpers/recentContactSource";
 import { ArrowLeft, CaretRight, Copy } from "@phosphor-icons/react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import React from "react";
+import React, { useEffect } from "react";
 
 const Receive = () => {
   const router = useRouter();
-
+  useEffect(() => {
+    // Check if the user is logged in
+    const user = localStorage.getItem("user"); // Assuming 'user' is saved in localStorage on login
+    if (!user) {
+      // If not logged in, redirect to the login page
+      router.replace("/login"); // Adjust the path as needed
+    }
+  }, [router]);
   const handleContinue = () => {
     event?.preventDefault();
     router.replace("/receive/amount");
@@ -18,7 +25,11 @@ const Receive = () => {
   return (
     <section className="home-background flex flex-col p-5 xl:px-[200px] ">
       <div className="flex justify-between">
-        <ArrowLeft size={24} color="#ffffff" />
+        <ArrowLeft
+          size={24}
+          color="#ffffff"
+          onClick={() => router.replace("/home")}
+        />
         <h3 className="text-white text-lg">Share QR</h3>
         <span></span>
       </div>

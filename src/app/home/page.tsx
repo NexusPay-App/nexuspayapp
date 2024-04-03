@@ -35,14 +35,14 @@ const Home = () => {
 
   useEffect(() => {
     // Check if the user is logged in
-    const user = localStorage.getItem('user'); // Assuming 'user' is saved in localStorage on login
+    const user = localStorage.getItem("user"); // Assuming 'user' is saved in localStorage on login
     if (!user) {
       // If not logged in, redirect to the login page
-      router.replace('/login'); // Adjust the path as needed
+      router.replace("/login"); // Adjust the path as needed
     }
   }, [router]);
   const handleSend = () => {
-    router.replace("/send/amount");
+    router.replace("/send");
   };
 
   const handleReceive = () => {
@@ -56,10 +56,10 @@ const Home = () => {
   return (
     <section className="home-background">
       <article className="bg-[#0A0E0E] flex flex-col p-5 xl:px-[200px] border-0 border-b border-[#0795B0]">
-        <div className="flex justify-between">
+        {/* <div className="flex justify-between">
           <List size={24} color="#ffffff" weight="fill" />
           <BellSimple size={24} color="#ffffff" weight="fill" />
-        </div>
+        </div> */}
         <div className="flex flex-col items-center my-[20px]">
           <Controller
             name="region"
@@ -81,39 +81,39 @@ const Home = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ARB">Arbitrum</SelectItem>
-                 
                 </SelectContent>
               </Select>
             )}
           />
-         
 
-<h3 className="text-white my-1">Wallet Balance</h3>
-          <h1 className="text-4xl text-white font-bold mb-3">
-            {/* {balance.balanceInKES} KES / {balance.balanceInUSDC} USDC */}
-            {parseFloat(balance.balanceInKES).toFixed(2)} KES / {parseFloat(balance.balanceInUSDC).toFixed(2)} USDC
+          <h3 className="text-white my-2">Wallet Balance</h3>
+          <h1 className="text-4xl text-white font-bold mb-3 text-center">
+            {parseFloat(balance.balanceInKES).toFixed(2)} KES
           </h1>
-          <p className="text-xl text-white">
+          <h1 className="text-xl text-white font-bold mb-3 text-center">
+            {parseFloat(balance.balanceInUSDC).toFixed(2)} USDC
+          </h1>
+          <p className="text-sm mt-2 text-white">
             {/* Current Rate: 1 USDC = {balance.rate} KES */}
             Current Rate: 1 USDC = {parseFloat(balance.rate).toFixed(2)} KES
           </p>
         </div>
         <div className="flex justify-around relative top-20 ">
           <div className="flex flex-col items-center" onClick={handleSend}>
-            <span className="border border-[#0795B0] rounded-full p-4 bg-[#0A0E0E]">
-              <PaperPlaneTilt size={24} color="#ffffff" weight="fill" />
+            <span className="border border-[#0795B0] rounded-full p-4 bg-[#0A0E0E] hover:bg-white text-white hover:text-[#0795B0] hover:cursor-pointer hover:border-white">
+              <PaperPlaneTilt size={24} weight="fill" />
             </span>
             <h4 className="text-white my-1">Send</h4>
           </div>
           <div className="flex flex-col items-center" onClick={handleReceive}>
-            <span className="border border-[#0795B0] rounded-full p-4 bg-[#0A0E0E]">
-              <ArrowCircleDown size={24} color="#ffffff" />
+            <span className="border border-[#0795B0] rounded-full p-4 bg-[#0A0E0E] hover:bg-white text-white hover:text-[#0795B0] hover:cursor-pointer hover:border-white">
+              <ArrowCircleDown size={24} weight="fill" />
             </span>
             <h4 className="text-white my-1">Receive</h4>
           </div>
           <div className="flex flex-col items-center" onClick={handlePay}>
-            <span className="border border-[#0795B0] rounded-full p-4 bg-[#0A0E0E]">
-              <CreditCard size={24} color="#ffffff" />
+            <span className="border border-[#0795B0] rounded-full p-4 bg-[#0A0E0E] hover:bg-white text-white hover:text-[#0795B0] hover:cursor-pointer hover:border-white">
+              <CreditCard size={24} weight="fill" />
             </span>
             <h4 className="text-white my-1">Pay</h4>
           </div>

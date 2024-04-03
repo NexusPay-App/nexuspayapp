@@ -4,7 +4,6 @@
 // import React, { useState } from "react";
 // import { useForm } from "react-hook-form";
 
-
 // const Signup = () => {
 
 //   const router = useRouter();
@@ -95,7 +94,6 @@
 
 // export default Signup;
 
-
 // "use client";
 
 // import React, { useState } from "react";
@@ -136,7 +134,6 @@
 //     router.replace("/home"); // Navigate to home on successful OTP verification
 //   };
 
-
 // "use client";
 
 // import React, { useState } from "react";
@@ -149,7 +146,6 @@
 //   DialogTitle,
 // } from "@/components/ui/dialog";
 
-
 // const Signup = () => {
 //   const [openOTP, setOpenOTP] = useState(false);
 //   const [phoneNumber, setPhoneNumber] = useState(""); // To store phone number for OTP verification
@@ -161,7 +157,6 @@
 //     handleSubmit: handleSubmitSignUp,
 //     formState: { errors: errorsSignUp },
 //   } = useForm();
-
 
 //   const initiateSignUp = async (data: { phoneNumber: React.SetStateAction<string>; }) => {
 //     // Call the register/initiate API
@@ -400,7 +395,6 @@
 //     }
 //   };
 
-
 // "use client";
 // import React, { useState } from "react";
 // import { useRouter } from "next/navigation"; // Make sure to import from 'next/router' not 'next/navigation'
@@ -503,8 +497,6 @@
 //     }
 //   };
 
-  
-
 //   return (
 //     <section className="app-background">
 //       <Dialog open={openOTP} onOpenChange={setOpenOTP}>
@@ -546,16 +538,12 @@
 
 // export default Signup;
 
-
-
-
 ////TODAY
 // "use client";
 
 // import { useRouter } from "next/navigation";
 // import React, { useState } from "react";
 // import { useForm } from "react-hook-form";
-
 
 // const Signup = () => {
 
@@ -647,7 +635,6 @@
 
 // export default Signup;
 
-
 // "use client";
 
 // import React, { useState } from "react";
@@ -688,7 +675,6 @@
 //     router.replace("/home"); // Navigate to home on successful OTP verification
 //   };
 
-
 // "use client";
 
 // import React, { useState } from "react";
@@ -701,7 +687,6 @@
 //   DialogTitle,
 // } from "@/components/ui/dialog";
 
-
 // const Signup = () => {
 //   const [openOTP, setOpenOTP] = useState(false);
 //   const [phoneNumber, setPhoneNumber] = useState(""); // To store phone number for OTP verification
@@ -713,7 +698,6 @@
 //     handleSubmit: handleSubmitSignUp,
 //     formState: { errors: errorsSignUp },
 //   } = useForm();
-
 
 //   const initiateSignUp = async (data: { phoneNumber: React.SetStateAction<string>; }) => {
 //     // Call the register/initiate API
@@ -867,7 +851,7 @@
 //   throw new Error("Function not implemented.");
 // }
 
-"use client"
+"use client";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -878,7 +862,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"; // Assuming these components exist in your project
 import { useAuth as useAuthOriginal } from "@/context/AuthContext"; // Import the original useAuth hook
-
+import { Player, Controls } from "@lottiefiles/react-lottie-player"; // import  react lottie player
+import loading from "../../../public/json/loading.json";
 
 // Define your form fields interface
 interface LoginFormFields {
@@ -930,13 +915,16 @@ const Signup = () => {
 
   const initiateSignUp = async (data: SignUpFormData) => {
     // Assuming the API endpoint '/api/register/initiate' expects userName, phoneNumber, and password
-    const response = await fetch("http://localhost:8000/api/auth/register/initiate", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    });
+    const response = await fetch(
+      "http://localhost:8000/api/auth/register/initiate",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      }
+    );
 
     if (response.ok) {
       setUserDetails(data); // Store user details for later use
@@ -973,38 +961,43 @@ const Signup = () => {
 
   const verifyOTP = async (otpData: OTPFormData) => {
     if (!userDetails) return; // Ensure userDetails is not null
-  
+
     // Call the register API with stored user details and provided OTP
-    const registerResponse = await fetch("http://localhost:8000/api/auth/register", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        ...userDetails,
-        otp: otpData.otp,
-      }),
-    });
-  
-    if (registerResponse.ok) {
-      // After successful registration, perform login
-      const loginResponse = await fetch("http://localhost:8000/api/auth/login", {
+    const registerResponse = await fetch(
+      "http://localhost:8000/api/auth/register",
+      {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          phoneNumber: userDetails.phoneNumber,
-          password: userDetails.password,
+          ...userDetails,
+          otp: otpData.otp,
         }),
-      });
-  
+      }
+    );
+
+    if (registerResponse.ok) {
+      // After successful registration, perform login
+      const loginResponse = await fetch(
+        "http://localhost:8000/api/auth/login",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            phoneNumber: userDetails.phoneNumber,
+            password: userDetails.password,
+          }),
+        }
+      );
+
       if (loginResponse.ok) {
         // Assuming login API sends back user data and/or auth tokens
         // You might want to save the auth token here, for example:
         // const data = await loginResponse.json();
         // localStorage.setItem('authToken', data.token);
-
 
         const responseData = await loginResponse.json();
         login(responseData); // Use the login function from your context
@@ -1020,41 +1013,102 @@ const Signup = () => {
       console.error("Failed to verify OTP.");
     }
   };
-  
 
   return (
     <section className="app-background">
       <Dialog open={openOTP} onOpenChange={setOpenOTP}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-black">Confirm OTP-code sent to Phone Number</DialogTitle>
+            <DialogTitle className="text-black">
+              Confirm OTP-code sent to Phone Number
+            </DialogTitle>
             <hr className="my-4" />
-            <form onSubmit={handleOTPSubmit(verifyOTP)} className="flex flex-col justify-around h-[200px]">
-              <label htmlFor="otpcode" className="text-black font-semibold mb-2">OTP-Code</label>
-              <input {...registerOTP("otp")} type="number" placeholder="Enter OTP" className="flex justify-around border border-gray-300 bg-white rounded-md py-3 px-6 w-full focus:outline-none ring-offset-[#A5A5A533] focus-visible:bg-transparent text-black" />
-              <button type="submit" className="bg-black text-white font-semibold rounded-lg p-3">Confirm OTP Code</button>
+            <form
+              onSubmit={handleOTPSubmit(verifyOTP)}
+              className="flex flex-col justify-around h-[200px]"
+            >
+              <label
+                htmlFor="otpcode"
+                className="text-black font-semibold mb-2"
+              >
+                OTP-Code
+              </label>
+              <input
+                {...registerOTP("otp")}
+                type="number"
+                placeholder="Enter OTP"
+                className="flex justify-around border border-gray-300 bg-white rounded-md py-3 px-6 w-full focus:outline-none ring-offset-[#A5A5A533] focus-visible:bg-transparent text-black"
+              />
+              <button
+                type="submit"
+                className="bg-black text-white font-semibold rounded-lg p-3"
+              >
+                Confirm OTP Code
+              </button>
             </form>
           </DialogHeader>
         </DialogContent>
       </Dialog>
       <article>
         <h2 className="text-4xl text-white font-bold">Sign Up to NexusPay</h2>
-        <h4 className="text-white my-5">Enter your Details to Sign Up to NexusPay</h4>
+        <h4 className="text-white my-5">
+          Enter your Details to Sign Up to NexusPay
+        </h4>
         <form onSubmit={handleSignUpSubmit(initiateSignUp)}>
           {/* Input fields for userName, phoneNumber, and password */}
           <span className="flex flex-col">
-            <label htmlFor="userName" className="text-[#909090] p-1 text-sm mt-4">User Name</label>
-            <input {...register("userName")} type="text" placeholder="Enter your User Name" className="p-3 rounded-full text-sm" />
+            <label
+              htmlFor="userName"
+              className="text-[#909090] p-1 text-sm mt-4"
+            >
+              User Name
+            </label>
+            <input
+              {...register("userName")}
+              type="text"
+              placeholder="Enter your User Name"
+              className="p-3 rounded-full text-sm"
+            />
           </span>
           <span className="flex flex-col">
-            <label htmlFor="phoneNumber" className="text-[#909090] p-1 text-sm mt-4">Phone Number eg (+254720****20)</label>
-            <input {...register("phoneNumber")} type="text" placeholder="Enter your Phone Number" className="p-3 rounded-full text-sm w-full" />
+            <label
+              htmlFor="phoneNumber"
+              className="text-[#909090] p-1 text-sm mt-4"
+            >
+              Phone Number eg (+254720****20)
+            </label>
+            <input
+              {...register("phoneNumber")}
+              type="text"
+              placeholder="Enter your Phone Number"
+              className="p-3 rounded-full text-sm w-full"
+            />
           </span>
           <span className="flex flex-col">
-            <label htmlFor="password" className="text-[#909090] p-1 text-sm mt-4">Password</label>
-            <input {...register("password")} type="password" placeholder="Enter your Password" className="p-3 rounded-full text-sm" />
+            <label
+              htmlFor="password"
+              className="text-[#909090] p-1 text-sm mt-4"
+            >
+              Password
+            </label>
+            <input
+              {...register("password")}
+              type="password"
+              placeholder="Enter your Password"
+              className="p-3 rounded-full text-sm mb-5"
+            />
           </span>
-          <input type="submit" value="Sign Up" className="bg-white p-3 rounded-full font-bold w-full cursor-pointer" />
+          <input
+            type="submit"
+            value="Sign Up"
+            className="bg-white p-3 rounded-full font-bold w-full cursor-pointer"
+          />
+          <Player
+            keepLastFrame
+            autoplay
+            src={loading}
+            style={{ height: "100px", width: "100px" }}
+          ></Player>
         </form>
       </article>
     </section>

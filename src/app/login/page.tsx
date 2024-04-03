@@ -133,9 +133,6 @@
 
 // export default Login;
 
-
-
-
 // "use client";
 
 // import { useRouter } from "next/navigation"; // Correcting import for useRouter
@@ -146,7 +143,6 @@
 //   phoneNumber: string;
 //   password: string;
 // }
-
 
 // const Login = () => {
 //   const router = useRouter();
@@ -226,7 +222,6 @@
 
 // export default Login;
 
-
 // "use client";
 
 // import React from "react";
@@ -238,7 +233,6 @@
 //   phoneNumber: string;
 //   password: string;
 // }
-
 
 // const Login = () => {
 //   const { login } = useAuth(); // Destructure the login function from useAuth
@@ -320,10 +314,19 @@
 // Login.tsx
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation"; // Adjusted import for useRouter
 import { useForm, SubmitHandler } from "react-hook-form";
 import { useAuth as useAuthOriginal } from "@/context/AuthContext"; // Import the original useAuth hook
+import { Player } from "@lottiefiles/react-lottie-player"; //import the react animation lottie player
+import loading from "../../../public/json/loading.json";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import Link from "next/link";
 
 // Define your form fields interface
 interface LoginFormFields {
@@ -343,21 +346,27 @@ const useAuth = () => useAuthOriginal() as unknown as AuthContextType;
 
 const Login: React.FC = () => {
   const router = useRouter();
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormFields>();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormFields>();
   const { login } = useAuth(); // Use the typed useAuth hook here
+  const [openLoading, setOpenLoading] = useState(false);
 
   const submitLogin: SubmitHandler<LoginFormFields> = async (data) => {
+    // setOpenLoading(true);
     try {
-      const response = await fetch('http://localhost:8000/api/auth/login', {
-        method: 'POST',
+      const response = await fetch("http://localhost:8000/api/auth/login", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to login');
+        throw new Error("Failed to login");
       }
 
       const responseData = await response.json();
@@ -373,12 +382,13 @@ const Login: React.FC = () => {
     <section className="app-background">
       <article>
         <h2 className="text-4xl text-white font-bold">Sign in with Password</h2>
-        <h4 className="text-white my-5">
-          Enter your Phone Number to Login
-        </h4>
+        <h4 className="text-white my-5">Enter your Phone Number to Login</h4>
         <form onSubmit={handleSubmit(submitLogin)}>
           <div className="flex flex-col">
-            <label htmlFor="phoneNumber" className="text-[#909090] p-1 text-sm mt-4">
+            <label
+              htmlFor="phoneNumber"
+              className="text-[#909090] p-1 text-sm mt-4"
+            >
               Phone Number eg (+254720****20)
             </label>
             <input
@@ -399,9 +409,9 @@ const Login: React.FC = () => {
               className="p-3 rounded-full text-sm"
             />
           </div>
-          <div className="flex justify-end mb-5">
+          <div className="flex justify-start mb-5">
             <p className="text-[#909090] p-1 text-sm font-semibold">
-              Forgot Password?
+              Don&apos;t have an account? <Link href="/signup">Sign Up</Link>
             </p>
           </div>
           <input
@@ -409,6 +419,20 @@ const Login: React.FC = () => {
             value="Connect"
             className="bg-white p-3 rounded-full font-bold w-full cursor-pointer"
           />
+          <Dialog open={openLoading} onOpenChange={setOpenLoading}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="text-black">Signing You In</DialogTitle>
+                <Player
+                  keepLastFrame
+                  autoplay
+                  loop
+                  src={loading}
+                  className="w-[300px] h-[300px]"
+                ></Player>
+              </DialogHeader>
+            </DialogContent>
+          </Dialog>
         </form>
       </article>
     </section>

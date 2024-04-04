@@ -86,27 +86,37 @@
 
 // export default Transactions;
 
-"use client"
-import { ArrowCircleDown, CaretRight } from "@phosphor-icons/react";
+"use client";
+import { Transactions } from "@/types/api-types";
+import {
+  ArrowCircleDown,
+  ArrowCircleUp,
+  CaretRight,
+} from "@phosphor-icons/react";
 import React, { useEffect, useState } from "react";
 
 const Transactions = () => {
-  const [transactions, setTransactions] = useState([]);
-  const [wallet, setWallet] = useState("")
-  useEffect( () => {
-    
-    const user = localStorage.getItem('user'); // Retrieves a string
+  const [transactions, setTransactions] = useState<Transactions[]>([]);
+  const [wallet, setWallet] = useState("");
+  useEffect(() => {
+    const user = localStorage.getItem("user"); // Retrieves a string
     const userObject = JSON.parse(user); // Parses the string back into an object
     console.log(userObject.walletAddress); // Now you can safely access phoneNumber
-     setWallet(userObject.walletAddress);
+    setWallet(userObject.walletAddress);
     // fetch("http://localhost:8000/api/token/token-transfer-events?address=0xe1F4615Afec6801493FB889eDe3A70812c842d05")
-    fetch(`http://localhost:8000/api/token/token-transfer-events?address=${userObject.walletAddress}`)
+    fetch(
+      `http://localhost:8000/api/token/token-transfer-events?address=${userObject.walletAddress}`
+    )
       .then((response) => response.json())
-      .then((data) => setTransactions(data))
+      .then((data) => {
+        console.log(data);
+        setTransactions(data);
+      })
       .catch((error) => console.error("Error fetching transactions:", error));
   }, []);
 
-  const formatValue = (value, decimals) => (value / Math.pow(10, decimals)).toFixed(2);
+  const formatValue = (value, decimals) =>
+    (value / Math.pow(10, decimals)).toFixed(2);
 
   return (
     <article className="flex flex-col p-3 md:p-5 xl:px-[200px]">
@@ -119,15 +129,29 @@ const Transactions = () => {
           <span className="flex justify-between my-2" key={index}>
             <span className="flex">
               <span className="border border-[#0795B0] rounded-full p-4 bg-[#0A0E0E]">
-                <ArrowCircleDown size={24} color="#ffffff" />
+                {transaction.to.toLowerCase() === wallet.toLowerCase() ? (
+                  <ArrowCircleDown size={24} color="#ffffff" />
+                ) : (
+                  <ArrowCircleUp size={24} color="#ffffff" />
+                )}
               </span>
               <span className="ml-3">
-                <h3 className="text-white font-semibold">{transaction.to.toLowerCase() === "0xe1f4615afec6801493fb889ede3a70812c842d05".toLowerCase() ? "Received" : "Sent"} {transaction.tokenSymbol}</h3>
-                <h5 className="text-[#5A6B83] text-sm">{new Date(transaction.timeStamp * 1000).toLocaleTimeString()}</h5>
+                <h3 className="text-white font-semibold">
+                  {transaction.to.toLowerCase() === wallet.toLowerCase()
+                    ? "Received"
+                    : "Sent"}{" "}
+                  {transaction.tokenSymbol}
+                </h3>
+                <h5 className="text-[#5A6B83] text-sm">
+                  {new Date(transaction.timeStamp * 1000).toLocaleTimeString()}
+                </h5>
               </span>
             </span>
             <span>
-              <h3 className="text-white font-semibold">{formatValue(transaction.value, transaction.tokenDecimal)} {transaction.tokenSymbol}</h3>
+              <h3 className="text-white font-semibold">
+                {formatValue(transaction.value, transaction.tokenDecimal)}{" "}
+                {transaction.tokenSymbol}
+              </h3>
             </span>
           </span>
         ))}

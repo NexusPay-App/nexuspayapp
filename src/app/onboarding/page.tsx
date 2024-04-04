@@ -85,12 +85,14 @@ const Onboarding = () => {
                       }
                     />
                   </article>
-                  <Link
-                    href="/home"
-                    className="bg-white p-3 rounded-2xl mt-5 font-bold  cursor-pointer text-center"
-                  >
-                    Continue
-                  </Link>
+                  <div className="flex justify-center">
+                    <Link
+                      href="/home"
+                      className="bg-white p-3 rounded-2xl mt-5 font-bold cursor-pointer text-center w-full sm:w-[400px]"
+                    >
+                      Continue
+                    </Link>
+                  </div>
                 </div>
               </CarouselItem>
             );

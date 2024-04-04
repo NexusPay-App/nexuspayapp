@@ -169,7 +169,7 @@ const Pay = () => {
           }}
           value={inputBox}
           onChange={setInputBox}
-          numInputs={4}
+          numInputs={5}
           renderSeparator={<span>-</span>}
           renderInput={(props) => <input {...props} />}
         />

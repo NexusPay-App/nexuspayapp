@@ -104,8 +104,9 @@ const Transactions = () => {
       .then((response) => response.json())
       .then((data) => setTransactions(data))
       .catch((error) => console.error("Error fetching transactions:", error));
-  }, []);
 
+  }, []);
+console.log(transactions)
   const formatValue = (value, decimals) => (value / Math.pow(10, decimals)).toFixed(2);
 
   return (
@@ -122,7 +123,7 @@ const Transactions = () => {
                 <ArrowCircleDown size={24} color="#ffffff" />
               </span>
               <span className="ml-3">
-                <h3 className="text-white font-semibold">{transaction.to.toLowerCase() === "0xe1f4615afec6801493fb889ede3a70812c842d05".toLowerCase() ? "Received" : "Sent"} {transaction.tokenSymbol}</h3>
+                <h3 className="text-white font-semibold">{transaction.to.toLowerCase() === wallet.toLowerCase() ? "Received" : "Sent"} {transaction.tokenSymbol}</h3>
                 <h5 className="text-[#5A6B83] text-sm">{new Date(transaction.timeStamp * 1000).toLocaleTimeString()}</h5>
               </span>
             </span>

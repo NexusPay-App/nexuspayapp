@@ -21,11 +21,13 @@ import { useBalance } from "@/context/BalanceContext";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Player } from "@lottiefiles/react-lottie-player";
 import lottieSuccess from "../../../public/json/success.json";
+import lottieConfirm from "../../../public/json/confirm.json";
 
 const Send = () => {
   const router = useRouter();
@@ -40,8 +42,11 @@ const Send = () => {
   const [currency, setCurrency] = useState("usdc");
   const [equivalentAmount, setEquivalentAmount] = useState("");
   const [wallet, setWallet] = useState();
+  const [transactionFee, setTransactionFee] = useState(0); // State to hold the calculated transaction fee
   const { balance, loading } = useBalance(); // Use the useBalance hook to get balance and loading state
   const [openSuccess, setOpenSuccess] = useState(false); // Opens the Success Dialog
+  const [openConfirmTx, setOpenConfirmTx] = useState(false); // Opens the Transaction Dialog
+  const [isLoading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchConversionRate = async () => {
@@ -64,16 +69,30 @@ const Send = () => {
     fetchConversionRate();
   }, []);
 
-  // Watch for changes in the amount input to dynamically display the converted amount
   const amount = watch("amount");
 
-  // useEffect(() => {
-  //   if (!amount) setEquivalentAmount('');
-  //   else {
-  //     const convertedAmount = currency === 'usdc' ? amount / conversionRate : amount * conversionRate;
-  //     setEquivalentAmount(`${convertedAmount.toFixed(2)} ${currency === 'usdc' ? 'KSH' : 'USDC'}`);
-  //   }
-  // }, [amount, currency, conversionRate]);
+  const calculateTransactionFee = (amount) => {
+    if (amount <= 1) return 0;
+    if (amount <= 5) return 0.05;
+    if (amount <= 10) return 0.1;
+    if (amount <= 15) return 0.2;
+    if (amount <= 25) return 0.3;
+    if (amount <= 35) return 0.45;
+    if (amount <= 50) return 0.5;
+    if (amount <= 75) return 0.68;
+    if (amount <= 100) return 0.79;
+    if (amount <= 150) return 0.88;
+    return 0.95; // For amounts above $150.01
+  };
+
+  useEffect(() => {
+    if (amount) {
+      const fee = calculateTransactionFee(parseFloat(amount));
+      setTransactionFee(fee);
+    } else {
+      setTransactionFee(0);
+    }
+  }, [amount]);
 
   useEffect(() => {
     if (!amount) setEquivalentAmount("");
@@ -96,10 +115,15 @@ const Send = () => {
       : parseFloat(amount);
 
   const onSubmit = async (data: any) => {
+    console.log("submit called");
+
     // Use the converted amount if the selected currency is KSH
     // const finalAmount = currency === 'ksh' ? parseFloat(amount) * conversionRate : parseFloat(amount);
+    const fee = calculateTransactionFee(parseFloat(amount));
+    setTransactionFee(fee);
 
     const apiUrl = "http://localhost:8000/api/token/sendToken";
+    console.log("submitting");
     try {
       const response = await fetch(apiUrl, {
         method: "POST",
@@ -117,8 +141,12 @@ const Send = () => {
       const result = await response.json();
       console.log("Success:", result);
       // Additional success handling
+      setLoading(false);
+      setOpenConfirmTx(false);
       setOpenSuccess(true);
     } catch (error) {
+      setLoading(false);
+      setOpenConfirmTx(false);
       console.error("Error:", error);
       // Error handling
     }
@@ -159,7 +187,13 @@ const Send = () => {
         <h3 className="text-4xl text-white font-bold">ksh 500</h3>
         <h5 className="text-xl text-white">3.12 USDC</h5>
      </div> */}
-      <form onSubmit={handleSubmit(onSubmit)} className="mt-10">
+      <form
+        onSubmit={handleSubmit((data) => {
+          setOpenConfirmTx(true);
+          onSubmit(data);
+        })}
+        className="mt-10"
+      >
         {/* Currency Selection */}
         <Select value={currency} onValueChange={setCurrency}>
           <SelectTrigger className="border border-[#0795B0] rounded-lg px-4 py-6 bg-transparent text-white text-sm outline-none">
@@ -196,9 +230,48 @@ const Send = () => {
         )}
 
         {/* Send Button */}
-        <button className="bg-white font-bold text-lg p-3 rounded-xl w-full mt-5">
+        <button
+          onClick={() => setOpenConfirmTx(true)}
+          type="button"
+          className="bg-white font-bold text-lg p-3 rounded-xl w-full mt-5"
+        >
           Send
         </button>
+
+        <Dialog open={openConfirmTx} onOpenChange={setOpenConfirmTx}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="mb-[5px]">Confirm Payment</DialogTitle>
+              <DialogDescription>
+                Confirm Transaction Payment of {transactionFee}{" "}
+                {currency === "usdc" ? "USDC" : "KSH"}
+              </DialogDescription>
+              <div className="my-3">
+                {isLoading ? (
+                  <Player
+                    keepLastFrame
+                    autoplay
+                    loop={true}
+                    src={lottieConfirm}
+                    style={{ height: "200px", width: "200px" }}
+                  ></Player>
+                ) : null}
+              </div>
+
+              <input
+                className="bg-white font-bold text-lg p-3 rounded-xl w-full mt-5 text-black text-center"
+                value="Confirm"
+                type="submit"
+              />
+              <button
+                className="bg-red-500 font-bold text-lg p-3 rounded-xl w-full mt-5 text-white"
+                onClick={() => setOpenConfirmTx(false)}
+              >
+                Cancel Payment
+              </button>
+            </DialogHeader>
+          </DialogContent>
+        </Dialog>
       </form>
       <Dialog open={openSuccess} onOpenChange={setOpenSuccess}>
         <DialogContent className="max-w-lg">

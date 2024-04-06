@@ -38,7 +38,7 @@ const Pay = () => {
   const [isConfirming, setIsConfirming] = useState(false);
   const [businessName, setBusinessName] = useState("");
   const [inputBox, setInputBox] = useState("");
-  const [openConfirmTx, setOpenConfirmTx] = useState(false); // Opens the Success Dialog
+  const [openConfirmTx, setOpenConfirmTx] = useState(false); // Opens the Transaction Dialog
   const [openSuccess, setOpenSuccess] = useState(false); // Opens the Success Dialog
   const {
     register,

@@ -95,6 +95,7 @@ const Pay = () => {
   //   setTillNumberParts(newTillNumberParts);
   // };
 
+
   const handlePaymentConfirmationInitiation = async () => {
     const fullTillNumber = tillNumberParts;
     console.log(fullTillNumber, amount);
@@ -227,6 +228,156 @@ const Pay = () => {
     setLoading(false);
   };
 
+
+  const initiatePayment = async () => {
+    const fullTillNumber = tillNumberParts;
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    const token = user.token;
+    
+    if (!fullTillNumber || !amount || !user || !token) {
+      alert("Please fill all the fields and ensure you are logged in.");
+      return;
+    }
+    
+    // Convert amount for API if necessary
+    const finalAmount = currency === "KSH" ? parseFloat(`${amount}`) / conversionRate : parseFloat(`${amount}`);
+    
+    setLoading(true);
+    
+    try {
+      const response = await fetch("http://localhost:8000/api/token/pay", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          tokenAddress: "0xEE49EA567f79e280E4F1602eb8e6479d1Fb9c8C8",
+          businessUniqueCode: fullTillNumber,
+          amount: finalAmount,
+          senderAddress: user.walletAddress,
+          confirm: false, // Not confirming yet
+          currency: currency, // Optionally include currency type if your backend needs it
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        setBusinessName(data.businessName); // Display business name in confirmation dialog
+        setOpenConfirmTx(true); // Show confirmation dialog
+      } else {
+        alert(`Payment initiation failed: ${data.message}`);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Failed to initiate payment. Please try again.");
+    }
+    
+    setLoading(false);
+  };
+
+  
+  // const confirmPayment = async () => {
+  //   setOpenConfirmTx(false); // Close the confirmation dialog
+    
+  //   const fullTillNumber = tillNumberParts;
+  //   const user = JSON.parse(localStorage.getItem("user") || "{}");
+  //   const token = user.token;
+    
+  //   if (!fullTillNumber || !amount || !user || !token) {
+  //     alert("Please ensure all details are correct and you are logged in.");
+  //     return;
+  //   }
+    
+  //   // Use the same finalAmount calculation as in initiatePayment
+  //   const finalAmount = currency === "KSH" ? parseFloat(`${amount}`) / conversionRate : parseFloat(`${amount}`);
+    
+  //   setLoading(true);
+    
+  //   try {
+  //     const response = await fetch("http://localhost:8000/api/token/pay", {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //         Authorization: `Bearer ${token}`,
+  //       },
+  //       body: JSON.stringify({
+  //         tokenAddress: "0xEE49EA567f79e280E4F1602eb8e6479d1Fb9c8C8",
+  //         businessUniqueCode: fullTillNumber,
+  //         amount: finalAmount,
+  //         senderAddress: user.walletAddress,
+  //         confirm: true, // Now confirming the transaction
+  //         currency: currency,
+  //       }),
+  //     });
+      
+  //     const data = await response.json();
+      
+  //     if (response.ok) {
+  //       setOpenSuccess(true); // Show success dialog/message
+  //     } else {
+  //       alert(`Payment confirmation failed: ${data.message}`);
+  //     }
+  //   } catch (error) {
+  //     console.error("Error:", error);
+  //     alert("Failed to confirm payment. Please try again.");
+  //   }
+    
+  //   setLoading(false);
+  // };
+  
+
+  const confirmPayment = async () => {
+    setOpenConfirmTx(false); // Close the confirmation dialog
+    
+    const fullTillNumber = tillNumberParts;
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    const token = user.token;
+    
+    if (!fullTillNumber || !amount || !user || !token) {
+      alert("Please ensure all details are correct and you are logged in.");
+      return;
+    }
+    
+    const finalAmount = currency === "KSH" ? parseFloat(`${amount}`) / conversionRate : parseFloat(`${amount}`);
+    
+    setLoading(true);
+    
+    try {
+      const response = await fetch("http://localhost:8000/api/token/pay", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          tokenAddress: "0xEE49EA567f79e280E4F1602eb8e6479d1Fb9c8C8",
+          businessUniqueCode: fullTillNumber,
+          amount: finalAmount,
+          senderAddress: user.walletAddress,
+          confirm: true, // Confirming the transaction
+          currency: currency,
+        }),
+      });
+      
+      const data = await response.json();
+      
+      setLoading(false);
+      
+      if (response.ok) {
+        // Wait to display the success modal until after a successful backend response
+        setOpenSuccess(true); // Now show the success dialog/message
+      } else {
+        alert(`Payment confirmation failed: ${data.message}`);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Failed to confirm payment. Please try again.");
+      setLoading(false);
+    }
+  };
+  
   return (
     <section className="home-background h-screen flex flex-col p-5 xl:px-[200px]">
       {loading && <Spinner />}
@@ -309,7 +460,7 @@ const Pay = () => {
       {!isConfirming ? (
         <button
           className="bg-white font-bold text-lg p-3 rounded-xl w-full mt-5"
-          onClick={() => handlePaymentConfirmationInitiation()}
+          onClick={() => initiatePayment()}
         >
           Proceed
         </button>
@@ -320,7 +471,7 @@ const Pay = () => {
           </div>
           <button
             className="bg-green-500 text-white font-bold text-lg p-3 rounded-xl w-full"
-            onClick={() => handlePaymentInitiation()}
+            onClick={() => confirmPayment()}
           >
             Confirm Payment
           </button>
@@ -345,8 +496,8 @@ const Pay = () => {
               className="bg-white font-bold text-lg p-3 rounded-xl w-full mt-5 text-black"
               onClick={() => {
                 setOpenConfirmTx(false);
-                handlePaymentInitiation();
-                setOpenSuccess(true);
+                confirmPayment();
+                // setOpenSuccess(true);
               }}
             >
               Confirm

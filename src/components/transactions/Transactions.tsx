@@ -87,12 +87,14 @@
 // export default Transactions;
 
 "use client";
+import { TxReceive, TxSent } from "@/constants/svg";
 import { Transactions } from "@/types/api-types";
 import {
   ArrowCircleDown,
   ArrowCircleUp,
   CaretRight,
 } from "@phosphor-icons/react";
+import Image from "next/image";
 import React, { useEffect, useState } from "react";
 
 const Transactions = () => {
@@ -127,15 +129,15 @@ const Transactions = () => {
       <div>
         {transactions.map((transaction, index) => (
           <span className="flex justify-between my-2" key={index}>
-            <span className="flex">
-              <span className="border border-[#0795B0] rounded-full p-4 bg-[#0A0E0E]">
+            <span className="flex items-center">
+              <span className="border border-[#0795B0] rounded-full p-2 bg-[#0A0E0E]">
                 {transaction.to.toLowerCase() === wallet.toLowerCase() ? (
-                  <ArrowCircleDown size={24} color="#ffffff" />
+                  <Image src={TxReceive} alt="tx-receive" />
                 ) : (
-                  <ArrowCircleUp size={24} color="#ffffff" />
+                  <Image src={TxSent} alt="tx-receive" />
                 )}
               </span>
-              <span className="ml-3">
+              <span className="ml-2">
                 <h3 className="text-white font-semibold">
                   {transaction.to.toLowerCase() === wallet.toLowerCase()
                     ? "Received"

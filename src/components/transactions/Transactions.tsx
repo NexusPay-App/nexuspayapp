@@ -107,7 +107,7 @@ const Transactions = () => {
     setWallet(userObject.walletAddress);
     // fetch("http://localhost:8000/api/token/token-transfer-events?address=0xe1F4615Afec6801493FB889eDe3A70812c842d05")
     fetch(
-      `http://localhost:8000/api/token/token-transfer-events?address=${userObject.walletAddress}`
+      `https://afpaybackend.vercel.app/api/token/token-transfer-events?address=${userObject.walletAddress}`
     )
       .then((response) => response.json())
       .then((data) => {

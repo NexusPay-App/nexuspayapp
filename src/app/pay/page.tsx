@@ -62,7 +62,7 @@ const Pay = () => {
       try {
         // This URL is a placeholder. Replace it with your actual conversion rate endpoint.
         const response = await fetch(
-          "http://localhost:8000/api/usdc/conversionrate"
+          "https://afpaybackend.vercel.app/api/usdc/conversionrate"
         );
         const data = await response.json();
         setConversionRate(data.rate); // Assuming the API returns a conversion rate
@@ -111,7 +111,7 @@ console.log(currency)
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:8000/api/token/pay", {
+      const response = await fetch("https://afpaybackend.vercel.app/api/token/pay", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -164,7 +164,7 @@ console.log(finalAmount)
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:8000/api/token/pay", {
+      const response = await fetch("https://afpaybackend.vercel.app/api/token/pay", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

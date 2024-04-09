@@ -118,7 +118,7 @@ const Receive: React.FC = () => {
   };
 
   return (
-    <section className="home-background flex flex-col p-5 xl:px-[200px]">
+    <section className="home-background h-screen flex flex-col p-5 xl:px-[200px]">
       {showToast && (
         <div style={{
           position: 'fixed',

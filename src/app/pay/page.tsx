@@ -39,6 +39,7 @@ const Pay = () => {
   const [businessName, setBusinessName] = useState("");
   const [inputBox, setInputBox] = useState("");
   const [openConfirmTx, setOpenConfirmTx] = useState(false); // Opens the Transaction Dialog
+  const [openConfirmingTx, setOpenConfirmingTx] = useState(false); // Opens the Transaction Loading Dialog
   const [openSuccess, setOpenSuccess] = useState(false); // Opens the Success Dialog
   const {
     register,
@@ -94,7 +95,6 @@ const Pay = () => {
   //   newTillNumberParts[index] = value;
   //   setTillNumberParts(newTillNumberParts);
   // };
-
 
   const handlePaymentConfirmationInitiation = async () => {
     const fullTillNumber = tillNumberParts;
@@ -228,22 +228,24 @@ const Pay = () => {
     setLoading(false);
   };
 
-
   const initiatePayment = async () => {
     const fullTillNumber = tillNumberParts;
     const user = JSON.parse(localStorage.getItem("user") || "{}");
     const token = user.token;
-    
+
     if (!fullTillNumber || !amount || !user || !token) {
       alert("Please fill all the fields and ensure you are logged in.");
       return;
     }
-    
+
     // Convert amount for API if necessary
-    const finalAmount = currency === "KSH" ? parseFloat(`${amount}`) / conversionRate : parseFloat(`${amount}`);
-    
+    const finalAmount =
+      currency === "KSH"
+        ? parseFloat(`${amount}`) / conversionRate
+        : parseFloat(`${amount}`);
+
     setLoading(true);
-    
+
     try {
       const response = await fetch("http://localhost:8000/api/token/pay", {
         method: "POST",
@@ -260,9 +262,9 @@ const Pay = () => {
           currency: currency, // Optionally include currency type if your backend needs it
         }),
       });
-      
+
       const data = await response.json();
-      
+
       if (response.ok) {
         setBusinessName(data.businessName); // Display business name in confirmation dialog
         setOpenConfirmTx(true); // Show confirmation dialog
@@ -273,28 +275,27 @@ const Pay = () => {
       console.error("Error:", error);
       alert("Failed to initiate payment. Please try again.");
     }
-    
+
     setLoading(false);
   };
 
-  
   // const confirmPayment = async () => {
   //   setOpenConfirmTx(false); // Close the confirmation dialog
-    
+
   //   const fullTillNumber = tillNumberParts;
   //   const user = JSON.parse(localStorage.getItem("user") || "{}");
   //   const token = user.token;
-    
+
   //   if (!fullTillNumber || !amount || !user || !token) {
   //     alert("Please ensure all details are correct and you are logged in.");
   //     return;
   //   }
-    
+
   //   // Use the same finalAmount calculation as in initiatePayment
   //   const finalAmount = currency === "KSH" ? parseFloat(`${amount}`) / conversionRate : parseFloat(`${amount}`);
-    
+
   //   setLoading(true);
-    
+
   //   try {
   //     const response = await fetch("http://localhost:8000/api/token/pay", {
   //       method: "POST",
@@ -311,9 +312,9 @@ const Pay = () => {
   //         currency: currency,
   //       }),
   //     });
-      
+
   //     const data = await response.json();
-      
+
   //     if (response.ok) {
   //       setOpenSuccess(true); // Show success dialog/message
   //     } else {
@@ -323,27 +324,29 @@ const Pay = () => {
   //     console.error("Error:", error);
   //     alert("Failed to confirm payment. Please try again.");
   //   }
-    
+
   //   setLoading(false);
   // };
-  
 
   const confirmPayment = async () => {
     setOpenConfirmTx(false); // Close the confirmation dialog
-    
+
     const fullTillNumber = tillNumberParts;
     const user = JSON.parse(localStorage.getItem("user") || "{}");
     const token = user.token;
-    
+
     if (!fullTillNumber || !amount || !user || !token) {
       alert("Please ensure all details are correct and you are logged in.");
       return;
     }
-    
-    const finalAmount = currency === "KSH" ? parseFloat(`${amount}`) / conversionRate : parseFloat(`${amount}`);
-    
+
+    const finalAmount =
+      currency === "KSH"
+        ? parseFloat(`${amount}`) / conversionRate
+        : parseFloat(`${amount}`);
+
     setLoading(true);
-    
+
     try {
       const response = await fetch("http://localhost:8000/api/token/pay", {
         method: "POST",
@@ -360,24 +363,26 @@ const Pay = () => {
           currency: currency,
         }),
       });
-      
+
       const data = await response.json();
-      
+
       setLoading(false);
-      
+
       if (response.ok) {
         // Wait to display the success modal until after a successful backend response
+        setOpenConfirmingTx(false);
         setOpenSuccess(true); // Now show the success dialog/message
       } else {
         alert(`Payment confirmation failed: ${data.message}`);
       }
     } catch (error) {
+      setOpenConfirmingTx(false);
       console.error("Error:", error);
       alert("Failed to confirm payment. Please try again.");
       setLoading(false);
     }
   };
-  
+
   return (
     <section className="home-background h-screen flex flex-col p-5 xl:px-[200px]">
       {loading && <Spinner />}
@@ -405,6 +410,7 @@ const Pay = () => {
             width: "50px",
             fontSize: "18px",
           }}
+          inputType="number"
           value={tillNumberParts}
           onChange={setTillNumberParts}
           numInputs={5}
@@ -485,17 +491,11 @@ const Pay = () => {
               Confirm payment of {amount} {currency === "usdc" ? "USDC" : "KSH"}{" "}
               to: {businessName}
             </DialogDescription>
-            <Player
-              keepLastFrame
-              autoplay
-              loop={true}
-              src={lottieConfirm}
-              style={{ height: "200px", width: "200px" }}
-            ></Player>
             <button
               className="bg-white font-bold text-lg p-3 rounded-xl w-full mt-5 text-black"
               onClick={() => {
                 setOpenConfirmTx(false);
+                setOpenConfirmingTx(true);
                 confirmPayment();
                 // setOpenSuccess(true);
               }}
@@ -508,6 +508,24 @@ const Pay = () => {
             >
               Cancel Payment
             </button>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={openConfirmingTx} onOpenChange={setOpenConfirmingTx}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="mb-[5px]">Confirm Payment</DialogTitle>
+            <DialogDescription>
+              Confirming payment of {amount} {currency === "usdc" ? "USDC" : "KSH"}{" "}
+              to: {businessName}
+            </DialogDescription>
+            <Player
+              keepLastFrame
+              autoplay
+              loop={true}
+              src={lottieConfirm}
+              style={{ height: "200px", width: "200px" }}
+            ></Player>
           </DialogHeader>
         </DialogContent>
       </Dialog>

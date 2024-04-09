@@ -55,7 +55,6 @@ const Onboarding = () => {
       <div className="flex justify-around w-full">
         <Image src={NexusLogo} alt="" className="py-[100px]" />
       </div>
-      <div className="flex justify-center">
       <Carousel>
         <CarouselContent>
           {onboardingSource.map((element, index) => {
@@ -100,7 +99,6 @@ const Onboarding = () => {
           })}
         </CarouselContent>
       </Carousel>
-      </div>
     </main>
   );
 };

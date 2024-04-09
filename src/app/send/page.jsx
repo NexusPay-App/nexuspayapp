@@ -157,7 +157,6 @@
 //     }
 //   };
 
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -206,6 +205,7 @@ const Send = () => {
   const { balance, loading } = useBalance(); // Use the useBalance hook to get balance and loading state
   const [openSuccess, setOpenSuccess] = useState(false); // Opens the Success Dialog
   const [openConfirmTx, setOpenConfirmTx] = useState(false); // Opens the Transaction Dialog
+  const [openConfirmingTx, setOpenConfirmingTx] = useState(false); // Opens the Transaction Loading Dialog
   const [isLoading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -276,6 +276,7 @@ const Send = () => {
 
   const onSubmit = async (data) => {
     console.log("submit called");
+    setOpenConfirmingTx(true);
 
     // Use the converted amount if the selected currency is KSH
     // const finalAmount = currency === 'ksh' ? parseFloat(amount) * conversionRate : parseFloat(amount);
@@ -303,10 +304,12 @@ const Send = () => {
       // Additional success handling
       setLoading(false);
       setOpenConfirmTx(false);
+      setOpenConfirmingTx(false);
       setOpenSuccess(true);
     } catch (error) {
       setLoading(false);
       setOpenConfirmTx(false);
+      setOpenConfirmingTx(false);
       console.error("Error:", error);
       // Error handling
     }
@@ -314,11 +317,15 @@ const Send = () => {
 
   const validateInput = (value) => {
     // Ethereum address validation (basic)
-    const isEthereumAddress = value.startsWith('0x') && value.length === 42;
+    const isEthereumAddress = value.startsWith("0x") && value.length === 42;
     // Basic phone number validation
     const isPhoneNumber = /^\+[1-9]\d{1,14}$/.test(value);
 
-    return isEthereumAddress || isPhoneNumber || "Please enter a valid Ethereum address or phone number";
+    return (
+      isEthereumAddress ||
+      isPhoneNumber ||
+      "Please enter a valid Ethereum address or phone number"
+    );
   };
 
   return (
@@ -399,18 +406,20 @@ const Send = () => {
           <p className="text-red-500">Phone number is required.</p>
         )} */}
 
-<input
-        {...register("phoneNumberOrWalletAddress", { 
-          required: "This field is required",
-          validate: validateInput 
-        })}
-        type="text" // Change type to text to accommodate both formats
-        placeholder="Recipient's Phone Number or Wallet Address"
-        className="border border-[#0795B0] w-full rounded-lg px-2 py-6 bg-transparent text-white text-sm outline-none mt-5"
-      />
-      {errors.phoneNumberOrWalletAddress && (
-        <p className="text-red-500">{errors.phoneNumberOrWalletAddress.message}</p>
-      )}
+        <input
+          {...register("phoneNumberOrWalletAddress", {
+            required: "This field is required",
+            validate: validateInput,
+          })}
+          type="text" // Change type to text to accommodate both formats
+          placeholder="Recipient's Phone Number or Wallet Address"
+          className="border border-[#0795B0] w-full rounded-lg px-2 py-6 bg-transparent text-white text-sm outline-none mt-5"
+        />
+        {errors.phoneNumberOrWalletAddress && (
+          <p className="text-red-500">
+            {errors.phoneNumberOrWalletAddress.message}
+          </p>
+        )}
         {/* Send Button */}
         <button
           onClick={() => setOpenConfirmTx(true)}
@@ -440,24 +449,21 @@ const Send = () => {
                 ) : null}
               </div>
 
-             
-
-<button
-  type="button"
-  className="bg-white font-bold text-lg p-3 rounded-xl w-full mt-5 text-black"
-  onClick={() => {
-    if (typeof amount === 'string' && amount.trim() !== '') {
-      handleSubmit(onSubmit)({
-        amount,
-        phoneNumber: watch('phoneNumber'), // Assuming this is how you get the phoneNumber
-        // any other field values you need to submit
-      });
-    }
-  }}
->
-  Confirm
-</button>
-
+              <button
+                type="button"
+                className="bg-white font-bold text-lg p-3 rounded-xl w-full mt-5 text-black"
+                onClick={() => {
+                  if (typeof amount === "string" && amount.trim() !== "") {
+                    handleSubmit(onSubmit)({
+                      amount,
+                      phoneNumber: watch("phoneNumber"), // Assuming this is how you get the phoneNumber
+                      // any other field values you need to submit
+                    });
+                  }
+                }}
+              >
+                Confirm
+              </button>
 
               <button
                 className="bg-red-500 font-bold text-lg p-3 rounded-xl w-full mt-5 text-white"
@@ -465,6 +471,24 @@ const Send = () => {
               >
                 Cancel Payment
               </button>
+            </DialogHeader>
+          </DialogContent>
+        </Dialog>
+        <Dialog open={openConfirmingTx} onOpenChange={setOpenConfirmingTx}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="mb-[5px]">Confirm Payment</DialogTitle>
+              <DialogDescription>
+                Confirming Payment of {amount}{" "}
+                {currency === "usdc" ? "USDC" : "KSH"}
+              </DialogDescription>
+              <Player
+                keepLastFrame
+                autoplay
+                loop={true}
+                src={lottieConfirm}
+                style={{ height: "200px", width: "200px" }}
+              ></Player>
             </DialogHeader>
           </DialogContent>
         </Dialog>

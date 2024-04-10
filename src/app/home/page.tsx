@@ -46,7 +46,7 @@ const Home = () => {
   };
 
   const handleReceive = () => {
-    router.replace("/receive");
+    router.replace("/kyc");
   };
 
   const handlePay = () => {

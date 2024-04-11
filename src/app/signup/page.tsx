@@ -85,7 +85,7 @@ const Signup = () => {
     };
   
     const response = await fetch(
-      "http://localhost:8000/api/auth/register/initiate",
+      "https://afpaybackend.vercel.app/api/auth/register/initiate",
       {
         method: "POST",
         headers: {
@@ -112,7 +112,7 @@ const Signup = () => {
    console.log(otpData)
     // Call the register API with stored user details and provided OTP
     const registerResponse = await fetch(
-      "http://localhost:8000/api/auth/register",
+      "https://afpaybackend.vercel.app/api/auth/register",
       {
         method: "POST",
         headers: {
@@ -128,7 +128,7 @@ const Signup = () => {
     if (registerResponse.ok) {
       // After successful registration, perform login
       const loginResponse = await fetch(
-        "http://localhost:8000/api/auth/login",
+        "https://afpaybackend.vercel.app/api/auth/login",
         {
           method: "POST",
           headers: {

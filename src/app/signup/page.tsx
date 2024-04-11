@@ -70,27 +70,6 @@ const Signup = () => {
 
   const [userDetails, setUserDetails] = useState<SignUpFormData | null>(null);
 
-  // const initiateSignUp = async (data: SignUpFormData) => {
-  //   // Assuming the API endpoint '/api/register/initiate' expects userName, phoneNumber, and password
-  //   const response = await fetch(
-  //     "https://afpaybackend.vercel.app/api/auth/register/initiate",
-  //     {
-  //       method: "POST",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //       },
-  //       body: JSON.stringify(data),
-  //     }
-  //   );
-
-  //   if (response.ok) {
-  //     setUserDetails(data); // Store user details for later use
-  //     setOpenOTP(true); // Open the OTP dialog
-  //   } else {
-  //     // Handle errors, e.g., show a message to the user
-  //     console.error("Failed to initiate sign-up.");
-  //   }
-  // };
 
   const initiateSignUp = async (data: SignUpFormData) => {
     // Check if phoneNumber starts with '01' or '07' and modify it
@@ -129,7 +108,8 @@ const Signup = () => {
   const verifyOTP = async (otpData: OTPFormData) => {
     setOpenSigningUp(true);
     if (!userDetails) return; // Ensure userDetails is not null
-
+   console.log(otpData.otp)
+   console.log(otpData)
     // Call the register API with stored user details and provided OTP
     const registerResponse = await fetch(
       "http://localhost:8000/api/auth/register",
@@ -140,7 +120,7 @@ const Signup = () => {
         },
         body: JSON.stringify({
           ...userDetails,
-          otp: otpData.otp,
+          otp: tillNumberParts,
         }),
       }
     );
@@ -219,7 +199,7 @@ const Signup = () => {
                 inputType="number"
                 value={tillNumberParts}
                 onChange={setTillNumberParts}
-                numInputs={5}
+                numInputs={6}
                 renderSeparator={<span>-</span>}
                 renderInput={(props) => <input {...props} />}
               />
@@ -236,7 +216,7 @@ const Signup = () => {
       <Dialog open={openSigningUp} onOpenChange={setOpenSigningUp}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle className="mb-[5px]">Logging you in</DialogTitle>
+            <DialogTitle className="mb-[5px]">Creating Account..</DialogTitle>
 
             <Player
               keepLastFrame
@@ -261,22 +241,8 @@ const Signup = () => {
           Enter your Details to Sign Up to NexusPay
         </h4>
         <form onSubmit={handleSignUpSubmit(initiateSignUp)}>
-          {/* Input fields for userName, phoneNumber, and password */}
-          <span className="flex flex-col">
-            <label
-              htmlFor="userName"
-              className="text-[#909090] p-1 text-sm mt-4"
-            >
-              User Name
-            </label>
-            <input
-              {...register("userName")}
-              type="text"
-              name="name"
-              placeholder="Enter your User Name"
-              className="p-3 rounded-full text-sm"
-            />
-          </span>
+          {/* Input fields for, phoneNumber, and password */}
+     
           <span className="flex flex-col">
             <label
               htmlFor="phoneNumber"

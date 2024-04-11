@@ -102,12 +102,12 @@ const Transactions = () => {
   const [wallet, setWallet] = useState("");
   useEffect(() => {
     const user = localStorage.getItem("user"); // Retrieves a string
-    const userObject = JSON.parse(user); // Parses the string back into an object
+    const userObject = JSON.parse(user as string); // Parses the string back into an object
     console.log(userObject.walletAddress); // Now you can safely access phoneNumber
     setWallet(userObject.walletAddress);
     // fetch("http://localhost:8000/api/token/token-transfer-events?address=0xe1F4615Afec6801493FB889eDe3A70812c842d05")
     fetch(
-      `http://localhost:8000/api/token/token-transfer-events?address=${userObject.walletAddress}`
+      `https://afpaybackend.vercel.app/api/token/token-transfer-events?address=${userObject.walletAddress}`
     )
       .then((response) => response.json())
       .then((data) => {
@@ -117,7 +117,7 @@ const Transactions = () => {
       .catch((error) => console.error("Error fetching transactions:", error));
   }, []);
 
-  const formatValue = (value, decimals) =>
+  const formatValue = (value: any, decimals: any) =>
     (value / Math.pow(10, decimals)).toFixed(2);
 
   return (
@@ -145,7 +145,7 @@ const Transactions = () => {
                   {transaction.tokenSymbol}
                 </h3>
                 <h5 className="text-[#5A6B83] text-sm">
-                  {new Date(transaction.timeStamp * 1000).toLocaleTimeString()}
+                  {new Date(transaction.timeStamp as unknown as number * 1000).toLocaleTimeString()}
                 </h5>
               </span>
             </span>

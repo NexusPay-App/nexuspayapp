@@ -62,7 +62,7 @@ const Pay = () => {
       try {
         // This URL is a placeholder. Replace it with your actual conversion rate endpoint.
         const response = await fetch(
-          "http://localhost:8000/api/usdc/conversionrate"
+          "https://afpaybackend.vercel.app/api/usdc/conversionrate"
         );
         const data = await response.json();
         setConversionRate(data.rate); // Assuming the API returns a conversion rate
@@ -90,144 +90,6 @@ const Pay = () => {
     }
   }, [amount, currency, conversionRate]);
 
-  // const handleInputChange = (index: number, value: string) => {
-  //   let newTillNumberParts = [...tillNumberParts];
-  //   newTillNumberParts[index] = value;
-  //   setTillNumberParts(newTillNumberParts);
-  // };
-
-  const handlePaymentConfirmationInitiation = async () => {
-    const fullTillNumber = tillNumberParts;
-    console.log(fullTillNumber, amount);
-
-    if (!fullTillNumber || !amount) {
-      alert("Please fill all the fields");
-      return;
-    }
-
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    const token = user.token;
-
-    if (!user || !token) {
-      console.error("User is not authenticated.");
-      return;
-    }
-
-    // Convert amount for API if necessary
-    // Here we assume the API requires the amount in USDC
-    const finalAmount =
-      currency === "KSH"
-        ? parseFloat(`${amount}`) / conversionRate
-        : parseFloat(`${amount}`);
-
-    setLoading(true);
-
-    try {
-      const response = await fetch("http://localhost:8000/api/token/pay", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          tokenAddress: "0xEE49EA567f79e280E4F1602eb8e6479d1Fb9c8C8",
-          businessUniqueCode: fullTillNumber,
-          amount: finalAmount,
-          senderAddress: user.walletAddress,
-          confirm: isConfirming,
-          // Optionally include currency type if your backend needs it
-          currency: currency,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && !isConfirming) {
-        setBusinessName(data.businessName); // Assuming response includes the business name
-        setOpenConfirmTx(true);
-        // setIsConfirming(true);
-      } else if (response.ok && isConfirming) {
-        setTransactionSuccess(true);
-        setTimeout(() => {
-          setTransactionSuccess(false);
-          setIsConfirming(false); // Reset the confirmation state
-        }, 3000);
-      } else {
-        console.error("Payment initiation failed:", data.message);
-      }
-    } catch (error) {
-      console.error("Error:", error);
-    }
-
-    setLoading(false);
-  };
-
-  const handlePaymentInitiation = async () => {
-    const fullTillNumber = tillNumberParts;
-    console.log(fullTillNumber, amount);
-
-    if (!fullTillNumber || !amount) {
-      alert("Please fill all the fields");
-      return;
-    }
-
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    const token = user.token;
-
-    if (!user || !token) {
-      console.error("User is not authenticated.");
-      return;
-    }
-
-    // Convert amount for API if necessary
-    // Here we assume the API requires the amount in USDC
-    const finalAmount =
-      currency === "KSH"
-        ? parseFloat(`${amount}`) / conversionRate
-        : parseFloat(`${amount}`);
-
-    setLoading(true);
-
-    try {
-      const response = await fetch("http://localhost:8000/api/token/pay", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          tokenAddress: "0xEE49EA567f79e280E4F1602eb8e6479d1Fb9c8C8",
-          businessUniqueCode: fullTillNumber,
-          amount: finalAmount,
-          senderAddress: user.walletAddress,
-          confirm: isConfirming,
-          // Optionally include currency type if your backend needs it
-          currency: currency,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && !isConfirming) {
-        setBusinessName(data.businessName); // Assuming response includes the business name
-        // setOpenConfirmTx(true);
-        // setIsConfirming(true);
-      } else if (response.ok && isConfirming) {
-        setTransactionSuccess(true);
-        setTimeout(() => {
-          setTransactionSuccess(false);
-          setIsConfirming(false); // Reset the confirmation state
-        }, 3000);
-      } else {
-        console.error("Payment initiation failed:", data.message);
-      }
-    } catch (error) {
-      console.error("Error:", error);
-    }
-
-    setLoading(false);
-  };
-
   const initiatePayment = async () => {
     const fullTillNumber = tillNumberParts;
     const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -237,17 +99,19 @@ const Pay = () => {
       alert("Please fill all the fields and ensure you are logged in.");
       return;
     }
-
+console.log(currency)
     // Convert amount for API if necessary
     const finalAmount =
-      currency === "KSH"
+      currency === "ksh"
         ? parseFloat(`${amount}`) / conversionRate
         : parseFloat(`${amount}`);
+
+        console.log(finalAmount)
 
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:8000/api/token/pay", {
+      const response = await fetch("https://afpaybackend.vercel.app/api/token/pay", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -279,54 +143,6 @@ const Pay = () => {
     setLoading(false);
   };
 
-  // const confirmPayment = async () => {
-  //   setOpenConfirmTx(false); // Close the confirmation dialog
-
-  //   const fullTillNumber = tillNumberParts;
-  //   const user = JSON.parse(localStorage.getItem("user") || "{}");
-  //   const token = user.token;
-
-  //   if (!fullTillNumber || !amount || !user || !token) {
-  //     alert("Please ensure all details are correct and you are logged in.");
-  //     return;
-  //   }
-
-  //   // Use the same finalAmount calculation as in initiatePayment
-  //   const finalAmount = currency === "KSH" ? parseFloat(`${amount}`) / conversionRate : parseFloat(`${amount}`);
-
-  //   setLoading(true);
-
-  //   try {
-  //     const response = await fetch("http://localhost:8000/api/token/pay", {
-  //       method: "POST",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //         Authorization: `Bearer ${token}`,
-  //       },
-  //       body: JSON.stringify({
-  //         tokenAddress: "0xEE49EA567f79e280E4F1602eb8e6479d1Fb9c8C8",
-  //         businessUniqueCode: fullTillNumber,
-  //         amount: finalAmount,
-  //         senderAddress: user.walletAddress,
-  //         confirm: true, // Now confirming the transaction
-  //         currency: currency,
-  //       }),
-  //     });
-
-  //     const data = await response.json();
-
-  //     if (response.ok) {
-  //       setOpenSuccess(true); // Show success dialog/message
-  //     } else {
-  //       alert(`Payment confirmation failed: ${data.message}`);
-  //     }
-  //   } catch (error) {
-  //     console.error("Error:", error);
-  //     alert("Failed to confirm payment. Please try again.");
-  //   }
-
-  //   setLoading(false);
-  // };
 
   const confirmPayment = async () => {
     setOpenConfirmTx(false); // Close the confirmation dialog
@@ -341,14 +157,14 @@ const Pay = () => {
     }
 
     const finalAmount =
-      currency === "KSH"
+      currency === "ksh"
         ? parseFloat(`${amount}`) / conversionRate
         : parseFloat(`${amount}`);
-
+console.log(finalAmount)
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:8000/api/token/pay", {
+      const response = await fetch("https://afpaybackend.vercel.app/api/token/pay", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

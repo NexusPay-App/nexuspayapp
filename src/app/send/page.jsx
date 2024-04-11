@@ -212,7 +212,7 @@ const Send = () => {
     const fetchConversionRate = async () => {
       try {
         const response = await fetch(
-          "http://localhost:8000/api/usdc/conversionrate"
+          "https://afpaybackend.vercel.app/api/usdc/conversionrate"
         );
         const data = await response.json();
         setConversionRate(data.rate);
@@ -283,7 +283,7 @@ const Send = () => {
     const fee = calculateTransactionFee(parseFloat(amount));
     setTransactionFee(fee);
 
-    const apiUrl = "http://localhost:8000/api/token/sendToken";
+    const apiUrl = "https://afpaybackend.vercel.app/api/token/sendToken";
     console.log("submitting");
     try {
       const response = await fetch(apiUrl, {

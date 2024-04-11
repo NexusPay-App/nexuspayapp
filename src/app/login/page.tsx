@@ -47,21 +47,57 @@ const Login: React.FC = () => {
   const [openLoggin, setOpenLoggin] = useState(false); // Opens the Account Creation Loading Dialog
   const [openAccErr, setOpenAccErr] = useState(false); // Opens the Failed Acc Creation Loading Dialog
 
+  // const submitLogin: SubmitHandler<LoginFormFields> = async (data) => {
+  //   // setOpenLoading(true);
+  //   try {
+  //     const response = await fetch("https://afpaybackend.vercel.app/api/auth/login", {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify(data),
+  //     });
+
+  //     if (!response.ok) {
+  //       throw new Error("Failed to login");
+  //     }
+
+  //     const responseData = await response.json();
+  //     login(responseData); // Use the login function from your context
+  //     router.replace("/home"); // Navigate to home on successful login
+  //   } catch (error) {
+  //     console.error("Login error:", error);
+  //     // Handle login errors, e.g., show a message to the user
+  //   }
+  // };
+
+
   const submitLogin: SubmitHandler<LoginFormFields> = async (data) => {
-    // setOpenLoading(true);
+    // Preprocess the phoneNumber to include the +254 country code prefix
+    let modifiedPhoneNumber = data.phoneNumber;
+    if (modifiedPhoneNumber.startsWith("01") || modifiedPhoneNumber.startsWith("07")) {
+      modifiedPhoneNumber = "+254" + modifiedPhoneNumber.substring(1);
+    }
+  
+    const modifiedData = {
+      ...data,
+      phoneNumber: modifiedPhoneNumber, // Use the modified phoneNumber
+    };
+  
     try {
       const response = await fetch("http://localhost:8000/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        // Pass the modifiedData with the adjusted phoneNumber
+        body: JSON.stringify(modifiedData),
       });
-
+  
       if (!response.ok) {
         throw new Error("Failed to login");
       }
-
+  
       const responseData = await response.json();
       login(responseData); // Use the login function from your context
       setOpenLoggin(true)
@@ -72,7 +108,7 @@ const Login: React.FC = () => {
       // Handle login errors, e.g., show a message to the user
     }
   };
-
+  
   return (
     <section className="app-background">
       <article>
@@ -84,7 +120,7 @@ const Login: React.FC = () => {
               htmlFor="phoneNumber"
               className="text-[#909090] p-1 text-sm mt-4"
             >
-              Phone Number eg (+254720****20)
+              Phone Number eg (0720****20)
             </label>
             <input
               {...register("phoneNumber", { required: true })}

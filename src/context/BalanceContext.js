@@ -19,7 +19,7 @@ export const BalanceProvider = ({ children }) => {
                 // Retrieve the user object from localStorage
                 const user = JSON.parse(localStorage.getItem('user'));
                 if (user && user.walletAddress) {
-                    const response = await fetch(`http://localhost:8000/api/usdc/usdc-balance/${user.walletAddress}`);
+                    const response = await fetch(`https://afpaybackend.vercel.app/api/usdc/usdc-balance/${user.walletAddress}`);
                     if (!response.ok) throw new Error('Network response was not ok');
                     const data = await response.json();
                     setBalance(data);

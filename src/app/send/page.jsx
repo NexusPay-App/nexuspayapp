@@ -324,7 +324,7 @@ const Send = () => {
     return (
       isEthereumAddress ||
       isPhoneNumber ||
-      "Please enter a valid Ethereum address or phone number"
+      "Please enter Arbitrum Wallet address or phone number"
     );
   };
 

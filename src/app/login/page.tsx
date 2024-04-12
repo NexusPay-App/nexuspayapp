@@ -71,19 +71,21 @@ const Login: React.FC = () => {
   //   }
   // };
 
-
   const submitLogin: SubmitHandler<LoginFormFields> = async (data) => {
     // Preprocess the phoneNumber to include the +254 country code prefix
     let modifiedPhoneNumber = data.phoneNumber;
-    if (modifiedPhoneNumber.startsWith("01") || modifiedPhoneNumber.startsWith("07")) {
+    if (
+      modifiedPhoneNumber.startsWith("01") ||
+      modifiedPhoneNumber.startsWith("07")
+    ) {
       modifiedPhoneNumber = "+254" + modifiedPhoneNumber.substring(1);
     }
-  
+
     const modifiedData = {
       ...data,
       phoneNumber: modifiedPhoneNumber, // Use the modified phoneNumber
     };
-  
+
     try {
       const response = await fetch("https://afpaybackend.vercel.app/api/auth/login", {
         method: "POST",
@@ -93,14 +95,14 @@ const Login: React.FC = () => {
         // Pass the modifiedData with the adjusted phoneNumber
         body: JSON.stringify(modifiedData),
       });
-  
+
       if (!response.ok) {
         throw new Error("Failed to login");
       }
-  
+
       const responseData = await response.json();
       login(responseData); // Use the login function from your context
-      setOpenLoggin(true)
+      setOpenLoggin(true);
       router.replace("/home"); // Navigate to home on successful login
     } catch (error) {
       console.error("Login error:", error);
@@ -108,7 +110,7 @@ const Login: React.FC = () => {
       // Handle login errors, e.g., show a message to the user
     }
   };
-  
+
   return (
     <section className="app-background">
       <article>
@@ -144,7 +146,7 @@ const Login: React.FC = () => {
                   },
                 })}
                 id=""
-                className="py-1 w-[343px] focus:outline-none bg-transparent"
+                className="py-1 w-full focus:outline-none bg-transparent"
               />
               <button
                 type="button"
@@ -187,26 +189,28 @@ const Login: React.FC = () => {
             </DialogContent>
           </Dialog>
           <Dialog open={openLoggin} onOpenChange={setOpenLoggin}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="mb-[5px]">Logging you in</DialogTitle>
-            <Player
-              keepLastFrame
-              autoplay
-              loop={true}
-              src={lottieConfirm}
-              style={{ height: "200px", width: "200px" }}
-            ></Player>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>
-      <Dialog open={openAccErr} onOpenChange={setOpenAccErr}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="mb-[5px]">Failed to Login you in</DialogTitle>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle className="mb-[5px]">Logging you in</DialogTitle>
+                <Player
+                  keepLastFrame
+                  autoplay
+                  loop={true}
+                  src={lottieConfirm}
+                  style={{ height: "200px", width: "200px" }}
+                ></Player>
+              </DialogHeader>
+            </DialogContent>
+          </Dialog>
+          <Dialog open={openAccErr} onOpenChange={setOpenAccErr}>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle className="mb-[5px]">
+                  Failed to Login you in
+                </DialogTitle>
+              </DialogHeader>
+            </DialogContent>
+          </Dialog>
         </form>
       </article>
     </section>

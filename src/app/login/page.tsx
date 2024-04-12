@@ -87,7 +87,7 @@ const Login: React.FC = () => {
     };
 
     try {
-      const response = await fetch("http://localhost:8000/api/auth/login", {
+      const response = await fetch("https://afpaybackend.vercel.app/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

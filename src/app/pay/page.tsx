@@ -118,7 +118,7 @@ console.log(currency)
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          tokenAddress: "0xEE49EA567f79e280E4F1602eb8e6479d1Fb9c8C8",
+          tokenAddress: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
           businessUniqueCode: fullTillNumber,
           amount: finalAmount,
           senderAddress: user.walletAddress,
@@ -171,7 +171,7 @@ console.log(finalAmount)
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          tokenAddress: "0xEE49EA567f79e280E4F1602eb8e6479d1Fb9c8C8",
+          tokenAddress: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
           businessUniqueCode: fullTillNumber,
           amount: finalAmount,
           senderAddress: user.walletAddress,

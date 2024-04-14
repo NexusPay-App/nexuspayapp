@@ -1,5 +1,3 @@
-
-
 "use client";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -17,6 +15,7 @@ import loading from "../../../public/json/loading.json";
 import { Eye, EyeSlash } from "@phosphor-icons/react";
 import OTPInput from "react-otp-input";
 import lottieConfirm from "../../../public/json/confirm.json";
+import Link from "next/link";
 
 // Define your form fields interface
 interface LoginFormFields {
@@ -74,16 +73,19 @@ const Signup = () => {
   const initiateSignUp = async (data: SignUpFormData) => {
     // Check if phoneNumber starts with '01' or '07' and modify it
     let modifiedPhoneNumber = data.phoneNumber;
-    if (modifiedPhoneNumber.startsWith("01") || modifiedPhoneNumber.startsWith("07")) {
+    if (
+      modifiedPhoneNumber.startsWith("01") ||
+      modifiedPhoneNumber.startsWith("07")
+    ) {
       modifiedPhoneNumber = "+254" + modifiedPhoneNumber.substring(1);
     }
-  
+
     // Use the modifiedPhoneNumber in your API request
     const requestData = {
       ...data,
       phoneNumber: modifiedPhoneNumber, // Replace the original phoneNumber with the modified one
     };
-  
+
     const response = await fetch(
       "https://afpaybackend.vercel.app/api/auth/register/initiate",
       {
@@ -94,16 +96,15 @@ const Signup = () => {
         body: JSON.stringify(requestData),
       }
     );
-  
+
     if (response.ok) {
-      setUserDetails({...data, phoneNumber: modifiedPhoneNumber}); // Store user details with the modified phone number
+      setUserDetails({ ...data, phoneNumber: modifiedPhoneNumber }); // Store user details with the modified phone number
       setOpenOTP(true); // Open the OTP dialog
     } else {
       // Handle errors, e.g., show a message to the user
       console.error("Failed to initiate sign-up.");
     }
   };
-  
 
   const verifyOTP = async (otpData: OTPFormData) => {
     setOpenSigningUp(true);
@@ -142,7 +143,6 @@ const Signup = () => {
       );
 
       if (loginResponse.ok) {
-
         const responseData = await loginResponse.json();
         login(responseData); // Use the login function from your context
         setOpenSigningUp(false);
@@ -276,7 +276,7 @@ const Signup = () => {
                   },
                 })}
                 id=""
-                className="py-1 w-[343px] focus:outline-none bg-transparent"
+                className="py-1 w-full focus:outline-none bg-transparent"
               />
               <button
                 type="button"
@@ -294,6 +294,11 @@ const Signup = () => {
               </button>
             </div>
           </span>
+          <div className="flex justify-start mb-5">
+            <p className="text-[#909090] p-1 text-sm font-semibold">
+              Have an account? <Link href="/login">Login</Link>
+            </p>
+          </div>
           <input
             type="submit"
             value="Sign Up"

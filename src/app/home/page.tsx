@@ -119,7 +119,7 @@ const Home = () => {
           </div>
         </div>
       </article>
-      <article className="mt-20 flex flex-col items-center p-5  xl:px-[200px]">
+      {/* <article className="mt-20 flex flex-col items-center p-5  xl:px-[200px]">
         <div className="flex flex-col justify-around rounded-xl w-full overflow-hidden bg-wallet-bg bg-cover p-5 h-[180px]">
           <h3 className="text-white text-xl my-1 font-semibold">
             Buy Crypto Assets, Tokens Securely.
@@ -128,7 +128,22 @@ const Home = () => {
             Buy Crypto
           </button>
         </div>
-      </article>
+      </article> */}
+
+<article className="mt-20 flex flex-col items-center p-5 xl:px-[200px]">
+    <div className="flex flex-col justify-around rounded-xl w-full overflow-hidden bg-wallet-bg bg-cover p-5 h-[180px] relative">
+        <div className="bg-black bg-opacity-50 absolute inset-0 flex flex-col justify-center items-center">
+            <h3 className="text-white text-xl my-1 font-semibold">
+                Buy Crypto Assets, Tokens Securely.
+            </h3>
+            <p className="text-white text-sm mb-4">Coming Soon!!!!!</p>
+            <button className="bg-white opacity-70 cursor-not-allowed font-bold text-lg p-3 rounded-xl w-[150px]">
+                Buy Crypto
+            </button>
+        </div>
+    </div>
+</article>
+
       <Transactions />
     </section>
   );

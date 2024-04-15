@@ -55,7 +55,7 @@ const Send = () => {
     const fetchConversionRate = async () => {
       try {
         const response = await fetch(
-          "https://afpaybackend.vercel.app/api/usdc/conversionrate"
+          "http://localhost:8000/api/usdc/conversionrate"
         );
         const data = await response.json();
         setConversionRate(data.rate);
@@ -123,59 +123,132 @@ const Send = () => {
     // setFinAmount(finalAmount)
     
 console.log(`final amount ${finalAmount}`)
+
+  // const onSubmit = async (data) => {
+  //   console.log("submit called");
+  //   setOpenConfirmingTx(true);
+
+  //   // Use the converted amount if the selected currency is KSH
+  //   // const finalAmount = currency === 'ksh' ? parseFloat(amount) * conversionRate : parseFloat(amount);
+  //   const fee = calculateTransactionFee(parseFloat(amount));
+  //   setTransactionFee(fee);
+
+  //   const apiUrl = "https://afpaybackend.vercel.app/api/token/sendToken";
+  //   console.log("submitting");
+  //   try {
+  //     const response = await fetch(apiUrl, {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({
+  //         tokenAddress: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+  //         recipientIdentifier: data.phoneNumberOrWalletAddress,
+  //         amount: finalAmount,
+  //         senderAddress: wallet, // Assuming you have a way to input or fetch the wallet address
+  //       }),
+  //     });
+
+  //     if (!response.ok)
+  //       throw new Error(`HTTP error! status: ${response.status}`);
+  //     const result = await response.json();
+  //     console.log("Success:", result);
+  //     // Additional success handling
+  //     setLoading(false);
+  //     setOpenConfirmTx(false);
+  //     setOpenConfirmingTx(false);
+  //     setOpenSuccess(true);
+  //   } catch (error) {
+  //     setLoading(false);
+  //     setOpenConfirmTx(false);
+  //     setOpenConfirmingTx(false);
+  //     console.error("Error:", error);
+  //     // Error handling
+  //   }
+  // };
+
   const onSubmit = async (data) => {
-    console.log("submit called");
+    console.log("Submit called with data:", data);
+
     setOpenConfirmingTx(true);
 
-    // Use the converted amount if the selected currency is KSH
-    // const finalAmount = currency === 'ksh' ? parseFloat(amount) * conversionRate : parseFloat(amount);
+    const isEthereumAddress = data.phoneNumberOrWalletAddress.startsWith("0x") && data.phoneNumberOrWalletAddress.length === 42;
+
+    // Determine if the input is a phone number and format it
+    let recipientIdentifier = data.phoneNumberOrWalletAddress;
+    if (!isEthereumAddress) {
+        // Assuming all phone numbers need "+254" prefix
+        if (!recipientIdentifier.startsWith("+")) {
+            recipientIdentifier = "+254" + recipientIdentifier.substring(recipientIdentifier[0] === "0" ? 1 : 0);
+        }
+    }
+
     const fee = calculateTransactionFee(parseFloat(amount));
     setTransactionFee(fee);
 
-    const apiUrl = "https://afpaybackend.vercel.app/api/token/sendToken";
+    const apiUrl = "http://localhost:8000/api/token/sendToken";
     console.log("submitting");
     try {
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tokenAddress: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
-          recipientIdentifier: data.phoneNumberOrWalletAddress,
-          amount: finalAmount,
-          senderAddress: wallet, // Assuming you have a way to input or fetch the wallet address
-        }),
-      });
+        const response = await fetch(apiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                tokenAddress: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+                recipientIdentifier: recipientIdentifier,
+                amount: finalAmount,
+                senderAddress: wallet, // Using the wallet address from state
+            }),
+        });
 
-      if (!response.ok)
-        throw new Error(`HTTP error! status: ${response.status}`);
-      const result = await response.json();
-      console.log("Success:", result);
-      // Additional success handling
-      setLoading(false);
-      setOpenConfirmTx(false);
-      setOpenConfirmingTx(false);
-      setOpenSuccess(true);
+        if (!response.ok)
+            throw new Error(`HTTP error! status: ${response.status}`);
+        const result = await response.json();
+        console.log("Success:", result);
+        // Additional success handling
+        setLoading(false);
+        setOpenConfirmTx(false);
+        setOpenConfirmingTx(false);
+        setOpenSuccess(true);
     } catch (error) {
-      setLoading(false);
-      setOpenConfirmTx(false);
-      setOpenConfirmingTx(false);
-      console.error("Error:", error);
-      // Error handling
+        setLoading(false);
+        setOpenConfirmTx(false);
+        setOpenConfirmingTx(false);
+        console.error("Error:", error);
+        // Error handling
     }
-  };
+};
+
+
+  // const validateInput = (value) => {
+  //   // Ethereum address validation (basic)
+  //   const isEthereumAddress = value.startsWith("0x") && value.length === 42;
+  //   // Basic phone number validation
+  //   const isPhoneNumber = /^\+[1-9]\d{1,14}$/.test(value);
+
+  //   return (
+  //     isEthereumAddress ||
+  //     isPhoneNumber ||
+  //     "Please enter Arbitrum Wallet address or phone number"
+  //   );
+  // };
 
   const validateInput = (value) => {
+    console.log("Validating input:", value);
+
     // Ethereum address validation (basic)
     const isEthereumAddress = value.startsWith("0x") && value.length === 42;
-    // Basic phone number validation
-    const isPhoneNumber = /^\+[1-9]\d{1,14}$/.test(value);
+    console.log("Is Ethereum address:", isEthereumAddress);
 
-    return (
-      isEthereumAddress ||
-      isPhoneNumber ||
-      "Please enter Arbitrum Wallet address or phone number"
-    );
-  };
+    // Basic phone number validation
+    const isPhoneNumber = /^\d{10}$/.test(value); // Adjust this regex based on expected formats
+    console.log("Is phone number:", isPhoneNumber);
+
+    if (!isEthereumAddress && !isPhoneNumber) {
+        console.log("Validation failed");
+        return "Please enter a valid Arbitrum Wallet address or phone number";
+    }
+
+    console.log("Validation passed");
+    return true;
+};
 
   return (
     <section className="home-background h-screen flex flex-col p-5 xl:px-[200px]">

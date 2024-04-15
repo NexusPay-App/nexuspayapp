@@ -202,7 +202,7 @@ const KYC: React.FC = () => {
 
   useEffect(() => {
     // Simple mobile detection based on window width, can be enhanced
-    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+    const userAgent = navigator.userAgent || navigator.vendor;
     setIsMobile(/android|iphone|ipad|ipod|opera|iemobile|wpdesktop/i.test(userAgent));
   }, []);
 

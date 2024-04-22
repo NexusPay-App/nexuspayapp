@@ -88,7 +88,7 @@
 
 "use client";
 import { TxReceive, TxSent } from "@/constants/svg";
-import { Transactions } from "@/types/api-types";
+import { TransactionsType } from "@/types/api-types";
 import {
   ArrowCircleDown,
   ArrowCircleUp,
@@ -98,7 +98,7 @@ import Image from "next/image";
 import React, { useEffect, useState } from "react";
 
 const Transactions = () => {
-  const [transactions, setTransactions] = useState<Transactions[]>([]);
+  const [transactions, setTransactions] = useState<TransactionsType[]>([]);
   const [wallet, setWallet] = useState("");
   useEffect(() => {
     const user = localStorage.getItem("user"); // Retrieves a string
@@ -127,7 +127,7 @@ const Transactions = () => {
         <CaretRight size={24} color="#ffffff" />
       </div>
       <div>
-        {transactions.map((transaction, index) => (
+        {transactions.length > 0 ? transactions?.map((transaction, index) => (
           <span className="flex justify-between my-2" key={index}>
             <span className="flex items-center">
               <span className="border border-[#0795B0] rounded-full p-2 bg-[#0A0E0E]">
@@ -156,7 +156,7 @@ const Transactions = () => {
               </h3>
             </span>
           </span>
-        ))}
+        )) : ""}
       </div>
     </article>
   );

@@ -6,6 +6,7 @@ import CELO from "../../public/svg/celo.svg"
 import ICP from "../../public/svg/icp.svg"
 import TxReceive from "../../public/svg/tx-receive.svg"
 import TxSent from "../../public/svg/tx-sent.svg"
+import UserIcon from "../../public/svg/user.svg"
 
 export {
     NexusLogo,
@@ -16,4 +17,5 @@ export {
     ICP,
     TxReceive,
     TxSent,
+    UserIcon
 }

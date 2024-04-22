@@ -87,6 +87,7 @@ const Login: React.FC = () => {
     };
 
     try {
+      setOpenLoggin(true);
       const response = await fetch("https://afpaybackend.vercel.app/api/auth/login", {
         method: "POST",
         headers: {
@@ -102,10 +103,10 @@ const Login: React.FC = () => {
 
       const responseData = await response.json();
       login(responseData); // Use the login function from your context
-      setOpenLoggin(true);
       router.replace("/home"); // Navigate to home on successful login
     } catch (error) {
       console.error("Login error:", error);
+      setOpenLoggin(false);
       setOpenAccErr(true);
       // Handle login errors, e.g., show a message to the user
     }
@@ -125,11 +126,12 @@ const Login: React.FC = () => {
               Phone Number eg (0720****20)
             </label>
             <input
-              {...register("phoneNumber", { required: true })}
+              {...register("phoneNumber", { required: "Phone number is required " })}
               type="text"
               placeholder="Enter your Phone Number"
               className="p-3 rounded-full text-sm w-full"
             />
+            {errors.phoneNumber && <span className="text-red-500 text-sm m-1">{errors.phoneNumber.message}</span>}
           </div>
           <div className="flex flex-col mt-5">
             <label htmlFor="password" className="text-[#909090] p-1 text-sm">
@@ -139,7 +141,7 @@ const Login: React.FC = () => {
               <input
                 type={passwordVisibility}
                 {...register("password", {
-                  required: " This is required ",
+                  required: "Minimum password length is six characters",
                   minLength: {
                     value: 6,
                     message: "Minimum password length is six characters",
@@ -163,6 +165,7 @@ const Login: React.FC = () => {
                 )}
               </button>
             </div>
+            {errors.password && <span className="text-red-500 text-sm m-1">{errors.password.message}</span>}
           </div>
           <div className="flex justify-start mb-5">
             <p className="text-[#909090] p-1 text-sm font-semibold">
@@ -196,7 +199,7 @@ const Login: React.FC = () => {
                   keepLastFrame
                   autoplay
                   loop={true}
-                  src={lottieConfirm}
+                  src={loading}
                   style={{ height: "200px", width: "200px" }}
                 ></Player>
               </DialogHeader>

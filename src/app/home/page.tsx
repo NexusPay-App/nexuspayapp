@@ -8,19 +8,59 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ARB } from "@/constants/svg";
+import { ARB, UserIcon } from "@/constants/svg";
 import {
   ArrowCircleDown,
   BellSimple,
   CreditCard,
   List,
   PaperPlaneTilt,
+  UserCircle,
 } from "@phosphor-icons/react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useBalance } from "@/context/BalanceContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuPortal,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import {
+  Cloud,
+  Github,
+  Keyboard,
+  LifeBuoy,
+  LogOut,
+  Mail,
+  MessageSquare,
+  Plus,
+  PlusCircle,
+  Settings,
+  User,
+  UserPlus,
+  Users,
+} from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 const Home = () => {
   const [chain, setChain] = useState("USDC");
   const { balance, loading } = useBalance(); // Use the useBalance hook to get balance and loading state
@@ -56,10 +96,71 @@ const Home = () => {
   return (
     <section className="home-background">
       <article className="bg-[#0A0E0E] flex flex-col p-5 xl:px-[200px] border-0 border-b border-[#0795B0]">
-        {/* <div className="flex justify-between">
-          <List size={24} color="#ffffff" weight="fill" />
-          <BellSimple size={24} color="#ffffff" weight="fill" />
-        </div> */}
+        <div className="flex justify-between">
+          <Sheet>
+            <SheetTrigger>
+              <List size={24} color="#ffffff" weight="fill" />
+            </SheetTrigger>
+            <SheetContent side="left">
+              <SheetHeader>
+                <ul className="flex flex-col sm:flex-row justify-around items-start text-base font-DM text-black w-auto">
+                  <a
+                    href="#Home"
+                    className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer "
+                  >
+                    Home
+                  </a>
+                  <a className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer ">
+                    Blogs
+                  </a>
+                  <a className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer ">
+                    Services
+                  </a>
+                  <a className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer ">
+                    About
+                  </a>
+                </ul>
+              </SheetHeader>
+            </SheetContent>
+          </Sheet>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Image src={UserIcon} alt="tree" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56">
+              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                <DropdownMenuItem>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                <DropdownMenuItem>
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  <span>Invite users</span>
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>
+                <LifeBuoy className="mr-2 h-4 w-4" />
+                <span>Support</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>
+                <LogOut className="mr-2 h-4 w-4" />
+                <Link href="/login">Log out</Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
         <div className="flex flex-col items-center my-[20px]">
           <Controller
             name="region"

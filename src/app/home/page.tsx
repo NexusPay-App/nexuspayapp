@@ -103,7 +103,7 @@ const Home = () => {
             </SheetTrigger>
             <SheetContent side="left">
               <SheetHeader>
-                <ul className="flex flex-col sm:flex-row justify-around items-start text-base font-DM text-black w-auto">
+                <ul className="flex flex-col justify-around items-start text-base font-DM text-black w-auto">
                   <a
                     href="#Home"
                     className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer "

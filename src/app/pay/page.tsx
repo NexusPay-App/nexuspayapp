@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { Player } from "@lottiefiles/react-lottie-player";
 import lottieSuccess from "../../../public/json/success.json";
+import loadingJson from "../../../public/json/loading.json";
 import lottieConfirm from "../../../public/json/confirm.json";
 import { DialogDescription } from "@radix-ui/react-dialog";
 
@@ -339,7 +340,7 @@ console.log(finalAmount)
               keepLastFrame
               autoplay
               loop={true}
-              src={lottieConfirm}
+              src={loadingJson}
               style={{ height: "200px", width: "200px" }}
             ></Player>
           </DialogHeader>

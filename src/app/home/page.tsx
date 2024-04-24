@@ -105,12 +105,12 @@ const Home = () => {
               <SheetHeader>
                 <ul className="flex flex-col justify-around items-start text-base font-DM text-black w-auto">
                   <a
-                    href="#Home"
+                    href="/reclaim"
                     className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer "
                   >
-                    Home
+                    Verify
                   </a>
-                  <a className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer ">
+                  {/* <a className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer ">
                     Blogs
                   </a>
                   <a className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer ">
@@ -118,7 +118,7 @@ const Home = () => {
                   </a>
                   <a className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer ">
                     About
-                  </a>
+                  </a> */}
                 </ul>
               </SheetHeader>
             </SheetContent>

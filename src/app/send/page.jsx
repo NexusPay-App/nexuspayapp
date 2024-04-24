@@ -278,7 +278,7 @@ console.log(`final amount ${finalAmount}`)
                     keepLastFrame
                     autoplay
                     loop={true}
-                    src={lottieConfirm}
+                    src={loading}
                     style={{ height: "200px", width: "200px" }}
                   ></Player>
                 ) : null}
@@ -321,7 +321,7 @@ console.log(`final amount ${finalAmount}`)
                 keepLastFrame
                 autoplay
                 loop={true}
-                src={lottieConfirm}
+                src={loading}
                 style={{ height: "200px", width: "200px" }}
               ></Player>
             </DialogHeader>

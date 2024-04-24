@@ -29,7 +29,8 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import "@/styles/style.css";
 import { AuthProvider } from "@/context/AuthContext"; // Ensure this path matches the location of your AuthContext file
-import { BalanceProvider } from "@/context/BalanceContext"
+import { BalanceProvider } from "@/context/BalanceContext";
+import ClientOnly from "./ClientOnly";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -48,7 +49,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <AuthProvider>
           <BalanceProvider>
-            {children}
+            <ClientOnly>{children}</ClientOnly>
           </BalanceProvider>
         </AuthProvider>
       </body>

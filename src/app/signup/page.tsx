@@ -1,5 +1,3 @@
-
-
 "use client";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -16,7 +14,8 @@ import { Player, Controls } from "@lottiefiles/react-lottie-player"; // import  
 import loading from "../../../public/json/loading.json";
 import { Eye, EyeSlash } from "@phosphor-icons/react";
 import OTPInput from "react-otp-input";
-import lottieConfirm from "../../../public/json/confirm.json";
+import errorJson from "../../../public/json/error.json";
+import Link from "next/link";
 
 // Define your form fields interface
 interface LoginFormFields {
@@ -52,6 +51,7 @@ const Signup = () => {
   const [passwordVisibility, setPasswordVisibility] = useState("password");
   const [tillNumberParts, setTillNumberParts] = useState("");
   const [openSigningUp, setOpenSigningUp] = useState(false); // Opens the Account Creation Loading Dialog
+  const [openConfirmingOTP, setOpenConfirmingOTP] = useState(false); // Opens the confirm otp Loading Dialog
   const [openAccErr, setOpenAccErr] = useState(false); // Opens the Failed Acc Creation Loading Dialog
 
   // Form hook for sign-up
@@ -60,30 +60,34 @@ const Signup = () => {
     handleSubmit: handleSignUpSubmit,
     formState: { errors },
   } = useForm<SignUpFormData>();
-
+  
   // Form hook for OTP verification
   const {
     register: registerOTP,
+    setValue: setOTPValue,
     handleSubmit: handleOTPSubmit,
     formState: { errors: otpErrors },
   } = useForm<OTPFormData>();
 
   const [userDetails, setUserDetails] = useState<SignUpFormData | null>(null);
 
-
   const initiateSignUp = async (data: SignUpFormData) => {
     // Check if phoneNumber starts with '01' or '07' and modify it
+    setOpenSigningUp(true);
     let modifiedPhoneNumber = data.phoneNumber;
-    if (modifiedPhoneNumber.startsWith("01") || modifiedPhoneNumber.startsWith("07")) {
+    if (
+      modifiedPhoneNumber.startsWith("01") ||
+      modifiedPhoneNumber.startsWith("07")
+    ) {
       modifiedPhoneNumber = "+254" + modifiedPhoneNumber.substring(1);
     }
-  
+
     // Use the modifiedPhoneNumber in your API request
     const requestData = {
       ...data,
       phoneNumber: modifiedPhoneNumber, // Replace the original phoneNumber with the modified one
     };
-  
+
     const response = await fetch(
       "https://afpaybackend.vercel.app/api/auth/register/initiate",
       {
@@ -94,22 +98,23 @@ const Signup = () => {
         body: JSON.stringify(requestData),
       }
     );
-  
+
     if (response.ok) {
-      setUserDetails({...data, phoneNumber: modifiedPhoneNumber}); // Store user details with the modified phone number
+      setUserDetails({ ...data, phoneNumber: modifiedPhoneNumber }); // Store user details with the modified phone number
       setOpenOTP(true); // Open the OTP dialog
     } else {
       // Handle errors, e.g., show a message to the user
       console.error("Failed to initiate sign-up.");
+      setOpenAccErr(true);
     }
+    setOpenSigningUp(false);
   };
-  
 
   const verifyOTP = async (otpData: OTPFormData) => {
-    setOpenSigningUp(true);
+    setOpenConfirmingOTP(true);
     if (!userDetails) return; // Ensure userDetails is not null
-   console.log(otpData.otp)
-   console.log(otpData)
+    console.log(otpData.otp);
+    console.log(otpData);
     // Call the register API with stored user details and provided OTP
     const registerResponse = await fetch(
       "https://afpaybackend.vercel.app/api/auth/register",
@@ -142,7 +147,6 @@ const Signup = () => {
       );
 
       if (loginResponse.ok) {
-
         const responseData = await loginResponse.json();
         login(responseData); // Use the login function from your context
         setOpenSigningUp(false);
@@ -164,7 +168,7 @@ const Signup = () => {
   return (
     <section className="app-background">
       <Dialog open={openOTP} onOpenChange={setOpenOTP}>
-        <DialogContent>
+        <DialogContent className="bg-white">
           <DialogHeader>
             <DialogTitle className="text-black">
               Confirm OTP-code sent to Phone Number
@@ -174,28 +178,18 @@ const Signup = () => {
               onSubmit={handleOTPSubmit(verifyOTP)}
               className="flex flex-col justify-around h-[200px]"
             >
-              <label
-                htmlFor="otpcode"
-                className="text-black font-semibold mb-2"
-              >
-                OTP-Code
-              </label>
-              <input
-                {...registerOTP("otp")}
-                type="number"
-                placeholder="Enter OTP"
-                className="flex justify-around border border-gray-300 bg-white rounded-md py-3 px-6 w-full focus:outline-none ring-offset-[#A5A5A533] focus-visible:bg-transparent text-black"
-              />
+              <div className="flex justify-center">
               <OTPInput
                 inputStyle={{
-                  border: "1px solid #0795B0",
+                  border: "1px solid black",
                   borderRadius: "8px",
-                  padding: "16px",
-                  backgroundColor: "#0A0E0E",
-                  color: "white",
-                  width: "50px",
+                  padding: "8px",
+                  backgroundColor: "white",
+                  color: "black",
+                  width: "40px",
                   fontSize: "18px",
                 }}
+                containerStyle={{width:"auto"}}
                 inputType="number"
                 value={tillNumberParts}
                 onChange={setTillNumberParts}
@@ -203,9 +197,10 @@ const Signup = () => {
                 renderSeparator={<span>-</span>}
                 renderInput={(props) => <input {...props} />}
               />
+              </div>
               <button
                 type="submit"
-                className="bg-black text-white font-semibold rounded-lg p-3"
+                className="bg-black text-white font-semibold rounded-lg p-3 w-auto"
               >
                 Confirm OTP Code
               </button>
@@ -216,22 +211,44 @@ const Signup = () => {
       <Dialog open={openSigningUp} onOpenChange={setOpenSigningUp}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle className="mb-[5px]">Creating Account..</DialogTitle>
+            <DialogTitle className="mb-[5px]">Sending OTP Code....</DialogTitle>
 
             <Player
               keepLastFrame
               autoplay
               loop={true}
-              src={lottieConfirm}
+              src={loading}
+              style={{ height: "200px", width: "200px" }}
+            ></Player>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={openConfirmingOTP} onOpenChange={setOpenConfirmingOTP}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="mb-[5px]">Creating Account....</DialogTitle>
+
+            <Player
+              keepLastFrame
+              autoplay
+              loop={true}
+              src={loading}
               style={{ height: "200px", width: "200px" }}
             ></Player>
           </DialogHeader>
         </DialogContent>
       </Dialog>
       <Dialog open={openAccErr} onOpenChange={setOpenAccErr}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg py-10">
           <DialogHeader>
-            <DialogTitle>Failed to Create your Account</DialogTitle>
+            <DialogTitle>Failed to Create Account</DialogTitle>
+            <Player
+              keepLastFrame
+              autoplay
+              loop={false}
+              src={errorJson}
+              style={{ height: "200px", width: "200px" }}
+            ></Player>
           </DialogHeader>
         </DialogContent>
       </Dialog>
@@ -242,7 +259,7 @@ const Signup = () => {
         </h4>
         <form onSubmit={handleSignUpSubmit(initiateSignUp)}>
           {/* Input fields for, phoneNumber, and password */}
-     
+
           <span className="flex flex-col">
             <label
               htmlFor="phoneNumber"
@@ -251,12 +268,19 @@ const Signup = () => {
               Phone Number eg (0720****20)
             </label>
             <input
-              {...register("phoneNumber")}
+              {...register("phoneNumber", {
+                required: " Phone number is required ",
+                minLength: {
+                  value: 8,
+                  message: "Phone number is required",
+                },
+              })}
               type="text"
               name="phoneNumber"
               placeholder="Enter your Phone Number"
               className="p-3 rounded-full text-sm w-full"
             />
+            {errors.phoneNumber && <span className="text-red-500 text-sm m-1">{errors.phoneNumber.message}</span>}
           </span>
           <span className="flex flex-col">
             <label
@@ -265,18 +289,18 @@ const Signup = () => {
             >
               Password
             </label>
-            <div className="flex justify-between bg-white rounded-full py-2 px-6 mb-5 w-full focus:outline-none ring-offset-[#0CAF60] focus-visible:bg-transparent">
+            <div className="flex justify-between bg-white rounded-full py-2 px-6 w-full focus:outline-none ring-offset-[#0CAF60] focus-visible:bg-transparent">
               <input
                 type={passwordVisibility}
                 {...register("password", {
-                  required: " This is required ",
+                  required: " Minimum password length is six characters ",
                   minLength: {
                     value: 6,
                     message: "Minimum password length is six characters",
                   },
                 })}
                 id=""
-                className="py-1 w-[343px] focus:outline-none bg-transparent"
+                className="py-1 w-full focus:outline-none bg-transparent"
               />
               <button
                 type="button"
@@ -293,18 +317,18 @@ const Signup = () => {
                 )}
               </button>
             </div>
+            {errors.password && <span className="text-red-500 text-sm m-1">{errors.password.message}</span>}
           </span>
+          <div className="flex justify-start mb-5">
+            <p className="text-[#909090] p-1 text-sm font-semibold">
+              Have an account? <Link href="/login">Login</Link>
+            </p>
+          </div>
           <input
             type="submit"
             value="Sign Up"
             className="bg-white p-3 rounded-full font-bold w-full cursor-pointer"
           />
-          <Player
-            keepLastFrame
-            autoplay
-            src={loading}
-            style={{ height: "100px", width: "100px" }}
-          ></Player>
         </form>
       </article>
     </section>

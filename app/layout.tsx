@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import "@/styles/style.css";
@@ -9,8 +9,43 @@ import ClientOnly from "./ClientOnly";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Nexuspay App",
+  applicationName: "NexusPay",
+  title: {
+    default: "Nexuspay App",
+    template: "Nexuspay App",
+  },
   description: "Stablecoin Payment Wallet",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Nexuspay App",
+    // startUpImage: [],
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  openGraph: {
+    type: "website",
+    siteName: "NexusPay",
+    title: {
+      default: "Nexuspay App",
+      template: "Nexuspay App",
+    },
+    description: "Stablecoin Payment Wallet",
+  },
+  twitter: {
+    card: "summary",
+    title: {
+      default: "Nexuspay App",
+      template: "Nexuspay App",
+    },
+    description: "Stablecoin Payment Wallet",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#FFFFFF",
 };
 
 export default function RootLayout({

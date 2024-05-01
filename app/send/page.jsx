@@ -47,6 +47,7 @@ const Send = () => {
   const [openConfirmTx, setOpenConfirmTx] = useState(false); // Opens the Transaction Dialog
   const [openConfirmingTx, setOpenConfirmingTx] = useState(false); // Opens the Transaction Loading Dialog
   const [isLoading, setLoading] = useState(false);
+  const [finAmount, setFinAmount] = useState()
 
   useEffect(() => {
     const fetchConversionRate = async () => {
@@ -109,11 +110,17 @@ const Send = () => {
     }
   }, [amount, currency, conversionRate]);
 
+  // const finalAmount =
+  //   currency === "ksh"
+  //     ? parseFloat(amount) / conversionRate
+  //     : parseFloat(amount);
   const finalAmount =
-    currency === "ksh"
-      ? parseFloat(amount) / conversionRate
-      : parseFloat(amount);
-
+  currency === "ksh"
+    ? parseFloat((parseFloat(amount) / conversionRate).toFixed(2))
+    : parseFloat(parseFloat(amount).toFixed(2));
+    // setFinAmount(finalAmount)
+    
+console.log(`final amount ${finalAmount}`)
   const onSubmit = async (data) => {
     console.log("submit called");
     setOpenConfirmingTx(true);
@@ -130,7 +137,7 @@ const Send = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          tokenAddress: "0xEE49EA567f79e280E4F1602eb8e6479d1Fb9c8C8",
+          tokenAddress: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
           recipientIdentifier: data.phoneNumberOrWalletAddress,
           amount: finalAmount,
           senderAddress: wallet, // Assuming you have a way to input or fetch the wallet address
@@ -164,7 +171,7 @@ const Send = () => {
     return (
       isEthereumAddress ||
       isPhoneNumber ||
-      "Please enter a valid Ethereum address or phone number"
+      "Please enter Arbitrum Wallet address or phone number"
     );
   };
 
@@ -199,10 +206,7 @@ const Send = () => {
           </span>
         </span>
       </div>
-      {/* <div className="flex flex-col items-center mt-10">
-        <h3 className="text-4xl text-white font-bold">ksh 500</h3>
-        <h5 className="text-xl text-white">3.12 USDC</h5>
-     </div> */}
+    
       <form
         id="sendForm"
         onSubmit={handleSubmit((data) => {
@@ -234,17 +238,6 @@ const Send = () => {
             Amount is required and must be greater than 0.
           </p>
         )}
-
-        {/* Recipient's Phone Number Input */}
-        {/* <input
-          {...register("phoneNumber", { required: true })}
-          type="tel"
-          placeholder="Recipient's Phone Number"
-          className="border border-[#0795B0] w-full rounded-lg px-2 py-6 bg-transparent text-white text-sm outline-none mt-5"
-        />
-        {errors.phoneNumber && (
-          <p className="text-red-500">Phone number is required.</p>
-        )} */}
 
         <input
           {...register("phoneNumberOrWalletAddress", {

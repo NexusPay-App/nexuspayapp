@@ -14,6 +14,7 @@ export const metadata: Metadata = {
     default: "Nexuspay App",
     template: "Nexuspay App",
   },
+  metadataBase: new URL('https://app.nexuspayapp.xyz'),
   description: "Stablecoin Payment Wallet",
   manifest: "/manifest.json",
   appleWebApp: {

@@ -41,35 +41,12 @@ const Login: React.FC = () => {
     handleSubmit,
     formState: { errors },
   } = useForm<LoginFormFields>();
+
   const { login } = useAuth(); // Use the typed useAuth hook here
   const [openLoading, setOpenLoading] = useState(false);
   const [passwordVisibility, setPasswordVisibility] = useState("password");
   const [openLoggin, setOpenLoggin] = useState(false); // Opens the Account Creation Loading Dialog
   const [openAccErr, setOpenAccErr] = useState(false); // Opens the Failed Acc Creation Loading Dialog
-
-  // const submitLogin: SubmitHandler<LoginFormFields> = async (data) => {
-  //   // setOpenLoading(true);
-  //   try {
-  //     const response = await fetch("https://afpaybackend.vercel.app/api/auth/login", {
-  //       method: "POST",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //       },
-  //       body: JSON.stringify(data),
-  //     });
-
-  //     if (!response.ok) {
-  //       throw new Error("Failed to login");
-  //     }
-
-  //     const responseData = await response.json();
-  //     login(responseData); // Use the login function from your context
-  //     router.replace("/home"); // Navigate to home on successful login
-  //   } catch (error) {
-  //     console.error("Login error:", error);
-  //     // Handle login errors, e.g., show a message to the user
-  //   }
-  // };
 
   const submitLogin: SubmitHandler<LoginFormFields> = async (data) => {
     // Preprocess the phoneNumber to include the +254 country code prefix
@@ -131,6 +108,14 @@ const Login: React.FC = () => {
             <input
               {...register("phoneNumber", {
                 required: "Phone number is required ",
+                minLength: {
+                  value: 10,
+                  message: "Input correct Phone Number Digits"
+                },
+                maxLength: {
+                  value: 13,
+                  message: "Maximum Phone Number Digits Reached",
+                },
               })}
               type="text"
               placeholder="Enter your Phone Number"

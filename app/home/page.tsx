@@ -39,9 +39,19 @@ import {
   SheetHeader,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Player } from "@lottiefiles/react-lottie-player";
+import loadingJson from "@/public/json/loading.json";
+
 const Home = () => {
   const [chain, setChain] = useState("USDC");
   const { balance, loading } = useBalance(); // Use the useBalance hook to get balance and loading state
+  const [openLogoutDialog, setOpenLogoutDialog] = useState(false); // Opens the Logout Loading Dialog
 
   const router = useRouter();
   const {
@@ -71,13 +81,21 @@ const Home = () => {
     router.replace("/pay");
   };
 
+  // Logs out the User
+  const handleLogout = () => {
+    setOpenLogoutDialog(true);
+    setTimeout(() => {
+      router.replace("/login");
+    }, 1000);
+  };
+
   return (
     <section className="home-background">
       <article className="bg-[#0A0E0E] flex flex-col p-5 xl:px-[200px] border-0 border-b border-[#0795B0]">
         <div className="flex justify-between">
           <Sheet>
             <SheetTrigger>
-              <List size={24} color="#ffffff" weight="fill" />
+              <List size={24} color="#ffffff" />
             </SheetTrigger>
             <SheetContent side="left">
               <SheetHeader>
@@ -134,10 +152,26 @@ const Home = () => {
               <DropdownMenuSeparator />
               <DropdownMenuItem>
                 <LogOut className="mr-2 h-4 w-4" />
-                <Link href="/login">Log out</Link>
+                <span onClick={handleLogout}>Log out</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Dialog to LogOut the User */}
+          <Dialog open={openLogoutDialog} onOpenChange={setOpenLogoutDialog}>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle className="mb-[5px]">Logging you out</DialogTitle>
+                <Player
+                  keepLastFrame
+                  autoplay
+                  loop={true}
+                  src={loadingJson}
+                  style={{ height: "200px", width: "200px" }}
+                ></Player>
+              </DialogHeader>
+            </DialogContent>
+          </Dialog>
         </div>
         <div className="flex flex-col items-center my-[20px]">
           <Controller

@@ -25,8 +25,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Player } from "@lottiefiles/react-lottie-player";
-import lottieSuccess from "../../../public/json/success.json";
-import lottieConfirm from "../../../public/json/confirm.json";
+// import lottieSuccess from "../../../public/json/success.json";
+import lottieSuccess from "@/json/success.json";
+
+import lottieConfirm from "@/json/success.json";
 
 const Send = () => {
   const router = useRouter();

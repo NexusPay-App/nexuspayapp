@@ -2,7 +2,7 @@
   "id": 2,
   "theme_color": "#0795B0",
   "background_color": "#0A0E0E",
-  "display": "fullscreen",
+  "display": "standalone",
   "scope": "/",
   "start_url": "https://app.nexuspayapp.xyz/",
   "name": "NexusPayApp",

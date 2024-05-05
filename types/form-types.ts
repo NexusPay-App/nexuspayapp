@@ -5,6 +5,12 @@ export interface AuthContextType {
   logout: () => void;
 }
 
+export interface LoginFormFields {
+  phoneNumber: string;
+  password: string;
+}
+
+
 // Define the types for the form data
 export type SignUpFormData = {
   phoneNumber: string;
@@ -15,3 +21,5 @@ export type SignUpFormData = {
 export type OTPFormData = {
   otp: string;
 };
+
+

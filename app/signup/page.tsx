@@ -23,6 +23,7 @@ import useAxios from "@/hooks/useAxios";
 import { useMutation } from "@tanstack/react-query";
 import LoadingDialog from "@/components/dialog/LoadingDialog";
 import ErrorDialog from "@/components/dialog/ErrorDialog";
+import Link from "next/link";
 
 // A wrapper or assertion to cast the useAuth hook's return type
 const useAuth = () => useAuthOriginal() as unknown as AuthContextType;
@@ -35,12 +36,12 @@ const Signup = () => {
   const [openSigningUp, setOpenSigningUp] = useState(false); // Opens the Account Creation Loading Dialog
   const [openConfirmingOTP, setOpenConfirmingOTP] = useState(false); // Opens the confirm otp Loading Dialog
   const [openAccErr, setOpenAccErr] = useState(false); // Opens the Failed Acc Creation Loading Dialog
+  const api = useAxios();
   const [userDetails, setUserDetails] = useState<SignUpFormData>({
     phoneNumber: "",
     password: "",
     confirmPassword: "",
   });
-  const api = useAxios();
 
   // Form hook for OTP verification
   const {
@@ -65,6 +66,8 @@ const Signup = () => {
       );
     },
     onSuccess: (data, variables, context) => {
+      setOpenSigningUp(false);
+      setOpenConfirmingOTP(true);
       setUserDetails(variables); // Store user details with the modified phone number
       setOpenOTP(true); // Open the OTP dialog
     },
@@ -178,12 +181,12 @@ const Signup = () => {
         </DialogContent>
       </Dialog>
       <LoadingDialog
-        message="Sending OTP Code...."
+        message="Creating Account"
         openLoading={openSigningUp}
         setOpenLoading={setOpenSigningUp}
       />
       <LoadingDialog
-        message="Creating Account...."
+        message="Sending OTP Code...."
         openLoading={openConfirmingOTP}
         setOpenLoading={setOpenConfirmingOTP}
       />
@@ -262,7 +265,11 @@ const Signup = () => {
               name="confirmPassword"
               placeholder="Confirm your Password"
             />
-
+            <div className="flex justify-start mb-5">
+              <p className="text-[#909090] p-1 text-sm font-semibold">
+                Have an account? <Link href="/login" className="hover:text-white">Login</Link>
+              </p>
+            </div>
             <button
               type="submit"
               className="bg-white mt-5 p-3 rounded-full font-bold w-full cursor-pointer"

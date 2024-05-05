@@ -6,8 +6,8 @@ import { useAuth } from "@/context/AuthContext"; // Adjust the path as needed
 import Image from "next/image";
 import { NexusLogo } from "@/constants/svg";
 import { onboardingSource } from "@/helpers/onboardingSource";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
+// import { gsap } from "gsap";
+// import { ScrollTrigger } from "gsap/ScrollTrigger";
 import {
   Carousel,
   CarouselContent,
@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/carousel";
 import Link from "next/link";
 
-gsap.registerPlugin(ScrollTrigger);
+// gsap.registerPlugin(ScrollTrigger);
 
 const Onboarding = () => {
   const router = useRouter();

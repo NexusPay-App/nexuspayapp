@@ -5,6 +5,7 @@ import "@/styles/style.css";
 import { AuthProvider } from "@/context/AuthContext"; // Ensure this path matches the location of your AuthContext file
 import { BalanceProvider } from "@/context/BalanceContext";
 import ClientOnly from "./ClientOnly";
+import { ReactQueryClientProvider } from "@/providers/ReactQueryClientProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -14,7 +15,7 @@ export const metadata: Metadata = {
     default: "Nexuspay App",
     template: "Nexuspay App",
   },
-  metadataBase: new URL('https://app.nexuspayapp.xyz'),
+  metadataBase: new URL("https://app.nexuspayapp.xyz"),
   description: "Stablecoin Payment Wallet",
   manifest: "/manifest.json",
   appleWebApp: {
@@ -57,11 +58,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <AuthProvider>
-          <BalanceProvider>
-            <ClientOnly>{children}</ClientOnly>
-          </BalanceProvider>
-        </AuthProvider>
+        <ReactQueryClientProvider>
+          <AuthProvider>
+            <BalanceProvider>
+              <ClientOnly>{children}</ClientOnly>
+            </BalanceProvider>
+          </AuthProvider>
+        </ReactQueryClientProvider>
       </body>
     </html>
   );

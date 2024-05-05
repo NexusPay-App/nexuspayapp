@@ -57,6 +57,7 @@ const Login: React.FC = () => {
     onSuccess: (data, variables, context) => {
       setOpenLoading(false);
       setOpenLoggin(true);
+      login(data); // Use the login function from your context
       router.replace("/home");
     },
     onError: (error, variables, context) => {
@@ -105,8 +106,6 @@ const Login: React.FC = () => {
               .required("Password is Required"),
           })}
           onSubmit={(values, { setSubmitting }) => {
-            console.log(values);
-            
             setTimeout(async () => {
               setOpenLoading(true);
               // Check if phoneNumber starts with '01' or '07' and modify it
@@ -135,7 +134,7 @@ const Login: React.FC = () => {
             <TextInput
               label="Phone Number eg (0720****20)"
               name="phoneNumber"
-              type="number"
+              type="text"
               placeholder="Enter your Phone Number"
             />
 

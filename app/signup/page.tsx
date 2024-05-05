@@ -250,7 +250,7 @@ const Signup = () => {
             <TextInput
               label="Phone Number"
               name="phoneNumber"
-              type="number"
+              type="text"
               placeholder="Enter your Phone Number eg (0720****20)"
             />
 

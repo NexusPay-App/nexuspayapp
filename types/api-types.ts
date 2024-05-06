@@ -19,3 +19,7 @@ export type TransactionsType = {
   transactionIndex: string;
   value: string;
 };
+
+export type ConversionRateType = {
+  rate: number;
+}

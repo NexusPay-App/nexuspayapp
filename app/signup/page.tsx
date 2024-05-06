@@ -227,8 +227,8 @@ const Signup = () => {
               // Check if phoneNumber starts with '01' or '07' and modify it
               let modifiedPhoneNumber = values.phoneNumber;
               if (
-                modifiedPhoneNumber.toString().startsWith("01") ||
-                modifiedPhoneNumber.toString().startsWith("07")
+                modifiedPhoneNumber.toString().startsWith("1") ||
+                modifiedPhoneNumber.toString().startsWith("7")
               ) {
                 modifiedPhoneNumber = "+254" + values.phoneNumber.substring(1);
               }
@@ -250,7 +250,7 @@ const Signup = () => {
             <TextInput
               label="Phone Number"
               name="phoneNumber"
-              type="text"
+              type="number"
               placeholder="Enter your Phone Number eg (0720****20)"
             />
 

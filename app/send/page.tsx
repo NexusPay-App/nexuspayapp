@@ -1,14 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { FieldValues, SubmitHandler, useForm } from "react-hook-form";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  ArrowLeft,
-  ArrowsLeftRight,
-  Scan,
-} from "@phosphor-icons/react";
+import { ArrowLeft, ArrowsLeftRight, Scan } from "@phosphor-icons/react";
 import {
   Select,
   SelectContent,
@@ -25,11 +21,21 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Player } from "@lottiefiles/react-lottie-player";
-// import lottieSuccess from "../../../public/json/success.json";
 import lottieSuccess from "@/json/success.json";
+import * as Yup from "yup";
+import lottieConfirm from "@/json/loading.json";
+import { Form, Formik, useFormikContext } from "formik";
+import TextInput from "@/components/inputs/TextInput";
+import PasswordInput from "@/components/inputs/PasswordInput";
+import SelectInput from "@/components/inputs/SelectInput";
+import { useGetConversionRate } from "@/hooks/apiHooks";
+import { ConversionRateType } from "@/types/api-types";
+import { useMutation } from "@tanstack/react-query";
+import useAxios from "@/hooks/useAxios";
+import SuccessDialog from "@/components/dialog/SuccessDialog";
+import TransactionSuccessDialog from "@/components/dialog/TranscationSuccessDialog";
 
-import lottieConfirm from "@/json/success.json";
-
+type FormValues = { phoneNumber: string; amount: string };
 const Send = () => {
   const router = useRouter();
   const {
@@ -38,8 +44,8 @@ const Send = () => {
     watch,
     setValue,
     formState: { errors },
-  } = useForm();
-  const [conversionRate, setConversionRate] = useState(1); // Default to 1 for direct 1-to-1 conversion if not fetched
+  } = useForm<FormValues>();
+  const [conversionRate, setConversionRate] = useState<number>(1); // Default to 1 for direct 1-to-1 conversion if not fetched
   const [currency, setCurrency] = useState("usdc");
   const [equivalentAmount, setEquivalentAmount] = useState("");
   const [wallet, setWallet] = useState();
@@ -48,33 +54,24 @@ const Send = () => {
   const [openSuccess, setOpenSuccess] = useState(false); // Opens the Success Dialog
   const [openConfirmTx, setOpenConfirmTx] = useState(false); // Opens the Transaction Dialog
   const [openConfirmingTx, setOpenConfirmingTx] = useState(false); // Opens the Transaction Loading Dialog
-  const [isLoading, setLoading] = useState(false);
-  const [finAmount, setFinAmount] = useState()
+  const [isDialogLoading, setDialogLoading] = useState(false);
+  const [finAmount, setFinAmount] = useState(0);
+  const [openAccErr, setOpenAccErr] = useState(false); // Opens the Failed Acc Creation Loading Dialog
+  const api = useAxios();
 
+  const { data, isLoading, error } = useGetConversionRate();
   useEffect(() => {
-    const fetchConversionRate = async () => {
-      try {
-        const response = await fetch(
-          "https://afpaybackend.vercel.app/api/usdc/conversionrate"
-        );
-        const data = await response.json();
-        setConversionRate(data.rate);
-      } catch (error) {
-        console.error("Failed to fetch conversion rate:", error);
-      }
-    };
-
     const user = localStorage.getItem("user"); // Retrieves a string
     const userObject = JSON.parse(user ?? ""); // Parses the string back into an object
     console.log(userObject.walletAddress); // Now you can safely access phoneNumber
     setWallet(userObject.walletAddress);
-
-    fetchConversionRate();
+    setConversionRate(data);
   }, []);
 
+  const recipientNo = watch("phoneNumber");
   const amount = watch("amount");
 
-  const calculateTransactionFee = (amount) => {
+  const calculateTransactionFee = (amount: number) => {
     if (amount <= 1) return 0;
     if (amount <= 5) return 0.05;
     if (amount <= 10) return 0.1;
@@ -92,6 +89,7 @@ const Send = () => {
     if (amount) {
       const fee = calculateTransactionFee(parseFloat(amount));
       setTransactionFee(fee);
+      // console.log(amount);
     } else {
       setTransactionFee(0);
     }
@@ -109,6 +107,7 @@ const Send = () => {
       setEquivalentAmount(
         `${convertedAmount.toFixed(2)} ${currency === "usdc" ? "KSH" : "USDC"}`
       );
+      // console.log(parseFloat(amount) / conversionRate);
     }
   }, [amount, currency, conversionRate]);
 
@@ -116,55 +115,15 @@ const Send = () => {
   //   currency === "ksh"
   //     ? parseFloat(amount) / conversionRate
   //     : parseFloat(amount);
-  const finalAmount =
-  currency === "ksh"
-    ? parseFloat((parseFloat(amount) / conversionRate).toFixed(2))
-    : parseFloat(parseFloat(amount).toFixed(2));
-    // setFinAmount(finalAmount)
-    
-console.log(`final amount ${finalAmount}`)
-  const onSubmit = async (data) => {
-    console.log("submit called");
-    setOpenConfirmingTx(true);
+  // const finalAmount =
+  //   currency === "ksh"
+  //     ? parseFloat((parseFloat(amount) / conversionRate).toFixed(2))
+  //     : parseFloat(parseFloat(amount).toFixed(2));
+  // // setFinAmount(finalAmount)
 
-    // Use the converted amount if the selected currency is KSH
-    // const finalAmount = currency === 'ksh' ? parseFloat(amount) * conversionRate : parseFloat(amount);
-    const fee = calculateTransactionFee(parseFloat(amount));
-    setTransactionFee(fee);
+  // console.log(`final amount ${finalAmount}`);
 
-    const apiUrl = "https://afpaybackend.vercel.app/api/token/sendToken";
-    console.log("submitting");
-    try {
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tokenAddress: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
-          recipientIdentifier: data.phoneNumberOrWalletAddress,
-          amount: finalAmount,
-          senderAddress: wallet, // Assuming you have a way to input or fetch the wallet address
-        }),
-      });
-
-      if (!response.ok)
-        throw new Error(`HTTP error! status: ${response.status}`);
-      const result = await response.json();
-      console.log("Success:", result);
-      // Additional success handling
-      setLoading(false);
-      setOpenConfirmTx(false);
-      setOpenConfirmingTx(false);
-      setOpenSuccess(true);
-    } catch (error) {
-      setLoading(false);
-      setOpenConfirmTx(false);
-      setOpenConfirmingTx(false);
-      console.error("Error:", error);
-      // Error handling
-    }
-  };
-
-  const validateInput = (value) => {
+  const validateInput = (value: string) => {
     // Ethereum address validation (basic)
     const isEthereumAddress = value.startsWith("0x") && value.length === 42;
     // Basic phone number validation
@@ -175,6 +134,68 @@ console.log(`final amount ${finalAmount}`)
       isPhoneNumber ||
       "Please enter Arbitrum Wallet address or phone number"
     );
+  };
+
+  // Mutation to SendToken
+  const sendToken = useMutation({
+    mutationFn: (sendTokenData: { phoneNumber: string; amount: string }) => {
+      const finalAmount =
+        currency === "ksh"
+          ? parseFloat(
+              (parseFloat(sendTokenData.amount) / conversionRate).toFixed(2)
+            )
+          : parseFloat(parseFloat(sendTokenData.amount).toFixed(2));
+      return api.post(
+        "token/sendToken",
+        {
+          tokenAddress: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+          phoneNumber: sendTokenData.phoneNumber,
+          amount: finalAmount,
+          senderAddress: wallet, // Assuming you have a way to input or fetch the wallet address
+        },
+        {
+          method: "POST",
+        }
+      );
+    },
+    onSuccess: (data, variables, context) => {
+      // setDialogLoading(false);
+      // setOpenConfirmTx(false);
+      // setOpenConfirmingTx(false);
+      // setOpenSuccess(true);
+    },
+    onError: (error, variables, context) => {
+      console.error("Error:", error);
+      // setDialogLoading(false);
+      // setOpenConfirmTx(false);
+      // setOpenConfirmingTx(false);
+      setOpenAccErr(true);
+    },
+    onSettled: (data, error, variables, context) => {},
+  });
+
+  const submitSend: SubmitHandler<FormValues> = async (data) => {
+    console.log("submit called", data);
+    setOpenConfirmTx(true);
+    setOpenConfirmingTx(true);
+
+    // Use the converted amount if the selected currency is KSH
+    // const finalAmount = currency === 'ksh' ? parseFloat(amount) * conversionRate : parseFloat(amount);
+    const fee = calculateTransactionFee(parseFloat(amount));
+    setTransactionFee(fee);
+
+    sendToken.mutate(data);
+  };
+
+  const confirmSend = async () => {
+    const data = {
+      phoneNumber: recipientNo,
+      amount: amount,
+    };
+    setOpenConfirmTx(true);
+    setOpenConfirmingTx(true);
+
+    sendToken.mutate(data);
   };
 
   return (
@@ -208,15 +229,8 @@ console.log(`final amount ${finalAmount}`)
           </span>
         </span>
       </div>
-    
-      <form
-        id="sendForm"
-        onSubmit={handleSubmit((data) => {
-          setOpenConfirmTx(true);
-          onSubmit(data);
-        })}
-        className="mt-10"
-      >
+
+      <form id="sendForm" onSubmit={handleSubmit(submitSend)} className="mt-10">
         {/* Currency Selection */}
         <Select value={currency} onValueChange={setCurrency}>
           <SelectTrigger className="border border-[#0795B0] rounded-lg px-4 py-6 bg-transparent text-white text-sm outline-none">
@@ -233,7 +247,7 @@ console.log(`final amount ${finalAmount}`)
           type="number"
           step="0.01"
           placeholder="Enter Amount"
-          className="border border-[#0795B0] w-full rounded-lg px-4 py-6 bg-transparent text-white text-sm outline-none mt-5"
+          className="border border-[#0795B0] w-full rounded-lg px-4 py-4 bg-transparent text-white text-sm outline-none mt-5"
         />
         {errors.amount && (
           <p className="text-red-500">
@@ -242,7 +256,7 @@ console.log(`final amount ${finalAmount}`)
         )}
 
         <input
-          {...register("phoneNumberOrWalletAddress", {
+          {...register("phoneNumber", {
             required: "This field is required",
             validate: validateInput,
           })}
@@ -250,10 +264,8 @@ console.log(`final amount ${finalAmount}`)
           placeholder="Recipient's Phone Number or Wallet Address"
           className="border border-[#0795B0] w-full rounded-lg px-2 py-6 bg-transparent text-white text-sm outline-none mt-5"
         />
-        {errors.phoneNumberOrWalletAddress && (
-          <p className="text-red-500">
-            {errors.phoneNumberOrWalletAddress.message}
-          </p>
+        {errors.phoneNumber?.message && (
+          <p className="text-red-500">{errors.root?.message}</p>
         )}
         {/* Send Button */}
         <button
@@ -269,33 +281,23 @@ console.log(`final amount ${finalAmount}`)
             <DialogHeader>
               <DialogTitle className="mb-[5px]">Confirm Payment</DialogTitle>
               <DialogDescription>
-                Confirm Transaction Payment of {transactionFee}{" "}
+                Confirm Transaction Payment of {amount}{" "}
                 {currency === "usdc" ? "USDC" : "KSH"}
               </DialogDescription>
               <div className="my-3">
-                {isLoading ? (
-                  <Player
-                    keepLastFrame
-                    autoplay
-                    loop={true}
-                    src={loading}
-                    style={{ height: "200px", width: "200px" }}
-                  ></Player>
-                ) : null}
+                <Player
+                  keepLastFrame
+                  autoplay
+                  loop={true}
+                  src={lottieConfirm}
+                  style={{ height: "200px", width: "200px" }}
+                ></Player>
               </div>
 
               <button
-                type="button"
-                className="bg-white font-bold text-lg p-3 rounded-xl w-full mt-5 text-black"
-                onClick={() => {
-                  if (typeof amount === "string" && amount.trim() !== "") {
-                    handleSubmit(onSubmit)({
-                      amount,
-                      phoneNumber: watch("phoneNumber"), // Assuming this is how you get the phoneNumber
-                      // any other field values you need to submit
-                    });
-                  }
-                }}
+                type="submit"
+                className=" font-bold text-lg p-3 rounded-xl w-full mt-5 text-white border-2  bg-blue-500"
+                onClick={() => confirmSend()}
               >
                 Confirm
               </button>
@@ -309,30 +311,19 @@ console.log(`final amount ${finalAmount}`)
             </DialogHeader>
           </DialogContent>
         </Dialog>
-        <Dialog open={openConfirmingTx} onOpenChange={setOpenConfirmingTx}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle className="mb-[5px]">Confirm Payment</DialogTitle>
-              <DialogDescription>
-                Confirming Payment of {amount}{" "}
-                {currency === "usdc" ? "USDC" : "KSH"}
-              </DialogDescription>
-              <Player
-                keepLastFrame
-                autoplay
-                loop={true}
-                src={loading}
-                style={{ height: "200px", width: "200px" }}
-              ></Player>
-            </DialogHeader>
-          </DialogContent>
-        </Dialog>
+        <TransactionSuccessDialog
+          message="Confirm Payment"
+          openSuccess={openConfirmingTx}
+          setOpenSuccess={setOpenConfirmingTx}
+          amount={amount}
+          currency={currency}
+        />
       </form>
       <Dialog open={openSuccess} onOpenChange={setOpenSuccess}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="mb-[20px]">
-              {finalAmount}
+              {finAmount}
               {currency === "usdc" ? " USDC" : " KSH"} Transferred Succesfully
             </DialogTitle>
             <Player

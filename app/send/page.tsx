@@ -34,6 +34,7 @@ import { useMutation } from "@tanstack/react-query";
 import useAxios from "@/hooks/useAxios";
 import SuccessDialog from "@/components/dialog/SuccessDialog";
 import TransactionSuccessDialog from "@/components/dialog/TranscationSuccessDialog";
+import ErrorDialog from "@/components/dialog/ErrorDialog";
 
 type FormValues = { phoneNumber: string; amount: string };
 const Send = () => {
@@ -159,7 +160,7 @@ const Send = () => {
       );
     },
     onSuccess: (data, variables, context) => {
-      // setDialogLoading(false);
+      setOpenConfirmingTx(true);
       // setOpenConfirmTx(false);
       // setOpenConfirmingTx(false);
       // setOpenSuccess(true);
@@ -177,7 +178,6 @@ const Send = () => {
   const submitSend: SubmitHandler<FormValues> = async (data) => {
     console.log("submit called", data);
     setOpenConfirmTx(true);
-    setOpenConfirmingTx(true);
 
     // Use the converted amount if the selected currency is KSH
     // const finalAmount = currency === 'ksh' ? parseFloat(amount) * conversionRate : parseFloat(amount);
@@ -192,9 +192,6 @@ const Send = () => {
       phoneNumber: recipientNo,
       amount: amount,
     };
-    setOpenConfirmTx(true);
-    setOpenConfirmingTx(true);
-
     sendToken.mutate(data);
   };
 
@@ -265,12 +262,11 @@ const Send = () => {
           className="border border-[#0795B0] w-full rounded-lg px-2 py-6 bg-transparent text-white text-sm outline-none mt-5"
         />
         {errors.phoneNumber?.message && (
-          <p className="text-red-500">{errors.root?.message}</p>
+          <p className="text-red-500">{errors.phoneNumber.message}</p>
         )}
         {/* Send Button */}
         <button
-          onClick={() => setOpenConfirmTx(true)}
-          type="button"
+          type="submit"
           className="bg-white font-bold text-lg p-3 rounded-xl w-full mt-5"
         >
           Send
@@ -317,6 +313,11 @@ const Send = () => {
           setOpenSuccess={setOpenConfirmingTx}
           amount={amount}
           currency={currency}
+        />
+        <ErrorDialog
+          message="Transaction Failed"
+          openError={openAccErr}
+          setOpenError={setOpenAccErr}
         />
       </form>
       <Dialog open={openSuccess} onOpenChange={setOpenSuccess}>

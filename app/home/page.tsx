@@ -84,6 +84,7 @@ const Home = () => {
   // Logs out the User
   const handleLogout = () => {
     setOpenLogoutDialog(true);
+    localStorage.clear();
     setTimeout(() => {
       router.replace("/login");
     }, 1000);
@@ -127,7 +128,7 @@ const Home = () => {
             <DropdownMenuContent className="w-56">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuGroup>
+              {/* <DropdownMenuGroup>
                 <DropdownMenuItem>
                   <User className="mr-2 h-4 w-4" />
                   <span>Profile</span>
@@ -149,7 +150,7 @@ const Home = () => {
                 <LifeBuoy className="mr-2 h-4 w-4" />
                 <span>Support</span>
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
+              <DropdownMenuSeparator /> */}
               <DropdownMenuItem>
                 <LogOut className="mr-2 h-4 w-4" />
                 <span onClick={handleLogout}>Log out</span>

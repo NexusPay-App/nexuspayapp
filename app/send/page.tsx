@@ -64,8 +64,8 @@ const Send = () => {
   useEffect(() => {
     const user = localStorage.getItem("user"); // Retrieves a string
     const userObject = JSON.parse(user ?? ""); // Parses the string back into an object
-    console.log(userObject.walletAddress); // Now you can safely access phoneNumber
-    setWallet(userObject.walletAddress);
+    console.log(userObject.data.walletAddress); // Now you can safely access phoneNumber
+    setWallet(userObject.data.walletAddress);
     setConversionRate(data);
   }, []);
 
@@ -128,7 +128,7 @@ const Send = () => {
     // Ethereum address validation (basic)
     const isEthereumAddress = value.startsWith("0x") && value.length === 42;
     // Basic phone number validation
-    const isPhoneNumber = /^\+[1-9]\d{1,14}$/.test(value);
+    const isPhoneNumber = /^(07|\+254|254)\d{8,}$/.test(value);
 
     return (
       isEthereumAddress ||
@@ -146,11 +146,18 @@ const Send = () => {
               (parseFloat(sendTokenData.amount) / conversionRate).toFixed(2)
             )
           : parseFloat(parseFloat(sendTokenData.amount).toFixed(2));
+      let modifiedPhoneNumber = sendTokenData.phoneNumber;
+      if (
+        modifiedPhoneNumber.toString().startsWith("01") ||
+        modifiedPhoneNumber.toString().startsWith("07")
+      ) {
+        modifiedPhoneNumber = "+254" + recipientNo.substring(1);
+      }
       return api.post(
         "token/sendToken",
         {
           tokenAddress: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
-          phoneNumber: sendTokenData.phoneNumber,
+          recipientIdentifier: modifiedPhoneNumber,
           amount: finalAmount,
           senderAddress: wallet, // Assuming you have a way to input or fetch the wallet address
         },
@@ -176,15 +183,11 @@ const Send = () => {
   });
 
   const submitSend: SubmitHandler<FormValues> = async (data) => {
-    console.log("submit called", data);
     setOpenConfirmTx(true);
-
     // Use the converted amount if the selected currency is KSH
     // const finalAmount = currency === 'ksh' ? parseFloat(amount) * conversionRate : parseFloat(amount);
     const fee = calculateTransactionFee(parseFloat(amount));
     setTransactionFee(fee);
-
-    sendToken.mutate(data);
   };
 
   const confirmSend = async () => {
@@ -192,6 +195,7 @@ const Send = () => {
       phoneNumber: recipientNo,
       amount: amount,
     };
+    console.log("formdata", data);
     sendToken.mutate(data);
   };
 
@@ -280,6 +284,9 @@ const Send = () => {
                 Confirm Transaction Payment of {amount}{" "}
                 {currency === "usdc" ? "USDC" : "KSH"}
               </DialogDescription>
+              <DialogDescription>
+                With Transaction fee of {transactionFee}
+              </DialogDescription>
               <div className="my-3">
                 <Player
                   keepLastFrame
@@ -329,7 +336,6 @@ const Send = () => {
             </DialogTitle>
             <Player
               keepLastFrame
-              autoplay
               src={lottieSuccess}
               style={{ height: "300px", width: "300px" }}
             ></Player>

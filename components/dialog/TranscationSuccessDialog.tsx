@@ -34,7 +34,6 @@ const TransactionSuccessDialog = ({
           <Player
             keepLastFrame
             autoplay
-            loop={true}
             src={SuccessJson}
             style={{ height: "200px", width: "200px" }}
           ></Player>

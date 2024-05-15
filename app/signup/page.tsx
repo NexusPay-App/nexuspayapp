@@ -230,7 +230,8 @@ const Signup = () => {
                 modifiedPhoneNumber.toString().startsWith("1") ||
                 modifiedPhoneNumber.toString().startsWith("7")
               ) {
-                modifiedPhoneNumber = "+254" + values.phoneNumber.substring(1);
+                modifiedPhoneNumber =
+                  "+254" + values.phoneNumber.toString().substring(0);
               }
 
               // Use the modifiedPhoneNumber in your API request
@@ -240,6 +241,7 @@ const Signup = () => {
               };
 
               // Call the Initiate Register User Mutation
+              console.log(requestData);
               initiateRegisterUser.mutate(requestData);
               setOpenSigningUp(false);
               setSubmitting(false);
@@ -267,7 +269,10 @@ const Signup = () => {
             />
             <div className="flex justify-start mb-5">
               <p className="text-[#909090] p-1 text-sm font-semibold">
-                Have an account? <Link href="/login" className="hover:text-white">Login</Link>
+                Have an account?{" "}
+                <Link href="/login" className="hover:text-white">
+                  Login
+                </Link>
               </p>
             </div>
             <button

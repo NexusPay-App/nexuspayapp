@@ -3,7 +3,6 @@
 import useAxios from "@/hooks/useAxios";
 import { BalanceApiResponseType, BalanceContextType } from "@/types/api-types";
 import { useQuery } from "@tanstack/react-query";
-// contexts/BalanceContext.js
 import { createContext, useContext, useEffect, useState } from "react";
 
 // Create the context
@@ -30,18 +29,21 @@ export const BalanceProvider = ({
   }, [user]);
 
   const api = useAxios();
-  let getUserfromLocalStorage: BalanceApiResponseType;
-  getUserfromLocalStorage = JSON.parse(user);
+  let getUserfromLocalStorage: BalanceApiResponseType | null = null;
+
+  if (user) {
+    getUserfromLocalStorage = JSON.parse(user);
+  }
 
   const { isLoading, data, error } = useQuery({
     queryKey: ["getUserBalance"],
     queryFn: () =>
       api
-        .get(`usdc/usdc-balance/${getUserfromLocalStorage.data.walletAddress}`)
+        .get(`usdc/usdc-balance/${getUserfromLocalStorage?.data.walletAddress}`)
         .then((res) => {
           return res?.data;
         }),
-    refetchOnWindowFocus: "always",
+    enabled: !!getUserfromLocalStorage, // Only run query if getUserfromLocalStorage is not null
   });
 
   return (

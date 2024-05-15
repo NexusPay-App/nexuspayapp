@@ -16,8 +16,8 @@ const Receive: React.FC = () => {
     const userStr = localStorage.getItem("user");
     if (userStr) {
       const user = JSON.parse(userStr);
-      setWalletAddress(user.walletAddress);
-      setPhoneNumber(user.phoneNumber);
+      setWalletAddress(user.data.walletAddress);  
+      setPhoneNumber(user.data.phoneNumber);
     } else {
       router.replace("/login");
     }
@@ -34,11 +34,6 @@ const Receive: React.FC = () => {
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
     }
-  };
-
-  const handleContinue = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    router.replace("/receive/amount");
   };
 
   const formatWalletAddress = (address: string) => {
@@ -96,9 +91,6 @@ const Receive: React.FC = () => {
             <Copy size={24} color="#ffffff" onClick={() => copyToClipboard(phoneNumber, "Phone number copied!")} />
           </div>
         </div>
-        {/* <button type="submit" className="bg-white font-bold text-lg p-3 rounded-xl w-full mt-5">
-          Continue
-        </button> */}
       </form>
     </section>
   );

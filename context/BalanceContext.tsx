@@ -27,7 +27,7 @@ export const BalanceProvider = ({
 
   useEffect(() => {
     setUser(localStorage.getItem("user"));
-  }, []);
+  }, [user]);
 
   const api = useAxios();
   let getUserfromLocalStorage: BalanceApiResponseType;
@@ -41,6 +41,7 @@ export const BalanceProvider = ({
         .then((res) => {
           return res?.data;
         }),
+    refetchOnWindowFocus: "always",
   });
 
   return (

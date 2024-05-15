@@ -51,11 +51,9 @@ const Send = () => {
   const [equivalentAmount, setEquivalentAmount] = useState("");
   const [wallet, setWallet] = useState();
   const [transactionFee, setTransactionFee] = useState(0); // State to hold the calculated transaction fee
-  const { balance, loading } = useBalance(); // Use the useBalance hook to get balance and loading state
   const [openSuccess, setOpenSuccess] = useState(false); // Opens the Success Dialog
   const [openConfirmTx, setOpenConfirmTx] = useState(false); // Opens the Transaction Dialog
   const [openConfirmingTx, setOpenConfirmingTx] = useState(false); // Opens the Transaction Loading Dialog
-  const [isDialogLoading, setDialogLoading] = useState(false);
   const [finAmount, setFinAmount] = useState(0);
   const [openAccErr, setOpenAccErr] = useState(false); // Opens the Failed Acc Creation Loading Dialog
   const api = useAxios();
@@ -64,7 +62,6 @@ const Send = () => {
   useEffect(() => {
     const user = localStorage.getItem("user"); // Retrieves a string
     const userObject = JSON.parse(user ?? ""); // Parses the string back into an object
-    console.log(userObject.data.walletAddress); // Now you can safely access phoneNumber
     setWallet(userObject.data.walletAddress);
     setConversionRate(data);
   }, []);
@@ -112,18 +109,6 @@ const Send = () => {
     }
   }, [amount, currency, conversionRate]);
 
-  // const finalAmount =
-  //   currency === "ksh"
-  //     ? parseFloat(amount) / conversionRate
-  //     : parseFloat(amount);
-  // const finalAmount =
-  //   currency === "ksh"
-  //     ? parseFloat((parseFloat(amount) / conversionRate).toFixed(2))
-  //     : parseFloat(parseFloat(amount).toFixed(2));
-  // // setFinAmount(finalAmount)
-
-  // console.log(`final amount ${finalAmount}`);
-
   const validateInput = (value: string) => {
     // Ethereum address validation (basic)
     const isEthereumAddress = value.startsWith("0x") && value.length === 42;
@@ -140,12 +125,12 @@ const Send = () => {
   // Mutation to SendToken
   const sendToken = useMutation({
     mutationFn: (sendTokenData: { phoneNumber: string; amount: string }) => {
+      console.log(sendTokenData);
       const finalAmount =
         currency === "ksh"
-          ? parseFloat(
-              (parseFloat(sendTokenData.amount) / conversionRate).toFixed(2)
-            )
-          : parseFloat(parseFloat(sendTokenData.amount).toFixed(2));
+          ? (parseFloat(sendTokenData.amount) / conversionRate).toFixed(2)
+          : parseFloat(sendTokenData.amount).toFixed(2);
+      console.log(finalAmount);
       let modifiedPhoneNumber = sendTokenData.phoneNumber;
       if (
         modifiedPhoneNumber.toString().startsWith("01") ||
@@ -168,6 +153,7 @@ const Send = () => {
     },
     onSuccess: (data, variables, context) => {
       setOpenConfirmingTx(true);
+      router.replace("/home");
       // setOpenConfirmTx(false);
       // setOpenConfirmingTx(false);
       // setOpenSuccess(true);
@@ -197,6 +183,9 @@ const Send = () => {
     };
     console.log("formdata", data);
     sendToken.mutate(data);
+    setTimeout(() => {
+      setOpenConfirmTx(false);
+    }, 1000);
   };
 
   return (

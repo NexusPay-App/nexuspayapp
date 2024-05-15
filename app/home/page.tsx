@@ -20,7 +20,6 @@ import {
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { useBalance } from "@/context/BalanceContext";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,12 +46,15 @@ import {
 } from "@/components/ui/dialog";
 import { Player } from "@lottiefiles/react-lottie-player";
 import loadingJson from "@/public/json/loading.json";
+import { useBalance } from "@/context/BalanceContext";
+// import { useGetBalanceHook } from "@/hooks/apiHooks";
 
 const Home = () => {
   const [chain, setChain] = useState("USDC");
-  const { balance, loading } = useBalance(); // Use the useBalance hook to get balance and loading state
-  const [openLogoutDialog, setOpenLogoutDialog] = useState(false); // Opens the Logout Loading Dialog
+  const { data, isLoading, error } = useBalance();
 
+  const [openLogoutDialog, setOpenLogoutDialog] = useState(false); // Opens the Logout Loading Dialog
+  // const { data, isLoading, error } = useGetBalanceHook();
   const router = useRouter();
   const {
     register,
@@ -86,7 +88,7 @@ const Home = () => {
     setOpenLogoutDialog(true);
     localStorage.clear();
     setTimeout(() => {
-      router.replace("/login");
+      router.replace("/");
     }, 1000);
   };
 
@@ -105,7 +107,7 @@ const Home = () => {
                     href="/reclaim"
                     className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer "
                   >
-                    Verify
+                    Home
                   </a>
                   {/* <a className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer ">
                     Blogs
@@ -202,14 +204,21 @@ const Home = () => {
 
           <h3 className="text-white my-2">Wallet Balance</h3>
           <h1 className="text-4xl text-white font-bold mb-3 text-center">
-            {parseFloat(balance.balanceInKES).toFixed(2)} KES
+            {isLoading
+              ? "0"
+              : parseFloat(data!.balanceInKES.toString()).toFixed(2)}{" "}
+            KES
           </h1>
           <h1 className="text-xl text-white font-bold mb-3 text-center">
-            {parseFloat(balance.balanceInUSDC).toFixed(2)} USDC
+            {isLoading
+              ? 0
+              : parseFloat(data!.balanceInUSDC.toString()).toFixed(2)}{" "}
+            USDC
           </h1>
           <p className="text-sm mt-2 text-white">
             {/* Current Rate: 1 USDC = {balance.rate} KES */}
-            Current Rate: 1 USDC = {parseFloat(balance.rate).toFixed(2)} KES
+            Current Rate: 1 USDC ={" "}
+            {isLoading ? 0 : parseFloat(data!.rate.toString()).toFixed(2)} KES
           </p>
         </div>
         <div className="flex justify-around relative top-20 ">

@@ -6,6 +6,7 @@ import { AuthProvider } from "@/context/AuthContext"; // Ensure this path matche
 import { BalanceProvider } from "@/context/BalanceContext";
 import ClientOnly from "./ClientOnly";
 import { ReactQueryClientProvider } from "@/providers/ReactQueryClientProvider";
+import { Toaster } from "@/components/ui/toaster";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -62,6 +63,7 @@ export default function RootLayout({
           <AuthProvider>
             <BalanceProvider>
               <ClientOnly>{children}</ClientOnly>
+              <Toaster />
             </BalanceProvider>
           </AuthProvider>
         </ReactQueryClientProvider>

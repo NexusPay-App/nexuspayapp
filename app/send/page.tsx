@@ -376,10 +376,12 @@ import useAxios from "@/hooks/useAxios";
 import SuccessDialog from "@/components/dialog/SuccessDialog";
 import TransactionSuccessDialog from "@/components/dialog/TranscationSuccessDialog";
 import ErrorDialog from "@/components/dialog/ErrorDialog";
+import { useToast } from "@/components/ui/use-toast";
 
 type FormValues = { phoneNumber: string; amount: string };
 
 const Send = () => {
+  const { toast } = useToast();
   const router = useRouter();
   const {
     register,
@@ -406,9 +408,7 @@ const Send = () => {
     const user = localStorage.getItem("user"); // Retrieves a string
     const userObject = JSON.parse(user ?? "{}"); // Parses the string back into an object
     setWallet(userObject.data?.walletAddress);
-    if (data !== undefined) {
-      setConversionRate(data);
-    }
+    isLoading ? 0 : setConversionRate(data??0);
   }, [data]);
 
   const recipientNo = watch("phoneNumber");
@@ -483,6 +483,9 @@ const Send = () => {
       ) {
         modifiedPhoneNumber = "+254" + recipientNo.substring(1);
       }
+      toast({
+        description: "Confirming Transaction...",
+      })
       return api.post(
         "token/sendToken",
         {
@@ -498,7 +501,9 @@ const Send = () => {
     },
     onSuccess: (data, variables, context) => {
       setOpenConfirmingTx(true);
-      router.replace("/home");
+      setTimeout(()=>{
+        router.replace("/home");
+      }, 2000);
       // setOpenConfirmTx(false);
       // setOpenConfirmingTx(false);
       // setOpenSuccess(true);

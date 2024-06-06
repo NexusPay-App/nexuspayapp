@@ -24,6 +24,7 @@ import { useMutation } from "@tanstack/react-query";
 import LoadingDialog from "@/components/dialog/LoadingDialog";
 import ErrorDialog from "@/components/dialog/ErrorDialog";
 import Link from "next/link";
+import toast from "react-hot-toast";
 
 // A wrapper or assertion to cast the useAuth hook's return type
 const useAuth = () => useAuthOriginal() as unknown as AuthContextType;
@@ -54,6 +55,7 @@ const Signup = () => {
   // Mutation to Initiate Register User
   const initiateRegisterUser = useMutation({
     mutationFn: (initiateRegisterUserPost: SignUpFormData) => {
+      setOpenConfirmingOTP(true);
       return api.post(
         "auth/register/initiate",
         {
@@ -67,7 +69,6 @@ const Signup = () => {
     },
     onSuccess: (data, variables, context) => {
       setOpenSigningUp(false);
-      setOpenConfirmingOTP(true);
       setUserDetails(variables); // Store user details with the modified phone number
       setOpenOTP(true); // Open the OTP dialog
     },
@@ -76,7 +77,9 @@ const Signup = () => {
       console.error("Failed to initiate sign-up.");
       setOpenAccErr(true);
     },
-    onSettled: (data, error, variables, context) => {},
+    onSettled: (data, error, variables, context) => {
+      setOpenConfirmingOTP(false);
+    },
   });
 
   // Mutation Side Effect to Login User
@@ -125,16 +128,21 @@ const Signup = () => {
       console.error("Failed to verify OTP.");
       setOpenAccErr(true);
     },
-    onSettled: (data, error, variables, context) => {},
+    onSettled: (data, error, variables, context) => {
+      console.log(data);
+      
+     
+    },
   });
 
   const verifyOTP = async (otpData: OTPFormData) => {
-    setOpenConfirmingOTP(true);
     if (!userDetails) return; // Ensure userDetails is not null
     // console.log(otpData.otp);
-
+    
     // Call the verify API with stored user details and provided OTP
-    verifyUser.mutate();
+    const promise = verifyUser.mutate();
+    console.log("promise", promise);
+    
   };
 
   return (

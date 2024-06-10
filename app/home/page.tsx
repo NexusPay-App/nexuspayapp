@@ -109,15 +109,12 @@ const Home = () => {
                   >
                     Home
                   </a>
+                  <Link href="/reclaim" className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer ">
+                    Reclaim
+                  </Link>
                   {/* <a className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer ">
-                    Blogs
-                  </a>
-                  <a className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer ">
-                    Services
-                  </a>
-                  <a className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer ">
                     About
-                  </a> */}
+                  </a>  */}
                 </ul>
               </SheetHeader>
             </SheetContent>

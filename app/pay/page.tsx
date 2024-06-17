@@ -23,6 +23,7 @@ import { Player } from "@lottiefiles/react-lottie-player";
 import lottieSuccess from "@/public/json/success.json";
 import loadingJson from "@/public/json/loading.json";
 import lottieConfirm from "@/public/json/confirm.json";
+import toast from "react-hot-toast";
 
 const Spinner = () => <div>Loading...</div>;
 const TransactionSuccessModal = () => <div>Transaction Successful!</div>;
@@ -160,9 +161,9 @@ console.log(currency)
       currency === "ksh"
         ? parseFloat(`${amount}`) / conversionRate
         : parseFloat(`${amount}`);
-console.log(finalAmount)
+// console.log(finalAmount)
     setLoading(true);
-
+    toast("Confirming Transaction...");
     try {
       const response = await fetch("https://afpaybackend.vercel.app/api/token/pay", {
         method: "POST",

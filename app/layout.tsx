@@ -8,7 +8,6 @@ import ClientOnly from "./ClientOnly";
 import { ReactQueryClientProvider } from "@/providers/ReactQueryClientProvider";
 import { Toaster } from "react-hot-toast";
 
-
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
@@ -64,7 +63,7 @@ export default function RootLayout({
           <AuthProvider>
             <BalanceProvider>
               <ClientOnly>{children}</ClientOnly>
-              <Toaster />
+              <Toaster position="top-center" reverseOrder={false} />
             </BalanceProvider>
           </AuthProvider>
         </ReactQueryClientProvider>

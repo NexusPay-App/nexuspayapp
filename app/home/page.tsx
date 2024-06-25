@@ -193,7 +193,9 @@ const Home = () => {
                   />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="Celo">Celo</SelectItem>
                   <SelectItem value="ARB">Arbitrum</SelectItem>
+
                 </SelectContent>
               </Select>
             )}
@@ -214,7 +216,7 @@ const Home = () => {
           </h1>
           <p className="text-sm mt-2 text-white">
             {/* Current Rate: 1 USDC = {balance.rate} KES */}
-            Current Rate: 1 USDC ={" "}
+            Current Rate: 1 USD ={" "}
             {isLoading ? 0 : parseFloat(data!.rate.toString()).toFixed(2)} KES
           </p>
         </div>

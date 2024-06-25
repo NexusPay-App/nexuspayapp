@@ -41,7 +41,8 @@ export type BalanceApiResponseType = {
   data: {
     token: string;
     message: string;
-    walletAddress: string;
+    arbitrumWallet: string;
+    celoWallet: string;
     phoneNumber: string;
   };
   status: number;

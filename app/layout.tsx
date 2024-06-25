@@ -4,6 +4,7 @@ import "./globals.css";
 import "@/styles/style.css";
 import { AuthProvider } from "@/context/AuthContext"; // Ensure this path matches the location of your AuthContext file
 import { BalanceProvider } from "@/context/BalanceContext";
+import { ChainProvider } from "@/context/ChainContext";
 import ClientOnly from "./ClientOnly";
 import { ReactQueryClientProvider } from "@/providers/ReactQueryClientProvider";
 import { Toaster } from "react-hot-toast";
@@ -64,10 +65,12 @@ export default function RootLayout({
       <body className={inter.className}>
         <ReactQueryClientProvider>
           <AuthProvider>
+            <ChainProvider>
             <BalanceProvider>
               <ClientOnly>{children}</ClientOnly>
               <Toaster />
             </BalanceProvider>
+            </ChainProvider>
           </AuthProvider>
         </ReactQueryClientProvider>
       </body>

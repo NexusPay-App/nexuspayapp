@@ -39,7 +39,7 @@ export const BalanceProvider = ({
     queryKey: ["getUserBalance"],
     queryFn: () =>
       api
-        .get(`usdc/usdc-balance/${getUserfromLocalStorage?.data.walletAddress}`)
+        .get(`usdc/usdc-balance/${getUserfromLocalStorage?.data.arbitrumWallet}`)
         .then((res) => {
           return res?.data;
         }),

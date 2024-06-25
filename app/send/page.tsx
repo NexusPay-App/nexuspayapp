@@ -733,7 +733,7 @@ type FormValues = { phoneNumber: string; amount: string };
 
 const chainTokenAddresses: Record<string, string> = {
   arbitrum: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
-  celo: "0xA2247cFEba20f923A2c12c2DE2c98cfC0eF2A1b6",
+  celo: "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e",
 };
 
 const Send = () => {
@@ -935,7 +935,7 @@ console.log(wallet)
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="border border-[#0795B0] rounded-lg bg-black text-white text-sm outline-none">
-            <SelectItem value="usdc">USDC</SelectItem>
+            <SelectItem value="usdc">USD</SelectItem>
             <SelectItem value="ksh">KSH</SelectItem>
           </SelectContent>
         </Select>

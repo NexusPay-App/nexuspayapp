@@ -100,22 +100,7 @@ import React, { useEffect, useState } from "react";
 const Transactions = () => {
   const [transactions, setTransactions] = useState<TransactionsType[]>([]);
   const [wallet, setWallet] = useState("");
-  // useEffect(() => {
-  //   const user = localStorage.getItem("user"); // Retrieves a string
-  //   const userObject = JSON.parse(user as string); // Parses the string back into an object
-  //   console.log(userObject.walletAddress); // Now you can safely access phoneNumber
-  //   setWallet(userObject.walletAddress);
-  //   // fetch("http://localhost:8000/api/token/token-transfer-events?address=0xe1F4615Afec6801493FB889eDe3A70812c842d05")
-  //   fetch(
-  //     `https://afpaybackend.vercel.app/api/token/token-transfer-events?address=${userObject.walletAddress}`
-  //   )
-  //     .then((response) => response.json())
-  //     .then((data) => {
-  //       console.log(data);
-  //       setTransactions(data);
-  //     })
-  //     .catch((error) => console.error("Error fetching transactions:", error));
-  // }, []);
+ 
   const { data, isLoading, error } = useGetTransactions();
 
   const formatValue = (value: any, decimals: any) =>

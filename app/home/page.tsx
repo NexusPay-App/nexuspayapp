@@ -1,3 +1,7 @@
+
+
+
+// // Home.tsx
 // "use client";
 
 // import Transactions from "@/components/transactions/Transactions";
@@ -47,14 +51,13 @@
 // import { Player } from "@lottiefiles/react-lottie-player";
 // import loadingJson from "@/public/json/loading.json";
 // import { useBalance } from "@/context/BalanceContext";
-// // import { useGetBalanceHook } from "@/hooks/apiHooks";
+// import { useChain } from "@/context/ChainContext"; // Import useChain hook
 
 // const Home = () => {
-//   const [chain, setChain] = useState("USDC");
+//   const { chain, setChain } = useChain(); // Use the useChain hook
 //   const { data, isLoading, error } = useBalance();
 
 //   const [openLogoutDialog, setOpenLogoutDialog] = useState(false); // Opens the Logout Loading Dialog
-//   // const { data, isLoading, error } = useGetBalanceHook();
 //   const router = useRouter();
 //   const {
 //     register,
@@ -70,7 +73,9 @@
 //       // If not logged in, redirect to the login page
 //       router.replace("/login"); // Adjust the path as needed
 //     }
+//     console.log(chain)
 //   }, [router]);
+
 //   const handleSend = () => {
 //     router.replace("/send");
 //   };
@@ -112,9 +117,7 @@
 //                   <Link href="/reclaim" className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer ">
 //                     Reclaim
 //                   </Link>
-//                   {/* <a className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer ">
-//                     About
-//                   </a>  */}
+                  
 //                 </ul>
 //               </SheetHeader>
 //             </SheetContent>
@@ -127,29 +130,6 @@
 //             <DropdownMenuContent className="w-56">
 //               <DropdownMenuLabel>My Account</DropdownMenuLabel>
 //               <DropdownMenuSeparator />
-//               {/* <DropdownMenuGroup>
-//                 <DropdownMenuItem>
-//                   <User className="mr-2 h-4 w-4" />
-//                   <span>Profile</span>
-//                 </DropdownMenuItem>
-//                 <DropdownMenuItem>
-//                   <Settings className="mr-2 h-4 w-4" />
-//                   <span>Settings</span>
-//                 </DropdownMenuItem>
-//               </DropdownMenuGroup>
-//               <DropdownMenuSeparator />
-//               <DropdownMenuGroup>
-//                 <DropdownMenuItem>
-//                   <UserPlus className="mr-2 h-4 w-4" />
-//                   <span>Invite users</span>
-//                 </DropdownMenuItem>
-//               </DropdownMenuGroup>
-//               <DropdownMenuSeparator />
-//               <DropdownMenuItem>
-//                 <LifeBuoy className="mr-2 h-4 w-4" />
-//                 <span>Support</span>
-//               </DropdownMenuItem>
-//               <DropdownMenuSeparator /> */}
 //               <DropdownMenuItem>
 //                 <LogOut className="mr-2 h-4 w-4" />
 //                 <span onClick={handleLogout}>Log out</span>
@@ -181,10 +161,10 @@
 //               <Select
 //                 defaultValue="ARB"
 //                 onValueChange={(value: string) => {
-//                   field.onChange;
-//                   setChain(value);
+//                   field.onChange(value);
+//                   setChain(value); // Update the chain state
 //                 }}
-//                 value={field.value}
+//                 value={chain} // Use the chain state
 //               >
 //                 <SelectTrigger className="w-full my-[20px] p-3">
 //                   <SelectValue
@@ -193,8 +173,8 @@
 //                   />
 //                 </SelectTrigger>
 //                 <SelectContent>
-//                   <SelectItem value="ARB">Arbitrum</SelectItem>
-//                   <SelectItem value="CELO">Celo</SelectItem>
+//                   <SelectItem value="arbitrum">Arbitrum</SelectItem>
+//                   <SelectItem value="celo">Celo</SelectItem>
 //                 </SelectContent>
 //               </Select>
 //             )}
@@ -256,6 +236,8 @@
 // };
 
 // export default Home;
+
+
 
 
 // Home.tsx
@@ -330,8 +312,8 @@ const Home = () => {
       // If not logged in, redirect to the login page
       router.replace("/login"); // Adjust the path as needed
     }
-    console.log(chain)
-  }, [router]);
+    console.log(chain);
+  }, [router, chain]);
 
   const handleSend = () => {
     router.replace("/send");
@@ -371,12 +353,12 @@ const Home = () => {
                   >
                     Home
                   </a>
-                  <Link href="/reclaim" className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer ">
+                  <Link
+                    href="/reclaim"
+                    className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer "
+                  >
                     Reclaim
                   </Link>
-                  {/* <a className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer ">
-                    About
-                  </a>  */}
                 </ul>
               </SheetHeader>
             </SheetContent>
@@ -389,29 +371,6 @@ const Home = () => {
             <DropdownMenuContent className="w-56">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              {/* <DropdownMenuGroup>
-                <DropdownMenuItem>
-                  <User className="mr-2 h-4 w-4" />
-                  <span>Profile</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-              <DropdownMenuSeparator />
-              <DropdownMenuGroup>
-                <DropdownMenuItem>
-                  <UserPlus className="mr-2 h-4 w-4" />
-                  <span>Invite users</span>
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <LifeBuoy className="mr-2 h-4 w-4" />
-                <span>Support</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator /> */}
               <DropdownMenuItem>
                 <LogOut className="mr-2 h-4 w-4" />
                 <span onClick={handleLogout}>Log out</span>
@@ -466,19 +425,27 @@ const Home = () => {
           <h1 className="text-4xl text-white font-bold mb-3 text-center">
             {isLoading
               ? "0"
-              : parseFloat(data!.balanceInKES.toString()).toFixed(2)}{" "}
+              : data
+              ? parseFloat(data.balanceInKES.toString()).toFixed(2)
+              : "0"}{" "}
             KES
           </h1>
           <h1 className="text-xl text-white font-bold mb-3 text-center">
             {isLoading
-              ? 0
-              : parseFloat(data!.balanceInUSDC.toString()).toFixed(2)}{" "}
+              ? "0"
+              : data
+              ? parseFloat(data.balanceInUSDC.toString()).toFixed(2)
+              : "0"}{" "}
             USDC
           </h1>
           <p className="text-sm mt-2 text-white">
-            {/* Current Rate: 1 USDC = {balance.rate} KES */}
             Current Rate: 1 USDC ={" "}
-            {isLoading ? 0 : parseFloat(data!.rate.toString()).toFixed(2)} KES
+            {isLoading
+              ? "0"
+              : data
+              ? parseFloat(data.rate.toString()).toFixed(2)
+              : "0"}{" "}
+            KES
           </p>
         </div>
         <div className="flex justify-around relative top-20 ">

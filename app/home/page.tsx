@@ -359,6 +359,12 @@ const Home = () => {
                   >
                     Reclaim
                   </Link>
+                  <Link
+                    href="/forgotpassword"
+                    className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer "
+                  >
+                    Forgot Password
+                  </Link>
                 </ul>
               </SheetHeader>
             </SheetContent>

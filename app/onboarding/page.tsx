@@ -14,6 +14,14 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel";
 import Link from "next/link";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 // gsap.registerPlugin(ScrollTrigger);
 
@@ -82,12 +90,34 @@ const Onboarding = () => {
                       >
                         Login
                       </Link>
-                      <Link
-                        href="/signup"
-                        className="bg-transparent border-2 border-white text-white p-3 rounded-2xl mt-5 font-bold cursor-pointer text-center w-full sm:w-[400px]"
-                      >
-                        Create a New Account
-                      </Link>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <button
+                            className="bg-transparent border-2 border-white text-white p-3 rounded-2xl mt-5 font-bold cursor-pointer text-center w-full sm:w-[400px]"
+                            type="submit"
+                          >
+                            Create a New Account
+                          </button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[425px]">
+                          <DialogHeader>
+                            <DialogTitle>Choose NexusPay Account Type</DialogTitle>
+                          </DialogHeader>
+
+                          <Link
+                            href="/signup"
+                            className=" border-2 border-black text-white bg-black p-3 rounded-2xl mt-5 font-bold cursor-pointer text-center w-full sm:w-[400px]"
+                          >
+                            Create Personal Account
+                          </Link>
+                          <Link
+                            href="/signup/business"
+                            className=" border-2 border-black text-black bg-transparent p-3 rounded-2xl font-bold cursor-pointer text-center w-full sm:w-[400px]"
+                          >
+                            Create Business Account
+                          </Link>
+                        </DialogContent>
+                      </Dialog>
                     </div>
                   </div>
                 </CarouselItem>

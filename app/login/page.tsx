@@ -39,7 +39,6 @@ const Login: React.FC = () => {
   const api = useAxios();
   const router = useRouter();
 
-
   // Mutation to Initiate Login User
   const initiateLoginUser = useMutation({
     mutationFn: (initiateLoginUserPost: LoginFormFields) => {
@@ -68,7 +67,6 @@ const Login: React.FC = () => {
     },
     onSettled: (data, error, variables, context) => {},
   });
-
 
   return (
     <section className="app-background">
@@ -143,11 +141,15 @@ const Login: React.FC = () => {
               name="password"
               placeholder="Enter your Password"
             />
-            <div className="flex justify-start mb-5">
+            <div className="flex flex-col justify-start mb-5">
               <p className="text-[#909090] p-1 text-sm font-semibold">
-                Already have an Account?{" "}
                 <Link href="/signup" className="hover:text-white">
-                  Signup
+                  Create a Personal Account
+                </Link>
+              </p>
+              <p className="text-[#909090] p-1 text-sm font-semibold">
+                <Link href="/signup/business" className="hover:text-white">
+                Create a Business Account?
                 </Link>
               </p>
             </div>

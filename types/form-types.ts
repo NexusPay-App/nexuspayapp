@@ -18,6 +18,16 @@ export type SignUpFormData = {
   confirmPassword: string;
 };
 
+export type SignUpBusinessFormData = {
+  businessName: string;
+  businessOwnerName: string;
+  location: string;
+  phoneNumber: string;
+  password: string;
+  confirmPassword: string;
+};
+
+
 export type OTPFormData = {
   otp: string;
 };

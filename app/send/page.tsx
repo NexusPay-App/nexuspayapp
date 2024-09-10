@@ -809,14 +809,21 @@ console.log(wallet)
     if (!amount) {
       setEquivalentAmount("");
     } else {
-      // If the user is inputting KSH, convert to USDC by dividing by the rate
-      // If the user is inputting USDC, convert to KSH by multiplying by the rate
-      const convertedAmount =
-        currency === "ksh"
-          ? parseFloat(amount) / conversionRate
-          : parseFloat(amount) * conversionRate;
+      let convertedAmount;
+      let targetCurrency;
+
+      if (currency === "ksh") {
+        // If the user is inputting KSH, convert to USDC
+        convertedAmount = parseFloat(amount) / conversionRate;
+        targetCurrency = "USDC";
+      } else if (currency === "usdc" || currency === "usdt") {
+        // If the user is inputting USDC or USDT, convert to KSH
+        convertedAmount = parseFloat(amount) * conversionRate;
+        targetCurrency = "KSH";
+      }
+
       setEquivalentAmount(
-        `${convertedAmount.toFixed(2)} ${currency === "usdc" ? "KSH" : "USDC"}`
+        `${convertedAmount?.toFixed(2)} ${targetCurrency}`
       );
     }
   }, [amount, currency, conversionRate]);
@@ -898,6 +905,19 @@ console.log(wallet)
     }, 1000);
   };
 
+  const getCurrencyLabel = (curr:any) => {
+    switch (curr.toLowerCase()) {
+      case 'usdc':
+        return 'USDC';
+      case 'usdt':
+        return 'USDT';
+      case 'ksh':
+        return 'KSH';
+      default:
+        return curr.toUpperCase();
+    }
+  };
+
   return (
     <section className="home-background h-screen flex flex-col p-5 xl:px-[200px]">
       <div className="flex justify-between">
@@ -913,7 +933,7 @@ console.log(wallet)
             <h1 className="text-lg font-bold text-center">
               {equivalentAmount && (
                 <p>
-                  {amount} {currency === "usdc" ? "USDC" : "KSH"}
+                  {amount} {getCurrencyLabel(currency)}
                 </p>
               )}
             </h1>
@@ -935,7 +955,8 @@ console.log(wallet)
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="border border-[#0795B0] rounded-lg bg-black text-white text-sm outline-none">
-            <SelectItem value="usdc">USD</SelectItem>
+            <SelectItem value="usdc">USDC</SelectItem>
+            <SelectItem value="usdt">USDT</SelectItem>
             <SelectItem value="ksh">KSH</SelectItem>
           </SelectContent>
         </Select>

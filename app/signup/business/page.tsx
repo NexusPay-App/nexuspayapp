@@ -17,6 +17,7 @@ import PasswordInput from "@/components/inputs/PasswordInput";
 import {
   AuthContextType,
   OTPFormData,
+  SignUpBusinessFormData,
   SignUpFormData,
 } from "@/types/form-types";
 import useAxios from "@/hooks/useAxios";
@@ -29,7 +30,7 @@ import toast from "react-hot-toast";
 // A wrapper or assertion to cast the useAuth hook's return type
 const useAuth = () => useAuthOriginal() as unknown as AuthContextType;
 
-const Signup = () => {
+const SignupBusiness = () => {
   const { login } = useAuth(); // Use the typed useAuth hook here
   const [openOTP, setOpenOTP] = useState(false);
   const router = useRouter();
@@ -38,7 +39,10 @@ const Signup = () => {
   const [openConfirmingOTP, setOpenConfirmingOTP] = useState(false); // Opens the confirm otp Loading Dialog
   const [openAccErr, setOpenAccErr] = useState(false); // Opens the Failed Acc Creation Loading Dialog
   const api = useAxios();
-  const [userDetails, setUserDetails] = useState<SignUpFormData>({
+  const [userDetails, setUserDetails] = useState<SignUpBusinessFormData>({
+    businessName: "",
+    businessOwnerName: "",
+    location: "",
     phoneNumber: "",
     password: "",
     confirmPassword: "",
@@ -54,11 +58,14 @@ const Signup = () => {
 
   // Mutation to Initiate Register User
   const initiateRegisterUser = useMutation({
-    mutationFn: (initiateRegisterUserPost: SignUpFormData) => {
-      setOpenConfirmingOTP(true);
+    mutationFn: (initiateRegisterUserPost: SignUpBusinessFormData) => {
+      setOpenSigningUp(true);
       return api.post(
-        "auth/register/initiate",
+        "business",
         {
+          businessName: initiateRegisterUserPost.businessName,
+          businessOwnerName: initiateRegisterUserPost.businessOwnerName,
+          location: initiateRegisterUserPost.location,
           phoneNumber: initiateRegisterUserPost.phoneNumber,
           password: initiateRegisterUserPost.password,
         },
@@ -70,7 +77,8 @@ const Signup = () => {
     onSuccess: (data, variables, context) => {
       setOpenSigningUp(false);
       setUserDetails(variables); // Store user details with the modified phone number
-      setOpenOTP(true); // Open the OTP dialog
+    //   loginUser.mutate(userDetails)
+    //   setOpenOTP(true); // Open the OTP dialog
     },
     onError: (error, variables, context) => {
       // Handle errors, e.g., show a message to the user
@@ -78,13 +86,13 @@ const Signup = () => {
       setOpenAccErr(true);
     },
     onSettled: (data, error, variables, context) => {
-      setOpenConfirmingOTP(false);
+    //   setOpenConfirmingOTP(false);
     },
   });
 
   // Mutation Side Effect to Login User
   const loginUser = useMutation({
-    mutationFn: (loginUserPost: SignUpFormData) => {
+    mutationFn: (loginUserPost: SignUpBusinessFormData) => {
       return api.post(
         "auth/login",
         {
@@ -107,47 +115,44 @@ const Signup = () => {
     onSettled: (data, error, variables, context) => {},
   });
 
-  const verifyUser = useMutation({
-    mutationFn: (verifyUserPost) => {
-      return api.post(
-        "auth/register",
-        {
-          ...userDetails,
-          otp: tillNumberParts,
-        },
-        {
-          method: "POST",
-        }
-      );
-    },
-    onSuccess: (data, variables, context) => {
-      loginUser.mutate(userDetails);
-    },
-    onError: (error, variables, context) => {
-      // Handle errors, e.g., invalid OTP
-      console.error("Failed to verify OTP.");
-      setOpenAccErr(true);
-    },
-    onSettled: (data, error, variables, context) => {
-      console.log(data);
-      
-     
-    },
-  });
+//   const verifyUser = useMutation({
+//     mutationFn: (verifyUserPost) => {
+//       return api.post(
+//         "auth/register",
+//         {
+//           ...userDetails,
+//           otp: tillNumberParts,
+//         },
+//         {
+//           method: "POST",
+//         }
+//       );
+//     },
+//     onSuccess: (data, variables, context) => {
+//       loginUser.mutate(userDetails);
+//     },
+//     onError: (error, variables, context) => {
+//       // Handle errors, e.g., invalid OTP
+//       console.error("Failed to verify OTP.");
+//       setOpenAccErr(true);
+//     },
+//     onSettled: (data, error, variables, context) => {
+//       console.log(data);
+//     },
+//   });
 
-  const verifyOTP = async (otpData: OTPFormData) => {
-    if (!userDetails) return; // Ensure userDetails is not null
-    // console.log(otpData.otp);
-    
-    // Call the verify API with stored user details and provided OTP
-    const promise = verifyUser.mutate();
-    console.log("promise", promise);
-    
-  };
+//   const verifyOTP = async (otpData: OTPFormData) => {
+//     if (!userDetails) return; // Ensure userDetails is not null
+//     // console.log(otpData.otp);
+
+//     // Call the verify API with stored user details and provided OTP
+//     const promise = verifyUser.mutate();
+//     console.log("promise", promise);
+//   };
 
   return (
-    <section className="app-background">
-      <Dialog open={openOTP} onOpenChange={setOpenOTP}>
+    <section className="home-background p-3">
+      {/* <Dialog open={openOTP} onOpenChange={setOpenOTP}>
         <DialogContent className="bg-white">
           <DialogHeader>
             <DialogTitle className="text-black">
@@ -187,7 +192,7 @@ const Signup = () => {
             </form>
           </DialogHeader>
         </DialogContent>
-      </Dialog>
+      </Dialog> */}
       <LoadingDialog
         message="Creating Account"
         openLoading={openSigningUp}
@@ -204,18 +209,32 @@ const Signup = () => {
         setOpenError={setOpenAccErr}
       />
       <article>
-        <h2 className="text-4xl text-white font-bold">Sign Up to NexusPay</h2>
+        <h2 className="text-2xl text-white font-bold">
+          Sign Up to NexusPay For Business
+        </h2>
         <h4 className="text-white my-5">
           Enter your Details to Sign Up to NexusPay
         </h4>
         {/* SignUp using Formik */}
         <Formik
           initialValues={{
+            businessName: "",
+            businessOwnerName: "",
+            location: "",
             phoneNumber: "",
             password: "",
             confirmPassword: "",
           }}
           validationSchema={Yup.object({
+            businessName: Yup.string()
+              .min(6, "Min of 6 Characters required")
+              .required("Business Name is Required"),
+            businessOwnerName: Yup.string()
+              .min(5, "Min of 5 Characters required")
+              .required("Business Owner Name is Required"),
+            location: Yup.string()
+              .min(4, "Min of 4 Characters required")
+              .required("Location is Required"),
             phoneNumber: Yup.number()
               .min(13, "Min of 13 Characters required")
               .required("Phone Number is Required"),
@@ -249,7 +268,7 @@ const Signup = () => {
               };
 
               // Call the Initiate Register User Mutation
-              console.log(requestData);
+                // console.log(requestData);
               initiateRegisterUser.mutate(requestData);
               setOpenSigningUp(false);
               setSubmitting(false);
@@ -257,6 +276,24 @@ const Signup = () => {
           }}
         >
           <Form>
+            <TextInput
+              label="Business Name"
+              name="businessName"
+              type="text"
+              placeholder="Enter your Business Name"
+            />
+            <TextInput
+              label="Business Owner Name"
+              name="businessOwnerName"
+              type="text"
+              placeholder="Enter your Business Owner Name"
+            />
+            <TextInput
+              label="Location"
+              name="location"
+              type="text"
+              placeholder="Enter your Location"
+            />
             <TextInput
               label="Phone Number"
               name="phoneNumber"
@@ -283,8 +320,8 @@ const Signup = () => {
                 </Link>
               </p>
               <p className="text-[#909090] p-1 text-sm font-semibold">
-                <Link href="/signup/business" className="hover:text-white">
-                  Create a Business Account?
+                <Link href="/signup" className="hover:text-white">
+                  Create a Personal Account?
                 </Link>
               </p>
             </div>
@@ -301,4 +338,4 @@ const Signup = () => {
   );
 };
 
-export default Signup;
+export default SignupBusiness;

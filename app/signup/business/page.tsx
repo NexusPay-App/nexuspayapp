@@ -40,8 +40,8 @@ const SignupBusiness = () => {
   const [openAccErr, setOpenAccErr] = useState(false); // Opens the Failed Acc Creation Loading Dialog
   const api = useAxios();
   const [userDetails, setUserDetails] = useState<SignUpBusinessFormData>({
+    ownerName: "",
     businessName: "",
-    businessOwnerName: "",
     location: "",
     phoneNumber: "",
     password: "",
@@ -63,8 +63,8 @@ const SignupBusiness = () => {
       return api.post(
         "business",
         {
+          ownerName: initiateRegisterUserPost.ownerName,
           businessName: initiateRegisterUserPost.businessName,
-          businessOwnerName: initiateRegisterUserPost.businessOwnerName,
           location: initiateRegisterUserPost.location,
           phoneNumber: initiateRegisterUserPost.phoneNumber,
           password: initiateRegisterUserPost.password,
@@ -77,7 +77,7 @@ const SignupBusiness = () => {
     onSuccess: (data, variables, context) => {
       setOpenSigningUp(false);
       setUserDetails(variables); // Store user details with the modified phone number
-    //   loginUser.mutate(userDetails)
+      loginUser.mutate(userDetails)
     //   setOpenOTP(true); // Open the OTP dialog
     },
     onError: (error, variables, context) => {
@@ -218,18 +218,18 @@ const SignupBusiness = () => {
         {/* SignUp using Formik */}
         <Formik
           initialValues={{
+            ownerName: "",
             businessName: "",
-            businessOwnerName: "",
             location: "",
             phoneNumber: "",
             password: "",
             confirmPassword: "",
           }}
           validationSchema={Yup.object({
-            businessName: Yup.string()
+            ownerName: Yup.string()
               .min(6, "Min of 6 Characters required")
               .required("Business Name is Required"),
-            businessOwnerName: Yup.string()
+            businessName: Yup.string()
               .min(5, "Min of 5 Characters required")
               .required("Business Owner Name is Required"),
             location: Yup.string()
@@ -284,7 +284,7 @@ const SignupBusiness = () => {
             />
             <TextInput
               label="Business Owner Name"
-              name="businessOwnerName"
+              name="ownerName"
               type="text"
               placeholder="Enter your Business Owner Name"
             />

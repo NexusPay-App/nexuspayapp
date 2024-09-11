@@ -10,6 +10,10 @@ export interface LoginFormFields {
   password: string;
 }
 
+export interface ForgotPasswordFormFields {
+  phoneNumber: string;
+}
+
 
 // Define the types for the form data
 export type SignUpFormData = {
@@ -19,8 +23,8 @@ export type SignUpFormData = {
 };
 
 export type SignUpBusinessFormData = {
+  ownerName: string;
   businessName: string;
-  businessOwnerName: string;
   location: string;
   phoneNumber: string;
   password: string;
@@ -29,6 +33,8 @@ export type SignUpBusinessFormData = {
 
 
 export type OTPFormData = {
+  phoneNumber: string;
+  newPassword: string;
   otp: string;
 };
 

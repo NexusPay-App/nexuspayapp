@@ -20,7 +20,7 @@ const SuccessDialog = ({
           <Player
             keepLastFrame
             autoplay
-            loop={true}
+            loop={false}
             src={SuccessJson}
             style={{ height: "200px", width: "200px" }}
           ></Player>

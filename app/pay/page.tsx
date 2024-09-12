@@ -199,35 +199,41 @@ const Pay = () => {
 
   const confirmPayment = async () => {
     setOpenConfirmTx(false); // Close the confirmation dialog
-
+  
     const fullTillNumber = tillNumberParts;
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    const token = user.token;
-
-    console.log(
-      "fullTillNumber:",
-      fullTillNumber,
-      "amount:",
-      amount,
-      "user:",
-      user?.data.phoneNumber,
-      "token:",
-      user?.data.token
-    );
-
-    if (!fullTillNumber || !amount || !user || !token) {
-      console.log(fullTillNumber, amount, user, token);
-      // alert("Please ensure all details are correct and you are logged in.");
+    const userString = localStorage.getItem("user");
+    let user: LoginResponse | null = null;
+  
+    if (userString) {
+      try {
+        user = JSON.parse(userString) as LoginResponse;
+      } catch (error) {
+        console.error("Failed to parse user data:", error);
+      }
+    }
+  
+    if (!user || !user.data || !user.data.token || !user.data.arbitrumWallet) {
+      console.error("User data is incomplete or missing");
+      setOpenAccErr(true);
       return;
     }
-
+  
+    const token = user.data.token;
+  
+    if (!fullTillNumber || !amount) {
+      console.error("Till number or amount is missing");
+      setOpenAccErr(true);
+      return;
+    }
+  
     const finalAmount =
       currency === "ksh"
         ? parseFloat(`${amount}`) / conversionRate
         : parseFloat(`${amount}`);
-    console.log(finalAmount);
+  
     setLoading(true);
-
+    setOpenConfirmingTx(true);
+  
     try {
       const response = await fetch(
         "https://afpaybackend.vercel.app/api/token/pay",
@@ -241,30 +247,31 @@ const Pay = () => {
             tokenAddress: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
             businessUniqueCode: fullTillNumber,
             amount: finalAmount,
-            senderAddress: user.walletAddress,
+            senderAddress: user.data.arbitrumWallet,
             confirm: true, // Confirming the transaction
           }),
         }
       );
-
+  
       const data = await response.json();
-
+      console.log(data);
+      
+  
       setLoading(false);
-
+      setOpenConfirmingTx(false);
+  
       if (response.ok) {
-        // Wait to display the success modal until after a successful backend response
-        setOpenConfirmingTx(false);
-        setOpenSuccess(true); // Now show the success dialog/message
+        setOpenSuccess(true);
         setOpenMerchantSuccess(true);
-        console.log("successful");
-        
+        console.log("Payment successful");
       } else {
-        alert(`Payment confirmation failed: ${data.message}`);
+        console.error(`Payment confirmation failed: ${data.message}`);
+        setOpenAccErr(true);
       }
     } catch (error) {
-      setOpenConfirmingTx(false);
       console.error("Error:", error);
-      // alert("Failed to confirm payment. Please try again.");
+      setLoading(false);
+      setOpenConfirmingTx(false);
       setOpenAccErr(true);
     }
   };
@@ -379,7 +386,7 @@ const Pay = () => {
               to: {businessName}
             </DialogDescription>
             <button
-              className="bg-white font-bold text-lg p-3 rounded-xl w-full mt-5 text-black"
+              className="bg-black font-bold text-lg p-3 rounded-xl w-full mt-5 text-white"
               onClick={() => {
                 setOpenConfirmTx(false);
                 setOpenConfirmingTx(true);
@@ -390,7 +397,7 @@ const Pay = () => {
               Confirm
             </button>
             <button
-              className="bg-red-500 font-bold text-lg p-3 rounded-xl w-full mt-5 text-white"
+              className="bg-red-400 font-bold text-lg p-3 rounded-xl w-full mt-5 text-white"
               onClick={() => setOpenConfirmTx(false)}
             >
               Cancel Payment
@@ -413,27 +420,6 @@ const Pay = () => {
               src={loadingJson}
               style={{ height: "200px", width: "200px" }}
             ></Player>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>
-      <Dialog open={openSuccess} onOpenChange={setOpenSuccess}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="mb-[20px]">
-              Payment Transferred Succesfully
-            </DialogTitle>
-            <Player
-              keepLastFrame
-              autoplay
-              src={lottieSuccess}
-              style={{ height: "300px", width: "300px" }}
-            ></Player>
-            <button
-              className="bg-white font-bold text-lg p-3 rounded-xl w-full mt-5 text-black"
-              onClick={() => setOpenSuccess(false)}
-            >
-              Done
-            </button>
           </DialogHeader>
         </DialogContent>
       </Dialog>

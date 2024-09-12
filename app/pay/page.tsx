@@ -23,6 +23,9 @@ import { Player } from "@lottiefiles/react-lottie-player";
 import lottieSuccess from "@/public/json/success.json";
 import loadingJson from "@/public/json/loading.json";
 import lottieConfirm from "@/public/json/confirm.json";
+import { LoginResponse, LoginResponseData } from "@/types/api-types";
+import ErrorDialog from "@/components/dialog/ErrorDialog";
+import SuccessDialog from "@/components/dialog/SuccessDialog";
 
 const Spinner = () => <div>Loading...</div>;
 const TransactionSuccessModal = () => <div>Transaction Successful!</div>;
@@ -41,6 +44,8 @@ const Pay = () => {
   const [openConfirmTx, setOpenConfirmTx] = useState(false); // Opens the Transaction Dialog
   const [openConfirmingTx, setOpenConfirmingTx] = useState(false); // Opens the Transaction Loading Dialog
   const [openSuccess, setOpenSuccess] = useState(false); // Opens the Success Dialog
+  const [openAccErr, setOpenAccErr] = useState(false); // Opens the Failed Acc Creation Loading Dialog
+  const [openMerchantSuccess, setOpenMerchantSuccess] = useState(false);
   const {
     register,
     handleSubmit,
@@ -51,7 +56,16 @@ const Pay = () => {
 
   useEffect(() => {
     // Redirect to login if user is not found in localStorage
-    const user = localStorage.getItem("user");
+    const userString = localStorage.getItem("user");
+    let user: LoginResponseData | null = null;
+
+    if (userString) {
+      try {
+        user = JSON.parse(userString) as LoginResponseData;
+      } catch (error) {
+        console.error("Failed to parse user data:", error);
+      }
+    }
     if (!user) {
       router.replace("/login");
     }
@@ -76,56 +90,83 @@ const Pay = () => {
   }, []);
 
   useEffect(() => {
-    if (!amount) setEquivalentAmount("");
-    else {
-      // If the user is inputting KSH, convert to USDC by dividing by the rate
-      // If the user is inputting USDC, convert to KSH by multiplying by the rate
-      const convertedAmount =
-        currency === "ksh"
-          ? parseFloat(`${amount}`) / conversionRate
-          : parseFloat(`${amount}`) * conversionRate;
-      setEquivalentAmount(
-        `${convertedAmount.toFixed(2)} ${currency === "usdc" ? "KSH" : "USDC"}`
-      );
+    if (!amount) {
+      setEquivalentAmount("");
+    } else {
+      let convertedAmount;
+      let targetCurrency;
+
+      if (currency === "ksh") {
+        // If the user is inputting KSH, convert to USDC by dividing by the rate
+        convertedAmount = parseFloat(`${amount}`) / conversionRate;
+        targetCurrency = "USDC";
+      } else if (currency === "usdc" || currency === "usdt") {
+        // If the user is inputting USDC or USDT, convert to KSH by multiplying by the rate
+        convertedAmount = parseFloat(`${amount}`) * conversionRate;
+        targetCurrency = "KSH";
+      }
+
+      setEquivalentAmount(`${convertedAmount?.toFixed(2)} ${targetCurrency}`);
     }
   }, [amount, currency, conversionRate]);
 
   const initiatePayment = async () => {
     const fullTillNumber = tillNumberParts;
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    const token = user.token;
+    const userString = localStorage.getItem("user");
+    let user: LoginResponse | null = null;
+
+    if (userString) {
+      try {
+        user = JSON.parse(userString) as LoginResponse;
+      } catch (error) {
+        console.error("Failed to parse user data:", error);
+      }
+    }
+    const token = user?.data.token;
 
     if (!fullTillNumber || !amount || !user || !token) {
-      alert("Please fill all the fields and ensure you are logged in.");
+      console.log(
+        "fullTillNumber:",
+        fullTillNumber,
+        "amount:",
+        amount,
+        "user:",
+        user?.data.phoneNumber,
+        "token:",
+        user?.data.token
+      );
+      // alert("Please fill all the fields and ensure you are logged in.");
       return;
     }
-console.log(currency)
+    console.log(currency);
     // Convert amount for API if necessary
     const finalAmount =
       currency === "ksh"
         ? parseFloat(`${amount}`) / conversionRate
         : parseFloat(`${amount}`);
 
-        console.log(finalAmount)
+    console.log(finalAmount);
 
     setLoading(true);
 
     try {
-      const response = await fetch("https://afpaybackend.vercel.app/api/token/pay", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          tokenAddress: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
-          businessUniqueCode: fullTillNumber,
-          amount: finalAmount,
-          senderAddress: user.walletAddress,
-          confirm: false, // Not confirming yet
-          currency: currency, // Optionally include currency type if your backend needs it
-        }),
-      });
+      const response = await fetch(
+        "https://afpaybackend.vercel.app/api/token/pay",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            tokenAddress: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+            businessUniqueCode: fullTillNumber,
+            amount: finalAmount,
+            senderAddress: user?.data.arbitrumWallet,
+            confirm: false, // Not confirming yet
+          }),
+        }
+      );
 
       const data = await response.json();
 
@@ -143,6 +184,18 @@ console.log(currency)
     setLoading(false);
   };
 
+  const getCurrencyLabel = (curr: any) => {
+    switch (curr.toLowerCase()) {
+      case "usdc":
+        return "USDC";
+      case "usdt":
+        return "USDT";
+      case "ksh":
+        return "KSH";
+      default:
+        return curr.toUpperCase();
+    }
+  };
 
   const confirmPayment = async () => {
     setOpenConfirmTx(false); // Close the confirmation dialog
@@ -151,8 +204,20 @@ console.log(currency)
     const user = JSON.parse(localStorage.getItem("user") || "{}");
     const token = user.token;
 
+    console.log(
+      "fullTillNumber:",
+      fullTillNumber,
+      "amount:",
+      amount,
+      "user:",
+      user?.data.phoneNumber,
+      "token:",
+      user?.data.token
+    );
+
     if (!fullTillNumber || !amount || !user || !token) {
-      alert("Please ensure all details are correct and you are logged in.");
+      console.log(fullTillNumber, amount, user, token);
+      // alert("Please ensure all details are correct and you are logged in.");
       return;
     }
 
@@ -160,25 +225,27 @@ console.log(currency)
       currency === "ksh"
         ? parseFloat(`${amount}`) / conversionRate
         : parseFloat(`${amount}`);
-console.log(finalAmount)
+    console.log(finalAmount);
     setLoading(true);
 
     try {
-      const response = await fetch("https://afpaybackend.vercel.app/api/token/pay", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          tokenAddress: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
-          businessUniqueCode: fullTillNumber,
-          amount: finalAmount,
-          senderAddress: user.walletAddress,
-          confirm: true, // Confirming the transaction
-          currency: currency,
-        }),
-      });
+      const response = await fetch(
+        "https://afpaybackend.vercel.app/api/token/pay",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            tokenAddress: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+            businessUniqueCode: fullTillNumber,
+            amount: finalAmount,
+            senderAddress: user.walletAddress,
+            confirm: true, // Confirming the transaction
+          }),
+        }
+      );
 
       const data = await response.json();
 
@@ -188,14 +255,17 @@ console.log(finalAmount)
         // Wait to display the success modal until after a successful backend response
         setOpenConfirmingTx(false);
         setOpenSuccess(true); // Now show the success dialog/message
+        setOpenMerchantSuccess(true);
+        console.log("successful");
+        
       } else {
         alert(`Payment confirmation failed: ${data.message}`);
       }
     } catch (error) {
       setOpenConfirmingTx(false);
       console.error("Error:", error);
-      alert("Failed to confirm payment. Please try again.");
-      setLoading(false);
+      // alert("Failed to confirm payment. Please try again.");
+      setOpenAccErr(true);
     }
   };
 
@@ -249,6 +319,7 @@ console.log(finalAmount)
           <SelectContent className="border border-[#0795B0] rounded-lg bg-black text-white text-sm outline-none">
             <SelectItem value="default">-- Select Currency --</SelectItem>
             <SelectItem value="usdc">USDC</SelectItem>
+            <SelectItem value="usdt">USDT</SelectItem>
             <SelectItem value="ksh">KSH</SelectItem>
           </SelectContent>
         </Select>
@@ -269,7 +340,7 @@ console.log(finalAmount)
         <h1 className="text-lg font-bold text-center">
           {equivalentAmount && (
             <p>
-              {amount} {currency === "usdc" ? "USDC" : "KSH"}
+              {amount} {getCurrencyLabel(currency)}
             </p>
           )}
         </h1>
@@ -332,8 +403,8 @@ console.log(finalAmount)
           <DialogHeader>
             <DialogTitle className="mb-[5px]">Confirm Payment</DialogTitle>
             <DialogDescription>
-              Confirming payment of {amount} {currency === "usdc" ? "USDC" : "KSH"}{" "}
-              to: {businessName}
+              Confirming payment of {amount}{" "}
+              {currency === "usdc" ? "USDC" : "KSH"} to: {businessName}
             </DialogDescription>
             <Player
               keepLastFrame
@@ -366,6 +437,16 @@ console.log(finalAmount)
           </DialogHeader>
         </DialogContent>
       </Dialog>
+      <ErrorDialog
+        message="Failed to confirm payment. Please try again."
+        openError={openAccErr}
+        setOpenError={setOpenAccErr}
+      />
+      <SuccessDialog
+        message="Payment Successful"
+        openSuccess={openMerchantSuccess}
+        setOpenSuccess={setOpenMerchantSuccess}
+      />
     </section>
   );
 };

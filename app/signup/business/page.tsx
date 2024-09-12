@@ -26,6 +26,7 @@ import LoadingDialog from "@/components/dialog/LoadingDialog";
 import ErrorDialog from "@/components/dialog/ErrorDialog";
 import Link from "next/link";
 import toast from "react-hot-toast";
+import SuccessDialog from "@/components/dialog/SuccessDialog";
 
 // A wrapper or assertion to cast the useAuth hook's return type
 const useAuth = () => useAuthOriginal() as unknown as AuthContextType;
@@ -34,7 +35,7 @@ const SignupBusiness = () => {
   const { login } = useAuth(); // Use the typed useAuth hook here
   const [openOTP, setOpenOTP] = useState(false);
   const router = useRouter();
-  const [tillNumberParts, setTillNumberParts] = useState("");
+  const [openMerchantSuccess, setOpenMerchantSuccess] = useState(false);
   const [openSigningUp, setOpenSigningUp] = useState(false); // Opens the Account Creation Loading Dialog
   const [openConfirmingOTP, setOpenConfirmingOTP] = useState(false); // Opens the confirm otp Loading Dialog
   const [openAccErr, setOpenAccErr] = useState(false); // Opens the Failed Acc Creation Loading Dialog
@@ -77,8 +78,12 @@ const SignupBusiness = () => {
     onSuccess: (data, variables, context) => {
       setOpenSigningUp(false);
       setUserDetails(variables); // Store user details with the modified phone number
-      loginUser.mutate(userDetails)
-    //   setOpenOTP(true); // Open the OTP dialog
+      //   console.log(userDetails);
+      //   loginUser.mutate(userDetails);
+      setOpenMerchantSuccess(true);
+      setOpenSigningUp(false);
+      router.replace("/home");
+      //   setOpenOTP(true); // Open the OTP dialog
     },
     onError: (error, variables, context) => {
       // Handle errors, e.g., show a message to the user
@@ -86,7 +91,7 @@ const SignupBusiness = () => {
       setOpenAccErr(true);
     },
     onSettled: (data, error, variables, context) => {
-    //   setOpenConfirmingOTP(false);
+      //   setOpenConfirmingOTP(false);
     },
   });
 
@@ -115,40 +120,40 @@ const SignupBusiness = () => {
     onSettled: (data, error, variables, context) => {},
   });
 
-//   const verifyUser = useMutation({
-//     mutationFn: (verifyUserPost) => {
-//       return api.post(
-//         "auth/register",
-//         {
-//           ...userDetails,
-//           otp: tillNumberParts,
-//         },
-//         {
-//           method: "POST",
-//         }
-//       );
-//     },
-//     onSuccess: (data, variables, context) => {
-//       loginUser.mutate(userDetails);
-//     },
-//     onError: (error, variables, context) => {
-//       // Handle errors, e.g., invalid OTP
-//       console.error("Failed to verify OTP.");
-//       setOpenAccErr(true);
-//     },
-//     onSettled: (data, error, variables, context) => {
-//       console.log(data);
-//     },
-//   });
+  //   const verifyUser = useMutation({
+  //     mutationFn: (verifyUserPost) => {
+  //       return api.post(
+  //         "auth/register",
+  //         {
+  //           ...userDetails,
+  //           otp: tillNumberParts,
+  //         },
+  //         {
+  //           method: "POST",
+  //         }
+  //       );
+  //     },
+  //     onSuccess: (data, variables, context) => {
+  //       loginUser.mutate(userDetails);
+  //     },
+  //     onError: (error, variables, context) => {
+  //       // Handle errors, e.g., invalid OTP
+  //       console.error("Failed to verify OTP.");
+  //       setOpenAccErr(true);
+  //     },
+  //     onSettled: (data, error, variables, context) => {
+  //       console.log(data);
+  //     },
+  //   });
 
-//   const verifyOTP = async (otpData: OTPFormData) => {
-//     if (!userDetails) return; // Ensure userDetails is not null
-//     // console.log(otpData.otp);
+  //   const verifyOTP = async (otpData: OTPFormData) => {
+  //     if (!userDetails) return; // Ensure userDetails is not null
+  //     // console.log(otpData.otp);
 
-//     // Call the verify API with stored user details and provided OTP
-//     const promise = verifyUser.mutate();
-//     console.log("promise", promise);
-//   };
+  //     // Call the verify API with stored user details and provided OTP
+  //     const promise = verifyUser.mutate();
+  //     console.log("promise", promise);
+  //   };
 
   return (
     <section className="home-background p-3">
@@ -194,7 +199,7 @@ const SignupBusiness = () => {
         </DialogContent>
       </Dialog> */}
       <LoadingDialog
-        message="Creating Account"
+        message="Creating Merchant Account"
         openLoading={openSigningUp}
         setOpenLoading={setOpenSigningUp}
       />
@@ -202,6 +207,11 @@ const SignupBusiness = () => {
         message="Sending OTP Code...."
         openLoading={openConfirmingOTP}
         setOpenLoading={setOpenConfirmingOTP}
+      />
+      <SuccessDialog
+        message="Merchant Account Created Successfully"
+        openSuccess={openMerchantSuccess}
+        setOpenSuccess={setOpenMerchantSuccess}
       />
       <ErrorDialog
         message="Failed to Create Account"
@@ -268,7 +278,7 @@ const SignupBusiness = () => {
               };
 
               // Call the Initiate Register User Mutation
-                // console.log(requestData);
+              // console.log(requestData);
               initiateRegisterUser.mutate(requestData);
               setOpenSigningUp(false);
               setSubmitting(false);

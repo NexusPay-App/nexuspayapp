@@ -100,3 +100,51 @@ export type Transaction = {
   input: string;
   confirmations: string;
 }
+
+export type LoginResponseData = {
+  token: string;
+  message: string;
+  arbitrumWallet: string;
+  phoneNumber: string;
+}
+
+export type LoginResponse = {
+  data: {
+    token: string;
+    message: string;
+    arbitrumWallet: string;
+    phoneNumber: string;
+  };
+  status: number;
+  statusText: string;
+  headers: {
+    "cache-control": string;
+    "content-length": string;
+    "content-type": string;
+  };
+  config: {
+    transitional: {
+      silentJSONParsing: boolean;
+      forcedJSONParsing: boolean;
+      clarifyTimeoutError: boolean;
+    };
+    adapter: string[];
+    transformRequest: (null)[];
+    transformResponse: (null)[];
+    timeout: number;
+    xsrfCookieName: string;
+    xsrfHeaderName: string;
+    maxContentLength: number;
+    maxBodyLength: number;
+    env: Record<string, unknown>;
+    headers: {
+      Accept: string;
+      "Content-Type": string;
+    };
+    baseURL: string;
+    method: string;
+    url: string;
+    data: string;
+  };
+  request: Record<string, unknown>;
+};

@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"; // Assuming these components exist in your project
 import { useAuth as useAuthOriginal } from "@/context/AuthContext"; // Import the original useAuth hook
-import OTPInput from "react-otp-input";
+
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
 import TextInput from "@/components/inputs/TextInput";
@@ -27,6 +27,7 @@ import ErrorDialog from "@/components/dialog/ErrorDialog";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import SuccessDialog from "@/components/dialog/SuccessDialog";
+import GoogleSignIn from "@/components/auth/GoogleSignIn";
 
 // A wrapper or assertion to cast the useAuth hook's return type
 const useAuth = () => useAuthOriginal() as unknown as AuthContextType;
@@ -62,13 +63,16 @@ const SignupBusiness = () => {
     mutationFn: (initiateRegisterUserPost: SignUpBusinessFormData) => {
       setOpenSigningUp(true);
       return api.post(
-        "business",
+        "auth/register/initiate",
         {
-          ownerName: initiateRegisterUserPost.ownerName,
-          businessName: initiateRegisterUserPost.businessName,
-          location: initiateRegisterUserPost.location,
+          email: `${initiateRegisterUserPost.businessName.toLowerCase().replace(/\s+/g, '')}@business.nexuspay.app`, // Generate business email
           phoneNumber: initiateRegisterUserPost.phoneNumber,
           password: initiateRegisterUserPost.password,
+          verifyWith: 'phone', // Business accounts verify via phone
+          accountType: 'business',
+          businessName: initiateRegisterUserPost.businessName,
+          ownerName: initiateRegisterUserPost.ownerName,
+          location: initiateRegisterUserPost.location,
         },
         {
           method: "POST",
@@ -78,12 +82,18 @@ const SignupBusiness = () => {
     onSuccess: (data, variables, context) => {
       setOpenSigningUp(false);
       setUserDetails(variables); // Store user details with the modified phone number
-      //   console.log(userDetails);
-      //   loginUser.mutate(userDetails);
-      setOpenMerchantSuccess(true);
-      setOpenSigningUp(false);
-      router.replace("/home");
-      //   setOpenOTP(true); // Open the OTP dialog
+      
+      // If registration returns a token, user is fully registered
+      if (data.data.token) {
+        login(data);
+        setOpenMerchantSuccess(true);
+        setTimeout(() => {
+          router.replace("/home");
+        }, 2000);
+      } else {
+        // OTP verification needed
+        setOpenOTP(true); // Open the OTP dialog
+      }
     },
     onError: (error, variables, context) => {
       // Handle errors, e.g., show a message to the user
@@ -120,31 +130,41 @@ const SignupBusiness = () => {
     onSettled: (data, error, variables, context) => {},
   });
 
-  //   const verifyUser = useMutation({
-  //     mutationFn: (verifyUserPost) => {
-  //       return api.post(
-  //         "auth/register",
-  //         {
-  //           ...userDetails,
-  //           otp: tillNumberParts,
-  //         },
-  //         {
-  //           method: "POST",
-  //         }
-  //       );
-  //     },
-  //     onSuccess: (data, variables, context) => {
-  //       loginUser.mutate(userDetails);
-  //     },
-  //     onError: (error, variables, context) => {
-  //       // Handle errors, e.g., invalid OTP
-  //       console.error("Failed to verify OTP.");
-  //       setOpenAccErr(true);
-  //     },
-  //     onSettled: (data, error, variables, context) => {
-  //       console.log(data);
-  //     },
-  //   });
+  const verifyUser = useMutation({
+    mutationFn: (verifyUserPost) => {
+      return api.post(
+        "auth/register/verify/phone",
+        {
+          phoneNumber: userDetails.phoneNumber,
+          otp: tillNumberParts,
+        },
+        {
+          method: "POST",
+        }
+      );
+    },
+    onSuccess: (data, variables, context) => {
+      // If verification returns a token, user is fully registered and logged in
+      if (data.data.token) {
+        login(data);
+        setOpenMerchantSuccess(true);
+        setTimeout(() => {
+          router.replace("/home");
+        }, 2000);
+      } else {
+        // Otherwise, proceed with login
+        loginUser.mutate(userDetails);
+      }
+    },
+    onError: (error, variables, context) => {
+      // Handle errors, e.g., invalid OTP
+      console.error("Failed to verify OTP.");
+      setOpenAccErr(true);
+    },
+    onSettled: (data, error, variables, context) => {
+      console.log(data);
+    },
+  });
 
   //   const verifyOTP = async (otpData: OTPFormData) => {
   //     if (!userDetails) return; // Ensure userDetails is not null
@@ -168,25 +188,35 @@ const SignupBusiness = () => {
               onSubmit={handleOTPSubmit(verifyOTP)}
               className="flex flex-col justify-around h-[200px]"
             >
-              <div className="flex justify-center">
-                <OTPInput
-                  inputStyle={{
-                    border: "1px solid black",
-                    borderRadius: "8px",
-                    padding: "8px",
-                    backgroundColor: "white",
-                    color: "black",
-                    width: "40px",
-                    fontSize: "18px",
-                  }}
-                  containerStyle={{ width: "auto" }}
-                  inputType="number"
-                  value={tillNumberParts}
-                  onChange={setTillNumberParts}
-                  numInputs={6}
-                  renderSeparator={<span>-</span>}
-                  renderInput={(props) => <input {...props} />}
-                />
+              <div className="flex justify-center space-x-2">
+                {[0, 1, 2, 3, 4, 5].map((index) => (
+                  <input
+                    key={index}
+                    type="text"
+                    maxLength={1}
+                    value={tillNumberParts[index] || ""}
+                    onChange={(e) => {
+                      const newOtp = tillNumberParts.split("");
+                      newOtp[index] = e.target.value;
+                      setTillNumberParts(newOtp.join(""));
+                      
+                      // Auto-focus next input
+                      if (e.target.value && index < 5 && typeof document !== 'undefined') {
+                        const nextInput = document.querySelector(`input[data-business-index="${index + 1}"]`) as HTMLInputElement;
+                        if (nextInput) nextInput.focus();
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      // Handle backspace to focus previous input
+                      if (e.key === "Backspace" && !tillNumberParts[index] && index > 0 && typeof document !== 'undefined') {
+                        const prevInput = document.querySelector(`input[data-business-index="${index - 1}"]`) as HTMLInputElement;
+                        if (prevInput) prevInput.focus();
+                      }
+                    }}
+                    data-business-index={index}
+                    className="w-10 h-10 text-center text-lg font-semibold border border-black rounded-lg focus:border-[#0795B0] focus:outline-none bg-white text-black"
+                  />
+                ))}
               </div>
               <button
                 type="submit"
@@ -343,6 +373,28 @@ const SignupBusiness = () => {
             </button>
           </Form>
         </Formik>
+
+        {/* Google Sign-In */}
+        <div className="mt-6">
+          <div className="flex items-center justify-center mb-4">
+            <div className="border-t border-gray-300 flex-grow"></div>
+            <span className="px-4 text-white text-sm">or</span>
+            <div className="border-t border-gray-300 flex-grow"></div>
+          </div>
+          <GoogleSignIn 
+            mode="signup"
+            onSuccess={() => {
+              setOpenSigningUp(true);
+              setTimeout(() => {
+                router.replace("/home");
+              }, 1000);
+            }}
+            onError={(error) => {
+              console.error("Google signup error:", error);
+              setOpenAccErr(true);
+            }}
+          />
+        </div>
       </article>
     </section>
   );

@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"; // Assuming these components exist in your project
 import { useAuth as useAuthOriginal } from "@/context/AuthContext"; // Import the original useAuth hook
-import OTPInput from "react-otp-input";
+
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
 import TextInput from "@/components/inputs/TextInput";
@@ -25,6 +25,7 @@ import LoadingDialog from "@/components/dialog/LoadingDialog";
 import ErrorDialog from "@/components/dialog/ErrorDialog";
 import Link from "next/link";
 import toast from "react-hot-toast";
+import GoogleSignIn from "@/components/auth/GoogleSignIn";
 
 // A wrapper or assertion to cast the useAuth hook's return type
 const useAuth = () => useAuthOriginal() as unknown as AuthContextType;
@@ -110,9 +111,9 @@ const Signup = () => {
   const verifyUser = useMutation({
     mutationFn: (verifyUserPost) => {
       return api.post(
-        "auth/register",
+        "auth/register/verify/phone",
         {
-          ...userDetails,
+          phoneNumber: userDetails.phoneNumber,
           otp: tillNumberParts,
         },
         {
@@ -121,7 +122,15 @@ const Signup = () => {
       );
     },
     onSuccess: (data, variables, context) => {
-      loginUser.mutate(userDetails);
+      // If verification returns a token, user is fully registered and logged in
+      if (data.data.token) {
+        login(data); // Use the login function from your context
+        setOpenSigningUp(false);
+        router.replace("/home");
+      } else {
+        // Otherwise, proceed with login
+        loginUser.mutate(userDetails);
+      }
     },
     onError: (error, variables, context) => {
       // Handle errors, e.g., invalid OTP
@@ -130,8 +139,6 @@ const Signup = () => {
     },
     onSettled: (data, error, variables, context) => {
       console.log(data);
-      
-     
     },
   });
 
@@ -158,25 +165,35 @@ const Signup = () => {
               onSubmit={handleOTPSubmit(verifyOTP)}
               className="flex flex-col justify-around h-[200px]"
             >
-              <div className="flex justify-center">
-                <OTPInput
-                  inputStyle={{
-                    border: "1px solid black",
-                    borderRadius: "8px",
-                    padding: "8px",
-                    backgroundColor: "white",
-                    color: "black",
-                    width: "40px",
-                    fontSize: "18px",
-                  }}
-                  containerStyle={{ width: "auto" }}
-                  inputType="number"
-                  value={tillNumberParts}
-                  onChange={setTillNumberParts}
-                  numInputs={6}
-                  renderSeparator={<span>-</span>}
-                  renderInput={(props) => <input {...props} />}
-                />
+              <div className="flex justify-center space-x-2">
+                {[0, 1, 2, 3, 4, 5].map((index) => (
+                  <input
+                    key={index}
+                    type="text"
+                    maxLength={1}
+                    value={tillNumberParts[index] || ""}
+                    onChange={(e) => {
+                      const newOtp = tillNumberParts.split("");
+                      newOtp[index] = e.target.value;
+                      setTillNumberParts(newOtp.join(""));
+                      
+                      // Auto-focus next input
+                      if (e.target.value && index < 5 && typeof document !== 'undefined') {
+                        const nextInput = document.querySelector(`input[data-signup-index="${index + 1}"]`) as HTMLInputElement;
+                        if (nextInput) nextInput.focus();
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      // Handle backspace to focus previous input
+                      if (e.key === "Backspace" && !tillNumberParts[index] && index > 0 && typeof document !== 'undefined') {
+                        const prevInput = document.querySelector(`input[data-signup-index="${index - 1}"]`) as HTMLInputElement;
+                        if (prevInput) prevInput.focus();
+                      }
+                    }}
+                    data-signup-index={index}
+                    className="w-10 h-10 text-center text-lg font-semibold border border-black rounded-lg focus:border-[#0795B0] focus:outline-none bg-white text-black"
+                  />
+                ))}
               </div>
               <button
                 type="submit"
@@ -296,6 +313,28 @@ const Signup = () => {
             </button>
           </Form>
         </Formik>
+
+        {/* Google Sign-In */}
+        <div className="mt-6">
+          <div className="flex items-center justify-center mb-4">
+            <div className="border-t border-gray-300 flex-grow"></div>
+            <span className="px-4 text-white text-sm">or</span>
+            <div className="border-t border-gray-300 flex-grow"></div>
+          </div>
+          <GoogleSignIn 
+            mode="signup"
+            onSuccess={() => {
+              setOpenSigningUp(true);
+              setTimeout(() => {
+                router.replace("/home");
+              }, 1000);
+            }}
+            onError={(error) => {
+              console.error("Google signup error:", error);
+              setOpenAccErr(true);
+            }}
+          />
+        </div>
       </article>
     </section>
   );

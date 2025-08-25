@@ -287,14 +287,22 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Player } from "@lottiefiles/react-lottie-player";
+import dynamic from "next/dynamic";
 import loadingJson from "@/public/json/loading.json";
-import { useBalance } from "@/context/BalanceContext";
+
+// Dynamically import Player to avoid SSR issues
+const Player = dynamic(
+  () => import("@lottiefiles/react-lottie-player").then((mod) => mod.Player),
+  { ssr: false }
+);
+import { useWallet } from "@/context/WalletContext";
 import { useChain } from "@/context/ChainContext"; // Import useChain hook
+import { useAuth } from "@/context/AuthContext";
 
 const Home = () => {
   const { chain, setChain } = useChain(); // Use the useChain hook
-  const { data, isLoading, error } = useBalance();
+  const { balance, loading, refreshing, hasWallet } = useWallet();
+  const { user, isAuthenticated, logout } = useAuth();
 
   const [openLogoutDialog, setOpenLogoutDialog] = useState(false); // Opens the Logout Loading Dialog
   const router = useRouter();
@@ -306,14 +314,14 @@ const Home = () => {
   } = useForm();
 
   useEffect(() => {
-    // Check if the user is logged in
-    const user = localStorage.getItem("user"); // Assuming 'user' is saved in localStorage on login
-    if (!user) {
+    // Check if the user is authenticated using the auth context
+    if (!isAuthenticated) {
       // If not logged in, redirect to the login page
-      router.replace("/login"); // Adjust the path as needed
+      router.replace("/login");
     }
-    console.log(chain);
-  }, [router, chain]);
+    console.log("Chain:", chain);
+    console.log("User:", user);
+  }, [router, chain, isAuthenticated, user]);
 
   const handleSend = () => {
     router.replace("/send");
@@ -330,10 +338,37 @@ const Home = () => {
   // Logs out the User
   const handleLogout = () => {
     setOpenLogoutDialog(true);
-    localStorage.clear();
+    logout();
     setTimeout(() => {
       router.replace("/");
     }, 1000);
+  };
+
+  // Helper function to get USDC balance for selected chain or total
+  const getUSDCBalance = () => {
+    if (!balance) return 0;
+    
+    let usdcBalance = 0;
+    
+    if (chain && chain !== "all" && balance.balances[chain]?.USDC) {
+      usdcBalance = balance.balances[chain].USDC;
+    } else {
+      // Sum USDC across all chains
+      Object.values(balance.balances).forEach(chainBalances => {
+        if (chainBalances.USDC) {
+          usdcBalance += chainBalances.USDC;
+        }
+      });
+    }
+    
+    return usdcBalance;
+  };
+
+  // Helper function to convert USDC to KES (using fixed rate for now)
+  const getKESEquivalent = () => {
+    const usdcAmount = getUSDCBalance();
+    const kesRate = 130; // 1 USDC = 130 KES (you can make this dynamic later)
+    return usdcAmount * kesRate;
   };
 
   return (
@@ -428,31 +463,48 @@ const Home = () => {
           />
 
           <h3 className="text-white my-2">Wallet Balance</h3>
-          <h1 className="text-4xl text-white font-bold mb-3 text-center">
-            {isLoading
-              ? "0"
-              : data
-              ? parseFloat(data.balanceInKES.toString()).toFixed(2)
-              : "0"}{" "}
-            KES
-          </h1>
-          <h1 className="text-xl text-white font-bold mb-3 text-center">
-            {isLoading
-              ? "0"
-              : data
-              ? parseFloat(data.balanceInUSDC.toString()).toFixed(2)
-              : "0"}{" "}
-            USDC
-          </h1>
-          <p className="text-sm mt-2 text-white">
-            Current Rate: 1 USDC ={" "}
-            {isLoading
-              ? "0"
-              : data
-              ? parseFloat(data.rate.toString()).toFixed(2)
-              : "0"}{" "}
-            KES
-          </p>
+          
+          {!hasWallet ? (
+            <div className="text-center">
+              <h1 className="text-4xl text-white font-bold mb-3">Wallet Setup Required</h1>
+              <p className="text-sm text-gray-400 mb-4">Set up your wallet to view balances</p>
+              <button
+                onClick={() => router.push('/wallet')}
+                className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600"
+              >
+                Set Up Wallet
+              </button>
+            </div>
+          ) : loading || refreshing ? (
+            <div className="text-center">
+              <h1 className="text-4xl text-white font-bold mb-3">Loading...</h1>
+              <p className="text-sm text-gray-400">Fetching your balance</p>
+            </div>
+          ) : balance ? (
+            <>
+              {/* KES Equivalent (Primary Display) */}
+              <h1 className="text-4xl text-white font-bold mb-3 text-center">
+                {getKESEquivalent().toFixed(2)} KES
+              </h1>
+              
+              {/* USDC Balance (from selected chain or total) */}
+              <h1 className="text-xl text-white font-bold mb-3 text-center">
+                {getUSDCBalance().toFixed(6)} USDC
+              </h1>
+              
+              {/* Exchange Rate */}
+              <p className="text-sm mt-2 text-white">
+                Current Rate: 1 USDC = 130.00 KES
+              </p>
+            </>
+          ) : (
+            <div className="text-center">
+              <h1 className="text-4xl text-white font-bold mb-3">0.00 USD</h1>
+              <h1 className="text-xl text-white font-bold mb-3">0.000000 USDC</h1>
+              <p className="text-sm mt-2 text-white">Current Rate: 1 USDC = 130.00 KES</p>
+              <p className="text-lg text-gray-300 mt-2">≈ 0.00 KES</p>
+            </div>
+          )}
         </div>
         <div className="flex justify-around relative top-20 ">
           <div className="flex flex-col items-center" onClick={handleSend}>

@@ -716,9 +716,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Player } from "@lottiefiles/react-lottie-player";
+import dynamic from "next/dynamic";
 import lottieSuccess from "@/json/success.json";
 import lottieConfirm from "@/json/loading.json";
+
+// Dynamically import Player to avoid SSR issues
+const Player = dynamic(
+  () => import("@lottiefiles/react-lottie-player").then((mod) => mod.Player),
+  { ssr: false }
+);
 import { useGetConversionRate } from "@/hooks/apiHooks";
 import { ConversionRateType } from "@/types/api-types";
 import { useMutation } from "@tanstack/react-query";
@@ -728,6 +734,8 @@ import TransactionSuccessDialog from "@/components/dialog/TranscationSuccessDial
 import ErrorDialog from "@/components/dialog/ErrorDialog";
 import { useToast } from "@/components/ui/use-toast";
 import { useChain } from "@/context/ChainContext"; // Import useChain hook
+import { useAuth } from "@/context/AuthContext";
+import AuthGuard from "@/components/auth/AuthGuard";
 
 type FormValues = { phoneNumber: string; amount: string };
 
@@ -740,6 +748,7 @@ const Send = () => {
   const { toast } = useToast();
   const router = useRouter();
   const { chain } = useChain(); // Use the selected chain from ChainContext
+  const { user, isAuthenticated } = useAuth();
   const {
     register,
     handleSubmit,
@@ -762,18 +771,20 @@ const Send = () => {
   const { data, isLoading, error } = useGetConversionRate();
 
   useEffect(() => {
-    const user = localStorage.getItem("user"); // Retrieves a string
-    const userObject = JSON.parse(user ?? "{}"); // Parses the string back into an object
-    console.log(userObject)
-    const walletAddress = chain === "arbitrum" ? userObject.data.arbitrumWallet : userObject.data.celoWallet;
-    // const walletAddress =  userObject.data.celoWallet;
+    if (user && isAuthenticated) {
+      // Safe access to wallet addresses with fallbacks
+      const walletAddress = chain === "arbitrum" 
+        ? user.arbitrumWallet || user.walletAddress || ""
+        : user.celoWallet || user.walletAddress || "";
 
-    setWallet(walletAddress);
-console.log(wallet)
-    if (!isLoading) {
-      setConversionRate(data ?? 0);
+      setWallet(walletAddress);
+      console.log("Wallet set to:", walletAddress);
     }
-  }, [data, chain, isLoading]);
+    
+    if (!isLoading && data) {
+      setConversionRate(data);
+    }
+  }, [data, chain, isLoading, user, isAuthenticated]);
 
   useEffect(() => {
     console.log("Wallet address updated:", wallet);
@@ -919,7 +930,8 @@ console.log(wallet)
   };
 
   return (
-    <section className="home-background h-screen flex flex-col p-5 xl:px-[200px]">
+    <AuthGuard>
+      <section className="home-background h-screen flex flex-col p-5 xl:px-[200px]">
       <div className="flex justify-between">
         <span className="flex flex-col items-center w-full">
           <span className="flex items-center justify-between w-full mb-3">
@@ -1066,7 +1078,8 @@ console.log(wallet)
           </DialogHeader>
         </DialogContent>
       </Dialog>
-    </section>
+      </section>
+    </AuthGuard>
   );
 };
 

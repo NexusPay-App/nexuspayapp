@@ -19,10 +19,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Player } from "@lottiefiles/react-lottie-player";
+import dynamic from "next/dynamic";
 import lottieSuccess from "@/public/json/success.json";
 import loadingJson from "@/public/json/loading.json";
 import lottieConfirm from "@/public/json/confirm.json";
+
+// Dynamically import Player to avoid SSR issues
+const Player = dynamic(
+  () => import("@lottiefiles/react-lottie-player").then((mod) => mod.Player),
+  { ssr: false }
+);
 import { LoginResponse, LoginResponseData } from "@/types/api-types";
 import ErrorDialog from "@/components/dialog/ErrorDialog";
 import SuccessDialog from "@/components/dialog/SuccessDialog";

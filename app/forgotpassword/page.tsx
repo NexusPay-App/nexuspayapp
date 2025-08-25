@@ -5,9 +5,15 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation"; // Adjusted import for useRouter
 import { useForm, SubmitHandler } from "react-hook-form";
 import { useAuth as useAuthOriginal } from "@/context/AuthContext"; // Import the original useAuth hook
-import { Player } from "@lottiefiles/react-lottie-player"; //import the react animation lottie player
+import dynamic from "next/dynamic";
 import loading from "@/public/json/loading.json";
 import errorJson from "@/public/json/error.json";
+
+// Dynamically import Player to avoid SSR issues
+const Player = dynamic(
+  () => import("@lottiefiles/react-lottie-player").then((mod) => mod.Player),
+  { ssr: false }
+);
 import * as Yup from "yup";
 import {
   Dialog,

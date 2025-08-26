@@ -335,6 +335,10 @@ const Home = () => {
     router.replace("/pay");
   };
 
+  const handleBuy = () => {
+    router.replace("/buy-crypto");
+  };
+
   // Logs out the User
   const handleLogout = () => {
     setOpenLogoutDialog(true);
@@ -532,7 +536,10 @@ const Home = () => {
           <h3 className="text-white text-xl my-1 font-semibold">
             Buy Crypto Assets, Tokens Securely.
           </h3>
-          <button className="bg-white font-bold text-lg p-3 rounded-xl w-[150px]">
+          <button 
+            className="bg-white font-bold text-lg p-3 rounded-xl w-[150px] hover:bg-gray-100 hover:shadow-lg transition-all duration-200 cursor-pointer" 
+            onClick={handleBuy}
+          >
             Buy Crypto
           </button>
         </div>

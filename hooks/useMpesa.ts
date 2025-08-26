@@ -23,11 +23,15 @@ export const useMpesa = () => {
 
   // Buy crypto (automatic flow)
   const buyCrypto = useCallback(async (data: BuyCryptoData) => {
+    console.log('useMpesa: buyCrypto called with data:', data);
     return buyCryptoApi.execute(
-      () => mpesaAPI.buyCrypto(data),
+      () => {
+        console.log('useMpesa: calling mpesaAPI.buyCrypto');
+        return mpesaAPI.buyCrypto(data);
+      },
       {
         showSuccessToast: true,
-        successMessage: 'Crypto purchase initiated!',
+        successMessage: 'Crypto purchase initiated! Check your phone for M-Pesa prompt.',
       }
     );
   }, [buyCryptoApi]);

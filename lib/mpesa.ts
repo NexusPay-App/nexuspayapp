@@ -10,10 +10,10 @@ export interface DepositData {
 }
 
 export interface BuyCryptoData {
-  amount: string;
-  phoneNumber: string;
-  token: string;
+  amount: number; // Amount in KES/USD (not crypto amount)
+  phone: string;
   chain: string;
+  tokenType: string;
 }
 
 export interface WithdrawData {

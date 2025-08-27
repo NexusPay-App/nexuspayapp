@@ -1,11 +1,11 @@
 "use client";
 
 import React from 'react';
-import { PayMerchantForm } from '@/components/crypto/PayMerchantForm';
+import { SendTokenForm } from '@/components/crypto/SendTokenForm';
 import { ArrowLeft } from '@phosphor-icons/react';
 import { useRouter } from 'next/navigation';
 
-export default function PayPage() {
+export default function CryptoPage() {
   const router = useRouter();
 
   const handleBackToHome = () => {
@@ -26,14 +26,14 @@ export default function PayPage() {
         </div>
         
         <div className="text-center mb-8">
-          <h1 className="text-4xl text-white font-bold mb-3">Pay Merchant</h1>
-          <p className="text-gray-400 text-lg">Pay businesses with crypto or convert to MPesa</p>
+          <h1 className="text-4xl text-white font-bold mb-3">Send Crypto</h1>
+          <p className="text-gray-400 text-lg">Send crypto to anyone using email, phone, or wallet address</p>
         </div>
       </article>
       
       <article className="mt-8 flex flex-col items-center p-5 xl:px-[200px]">
         <div className="w-full max-w-4xl">
-          <PayMerchantForm />
+          <SendTokenForm />
         </div>
       </article>
     </section>

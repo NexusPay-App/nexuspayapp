@@ -1,76 +1,181 @@
 import { useState, useCallback } from 'react';
-import { cryptoAPI, SendTokenData, PayMerchantData } from '../lib/crypto';
 import { useApi } from './useApi';
+import { 
+  cryptoAPI, 
+  SendTokenData, 
+  PayMerchantData,
+  SendTokenResponse,
+  PayMerchantResponse,
+  ReceiveInfoResponse,
+  BalanceResponse,
+  validateRecipientIdentifier
+} from '../lib/crypto';
 
 export const useCrypto = () => {
-  const sendTokenApi = useApi();
-  const payMerchantApi = useApi();
-  const transactionHistoryApi = useApi();
-  const tokenEventsApi = useApi();
+  // API hooks
+  const sendTokenApi = useApi<SendTokenResponse>();
+  const payMerchantApi = useApi<PayMerchantResponse>();
+  const receiveInfoApi = useApi<ReceiveInfoResponse>();
+  const balanceApi = useApi<BalanceResponse>();
 
-  // Send tokens
+  // State for form data
+  const [sendFormData, setSendFormData] = useState({
+    recipientIdentifier: '',
+    amount: '',
+    chain: 'arbitrum',
+    tokenType: 'USDC',
+  });
+
+  const [payFormData, setPayFormData] = useState({
+    merchantId: '',
+    amount: '',
+    chainName: 'arbitrum',
+    tokenSymbol: 'USDC',
+    confirm: false,
+  });
+
+  // Send crypto to any user
   const sendToken = useCallback(async (data: SendTokenData) => {
+    // Validate recipient identifier
+    if (!validateRecipientIdentifier(data.recipientIdentifier)) {
+      throw new Error('Invalid recipient identifier. Please use a valid email, phone number, or wallet address.');
+    }
+
     return sendTokenApi.execute(
       () => cryptoAPI.sendToken(data),
       {
         showSuccessToast: true,
-        successMessage: 'Tokens sent successfully!',
+        successMessage: 'Crypto sent successfully!',
       }
     );
   }, [sendTokenApi]);
 
-  // Pay merchant
+  // Pay merchant with crypto
   const payMerchant = useCallback(async (data: PayMerchantData) => {
+    if (!data.confirm) {
+      throw new Error('Please confirm the payment before proceeding.');
+    }
+
     return payMerchantApi.execute(
       () => cryptoAPI.payMerchant(data),
       {
         showSuccessToast: true,
-        successMessage: 'Payment successful!',
+        successMessage: 'Payment to merchant completed successfully!',
       }
     );
   }, [payMerchantApi]);
 
-  // Get transaction history
-  const getTransactionHistory = useCallback(async (params?: any) => {
-    return transactionHistoryApi.execute(
-      () => cryptoAPI.getTransactionHistory(params),
+  // Get receive information
+  const getReceiveInfo = useCallback(async () => {
+    return receiveInfoApi.execute(
+      () => cryptoAPI.getReceiveInfo(),
       {
-        showErrorToast: true,
+        showSuccessToast: false,
       }
     );
-  }, [transactionHistoryApi]);
+  }, [receiveInfoApi]);
 
-  // Get token transfer events
-  const getTokenTransferEvents = useCallback(async (params: any) => {
-    return tokenEventsApi.execute(
-      () => cryptoAPI.getTokenTransferEvents(params),
+  // Get user balance
+  const getBalance = useCallback(async () => {
+    return balanceApi.execute(
+      () => cryptoAPI.getBalance(),
       {
-        showErrorToast: true,
+        showSuccessToast: false,
       }
     );
-  }, [tokenEventsApi]);
+  }, [balanceApi]);
+
+  // Update send form data
+  const updateSendForm = useCallback((field: string, value: string) => {
+    setSendFormData(prev => ({
+      ...prev,
+      [field]: value,
+    }));
+  }, []);
+
+  // Update pay form data
+  const updatePayForm = useCallback((field: string, value: string | boolean) => {
+    setPayFormData(prev => ({
+      ...prev,
+      [field]: value,
+    }));
+  }, []);
+
+  // Reset forms
+  const resetSendForm = useCallback(() => {
+    setSendFormData({
+      recipientIdentifier: '',
+      amount: '',
+      chain: 'arbitrum',
+      tokenType: 'USDC',
+    });
+  }, []);
+
+  const resetPayForm = useCallback(() => {
+    setPayFormData({
+      merchantId: '',
+      amount: '',
+      chainName: 'arbitrum',
+      tokenSymbol: 'USDC',
+      confirm: false,
+    });
+  }, []);
+
+  // Get current user's wallet address from API (same as receive page)
+  const getCurrentUserAddress = useCallback(async () => {
+    try {
+      console.log('🔍 Fetching wallet address from API...');
+      const response = await cryptoAPI.getReceiveInfo();
+      
+      if (response.success && response.data.walletAddress) {
+        console.log('✅ Found wallet address from API:', response.data.walletAddress);
+        return response.data.walletAddress;
+      } else {
+        console.log('❌ No wallet address in API response');
+        return '';
+      }
+    } catch (error) {
+      console.error('❌ Failed to fetch wallet address from API:', error);
+      return '';
+    }
+  }, []);
 
   return {
-    // Send token
+    // API functions
     sendToken,
-    sendTokenLoading: sendTokenApi.loading,
-    sendTokenError: sendTokenApi.error,
-
-    // Pay merchant
     payMerchant,
+    getReceiveInfo,
+    getBalance,
+    
+    // Form data
+    sendFormData,
+    payFormData,
+    
+    // Form actions
+    updateSendForm,
+    updatePayForm,
+    resetSendForm,
+    resetPayForm,
+    
+    // Loading states
+    sendTokenLoading: sendTokenApi.loading,
     payMerchantLoading: payMerchantApi.loading,
+    receiveInfoLoading: receiveInfoApi.loading,
+    balanceLoading: balanceApi.loading,
+    
+    // Data
+    sendTokenData: sendTokenApi.data,
+    payMerchantData: payMerchantApi.data,
+    receiveInfoData: receiveInfoApi.data,
+    balanceData: balanceApi.data,
+    
+    // Errors
+    sendTokenError: sendTokenApi.error,
     payMerchantError: payMerchantApi.error,
-
-    // Transaction history
-    getTransactionHistory,
-    transactionHistory: transactionHistoryApi.data,
-    transactionHistoryLoading: transactionHistoryApi.loading,
-    transactionHistoryError: transactionHistoryApi.error,
-
-    // Token events
-    getTokenTransferEvents,
-    tokenEvents: tokenEventsApi.data,
-    tokenEventsLoading: tokenEventsApi.loading,
-    tokenEventsError: tokenEventsApi.error,
+    receiveInfoError: receiveInfoApi.error,
+    balanceError: balanceApi.error,
+    
+    // Utility
+    getCurrentUserAddress,
   };
 };

@@ -324,7 +324,7 @@ const Home = () => {
   }, [router, chain, isAuthenticated, user]);
 
   const handleSend = () => {
-    router.replace("/send");
+    router.replace("/crypto");
   };
 
   const handleReceive = () => {

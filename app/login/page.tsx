@@ -11,16 +11,16 @@ import errorJson from "@/public/json/error.json";
 
 // Dynamically import Player to avoid SSR issues
 const Player = dynamic(
-  () => import("@lottiefiles/react-lottie-player").then((mod) => mod.Player),
-  { ssr: false }
+	() => import("@lottiefiles/react-lottie-player").then((mod) => mod.Player),
+	{ ssr: false },
 );
 import * as Yup from "yup";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
 } from "@/components/ui/dialog";
 import Link from "next/link";
 import { Eye, EyeSlash } from "@phosphor-icons/react";
@@ -38,272 +38,303 @@ import GoogleSignIn from "@/components/auth/GoogleSignIn";
 const useAuth = () => useAuthOriginal() as unknown as AuthContextType;
 
 const Login: React.FC = () => {
-  const { login, verifyLogin } = useAuth(); // Use the typed useAuth hook here
-  const [openLoading, setOpenLoading] = useState(false);
-  const [passwordVisibility, setPasswordVisibility] = useState("password");
-  const [openLoggin, setOpenLoggin] = useState(false); // Opens the Account Creation Loading Dialog
-  const [openAccErr, setOpenAccErr] = useState(false); // Opens the Failed Acc Creation Loading Dialog
-  const [openOTP, setOpenOTP] = useState(false); // Opens the OTP input dialog
-  const [otpCode, setOtpCode] = useState("");
-  const [userCredentials, setUserCredentials] = useState<LoginFormFields | null>(null);
-  const api = useAxios();
-  const router = useRouter();
+	const { login, verifyLogin } = useAuth(); // Use the typed useAuth hook here
+	const [openLoading, setOpenLoading] = useState(false);
+	const [passwordVisibility, setPasswordVisibility] = useState("password");
+	const [openLoggin, setOpenLoggin] = useState(false); // Opens the Account Creation Loading Dialog
+	const [openAccErr, setOpenAccErr] = useState(false); // Opens the Failed Acc Creation Loading Dialog
+	const [openOTP, setOpenOTP] = useState(false); // Opens the OTP input dialog
+	const [otpCode, setOtpCode] = useState("");
+	const [userCredentials, setUserCredentials] =
+		useState<LoginFormFields | null>(null);
+	const api = useAxios();
+	const router = useRouter();
 
-  // Mutation to Initiate Login User
-  const initiateLoginUser = useMutation({
-    mutationFn: async (initiateLoginUserPost: LoginFormFields) => {
-      // Store credentials for OTP verification
-      setUserCredentials(initiateLoginUserPost);
-      
-      // First, initiate login
-      const loginResponse = await login({
-        phoneNumber: initiateLoginUserPost.phoneNumber,
-        password: initiateLoginUserPost.password,
-      });
-      
-      return loginResponse;
-    },
-    onSuccess: (data, variables, context) => {
-      setOpenLoading(false);
-      if (data.data.token) {
-        // User is fully authenticated (no OTP required)
-        setOpenLoggin(true);
-        setTimeout(() => {
-          router.replace("/home");
-        }, 1000);
-      } else if (data.success) {
-        // Login successful, OTP sent - show OTP input
-        setOpenOTP(true);
-      }
-    },
-    onError: (error, variables, context) => {
-      // Handle errors, e.g., show a message to the user
-      console.error(error);
-      setOpenLoading(false);
-      setOpenAccErr(true);
-    },
-    onSettled: (data, error, variables, context) => {},
-  });
+	// Mutation to Initiate Login User
+	const initiateLoginUser = useMutation({
+		mutationFn: async (initiateLoginUserPost: LoginFormFields) => {
+			// Store credentials for OTP verification
+			setUserCredentials(initiateLoginUserPost);
 
-  // Mutation to Verify OTP
-  const verifyOTPMutation = useMutation({
-    mutationFn: async (otp: string) => {
-      if (!userCredentials) throw new Error("No user credentials found");
-      
-      const verifyResponse = await verifyLogin({
-        phoneNumber: userCredentials.phoneNumber,
-        otp: otp,
-      });
-      
-      return verifyResponse;
-    },
-    onSuccess: (data, variables, context) => {
-      console.log("OTP verification response:", data);
-      
-      // The AuthContext handleAuthSuccess will handle token extraction and storage
-      // If we get here, authentication was successful
-      setOpenOTP(false);
-      setOpenLoggin(true);
-      setTimeout(() => {
-        router.replace("/home");
-      }, 1000);
-    },
-    onError: (error, variables, context) => {
-      console.error("OTP verification failed:", error);
-      setOpenAccErr(true);
-    },
-  });
+			// First, initiate login
+			const loginResponse = await login({
+				phoneNumber: initiateLoginUserPost.phoneNumber,
+				password: initiateLoginUserPost.password,
+			});
 
-  // Handle OTP submission
-  const handleOTPSubmit = () => {
-    if (otpCode.length === 6) {
-      verifyOTPMutation.mutate(otpCode);
-    }
-  };
+			return loginResponse;
+		},
+		onSuccess: (data, variables, context) => {
+			setOpenLoading(false);
+			if (data.data.token) {
+				// User is fully authenticated (no OTP required)
+				setOpenLoggin(true);
+				setTimeout(() => {
+					router.replace("/home");
+				}, 1000);
+			} else if (data.success) {
+				// Login successful, OTP sent - show OTP input
+				setOpenOTP(true);
+			}
+		},
+		onError: (error, variables, context) => {
+			// Handle errors, e.g., show a message to the user
+			console.error(error);
+			setOpenLoading(false);
+			setOpenAccErr(true);
+		},
+		onSettled: (data, error, variables, context) => {},
+	});
 
-  return (
-    <section className="app-background">
-      <LoadingDialog
-        message="Confirming Credentials..."
-        openLoading={openLoading}
-        setOpenLoading={setOpenLoading}
-      />
-      <LoadingDialog
-        message="Logging you in..."
-        openLoading={openLoggin}
-        setOpenLoading={setOpenLoggin}
-      />
-      <ErrorDialog
-        message="Failed to Login"
-        openError={openAccErr}
-        setOpenError={setOpenAccErr}
-      />
-      <article>
-        <h2 className="text-4xl text-white font-bold">Sign in with Password</h2>
-        <h4 className="text-white my-5">Enter your Phone Number to Login</h4>
-        {/* SignUp using Formik */}
-        <Formik
-          initialValues={{
-            phoneNumber: "",
-            password: "",
-          }}
-          validationSchema={Yup.object({
-            phoneNumber: Yup.number()
-              .min(13, "Min of 13 Characters required")
-              .required("Phone Number is Required"),
-            password: Yup.string()
-              .max(20, "Must be 20 characters or less")
-              .min(5, "Min of 5 Characters required")
-              .required("Password is Required"),
-          })}
-          onSubmit={(values, { setSubmitting }) => {
-            setTimeout(async () => {
-              setOpenLoading(true);
-              // Check if phoneNumber starts with '01' or '07' and modify it
-              let modifiedPhoneNumber = values.phoneNumber;
-              if (
-                modifiedPhoneNumber.toString().startsWith("01") ||
-                modifiedPhoneNumber.toString().startsWith("07")
-              ) {
-                modifiedPhoneNumber = "+254" + values.phoneNumber.substring(1);
-              }
+	// Mutation to Verify OTP
+	const verifyOTPMutation = useMutation({
+		mutationFn: async (otp: string) => {
+			if (!userCredentials) throw new Error("No user credentials found");
 
-              // Use the modifiedPhoneNumber in your API request
-              const requestData = {
-                ...values,
-                phoneNumber: modifiedPhoneNumber, // Replace the original phoneNumber with the modified one
-              };
+			const verifyResponse = await verifyLogin({
+				phoneNumber: userCredentials.phoneNumber,
+				otp: otp,
+			});
 
-              // Call the Initiate Register User Mutation
-              initiateLoginUser.mutate(requestData);
-              setOpenLoggin(false);
-              setSubmitting(false);
-            }, 400);
-          }}
-        >
-          <Form>
-            <TextInput
-              label="Phone Number eg (0720****20)"
-              name="phoneNumber"
-              type="text"
-              placeholder="Enter your Phone Number"
-            />
+			return verifyResponse;
+		},
+		onSuccess: (data, variables, context) => {
+			console.log("OTP verification response:", data);
 
-            <PasswordInput
-              label="Password"
-              name="password"
-              placeholder="Enter your Password"
-            />
-            <div className="flex flex-col justify-start mb-5">
-              <p className="text-[#909090] p-1 text-sm font-semibold">
-                <Link href="/signup" className="hover:text-white">
-                  Create a Personal Account
-                </Link>
-              </p>
-              <p className="text-[#909090] p-1 text-sm font-semibold">
-                <Link href="/signup/business" className="hover:text-white">
-                Create a Business Account?
-                </Link>
-              </p>
-            </div>
-            <button
-              type="submit"
-              className="bg-white mt-5 p-3 rounded-full font-bold w-full cursor-pointer"
-            >
-              Submit
-            </button>
-          </Form>
-        </Formik>
+			// The AuthContext handleAuthSuccess will handle token extraction and storage
+			// If we get here, authentication was successful
+			setOpenOTP(false);
+			setOpenLoggin(true);
+			setTimeout(() => {
+				router.replace("/home");
+			}, 1000);
+		},
+		onError: (error, variables, context) => {
+			console.error("OTP verification failed:", error);
+			setOpenAccErr(true);
+		},
+	});
 
-        {/* Google Sign-In */}
-        <div className="mt-6">
-          <div className="flex items-center justify-center mb-4">
-            <div className="border-t border-gray-300 flex-grow"></div>
-            <span className="px-4 text-white text-sm">or</span>
-            <div className="border-t border-gray-300 flex-grow"></div>
-          </div>
-          <GoogleSignIn 
-            mode="login"
-            onSuccess={() => {
-              setOpenLoggin(true);
-              setTimeout(() => {
-                router.replace("/home");
-              }, 1000);
-            }}
-            onError={(error) => {
-              console.error("Google login error:", error);
-              setOpenAccErr(true);
-            }}
-          />
-        </div>
-      </article>
+	// Handle OTP submission
+	const handleOTPSubmit = () => {
+		if (otpCode.length === 6) {
+			verifyOTPMutation.mutate(otpCode);
+		}
+	};
 
-      {/* OTP Verification Dialog */}
-      <Dialog open={openOTP} onOpenChange={setOpenOTP}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="mb-[20px]">Enter Verification Code</DialogTitle>
-            <DialogDescription>
-              We&apos;ve sent a 6-digit verification code to your phone number.
-              Please enter it below to complete your login.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="flex flex-col items-center space-y-6">
-            <div className="flex justify-center space-x-2">
-              {[0, 1, 2, 3, 4, 5].map((index) => (
-                <input
-                  key={index}
-                  type="text"
-                  maxLength={1}
-                  value={otpCode[index] || ""}
-                  onChange={(e) => {
-                    const newOtp = otpCode.split("");
-                    newOtp[index] = e.target.value;
-                    setOtpCode(newOtp.join(""));
-                    
-                    // Auto-focus next input
-                    if (e.target.value && index < 5 && typeof document !== 'undefined') {
-                      const nextInput = document.querySelector(`input[data-index="${index + 1}"]`) as HTMLInputElement;
-                      if (nextInput) nextInput.focus();
-                    }
-                  }}
-                  onKeyDown={(e) => {
-                    // Handle backspace to focus previous input
-                    if (e.key === "Backspace" && !otpCode[index] && index > 0 && typeof document !== 'undefined') {
-                      const prevInput = document.querySelector(`input[data-index="${index - 1}"]`) as HTMLInputElement;
-                      if (prevInput) prevInput.focus();
-                    }
-                  }}
-                  data-index={index}
-                  className="w-12 h-12 text-center text-xl font-semibold border-2 border-gray-300 rounded-lg focus:border-[#0795B0] focus:outline-none bg-white text-black"
-                />
-              ))}
-            </div>
-            
-            <div className="flex space-x-3 w-full">
-              <button
-                onClick={() => {
-                  setOpenOTP(false);
-                  setOtpCode("");
-                }}
-                className="flex-1 bg-gray-500 text-white p-3 rounded-xl font-bold"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleOTPSubmit}
-                disabled={otpCode.length !== 6 || verifyOTPMutation.isPending}
-                className="flex-1 bg-[#0795B0] text-white p-3 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {verifyOTPMutation.isPending ? "Verifying..." : "Verify"}
-              </button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </section>
-  );
+	return (
+		<section className="app-background">
+			<LoadingDialog
+				message="Confirming Credentials..."
+				openLoading={openLoading}
+				setOpenLoading={setOpenLoading}
+			/>
+			<LoadingDialog
+				message="Logging you in..."
+				openLoading={openLoggin}
+				setOpenLoading={setOpenLoggin}
+			/>
+			<ErrorDialog
+				message="Failed to Login"
+				openError={openAccErr}
+				setOpenError={setOpenAccErr}
+			/>
+			<div className="h-auto p-6 justify-center items-center">
+				<article className="w-full max-w-lg mx-auto bg-white/5 backdrop-blur-sm rounded-2xl  p-8 border border-white/10">
+					<h2 className="text-4xl text-white font-bold text-center w-full ">
+						Sign in with Password
+					</h2>
+					<h4 className="text-white my-5 text-center w-full">
+						Enter your Phone Number to Login
+					</h4>
+
+					{/* Google Sign-In */}
+					<div className="mt-6">
+						<GoogleSignIn
+							mode="login"
+							onSuccess={() => {
+								setOpenLoggin(true);
+								setTimeout(() => {
+									router.replace("/home");
+								}, 1000);
+							}}
+							onError={(error) => {
+								console.error("Google login error:", error);
+								setOpenAccErr(true);
+							}}
+						/>
+						<div className="flex items-center justify-center my-4">
+							<div className="border-t border-gray-300 flex-grow"></div>
+							<span className="px-4 text-white text-sm">or</span>
+							<div className="border-t border-gray-300 flex-grow"></div>
+						</div>
+					</div>
+					{/* SignUp using Formik */}
+					<Formik
+						initialValues={{
+							phoneNumber: "",
+							password: "",
+						}}
+						validationSchema={Yup.object({
+							phoneNumber: Yup.number()
+								.min(13, "Min of 13 Characters required")
+								.required("Phone Number is Required"),
+							password: Yup.string()
+								.max(20, "Must be 20 characters or less")
+								.min(5, "Min of 5 Characters required")
+								.required("Password is Required"),
+						})}
+						onSubmit={(values, { setSubmitting }) => {
+							setTimeout(async () => {
+								setOpenLoading(true);
+								// Check if phoneNumber starts with '01' or '07' and modify it
+								let modifiedPhoneNumber = values.phoneNumber;
+								if (
+									modifiedPhoneNumber.toString().startsWith("01") ||
+									modifiedPhoneNumber.toString().startsWith("07")
+								) {
+									modifiedPhoneNumber =
+										"+254" + values.phoneNumber.substring(1);
+								}
+
+								// Use the modifiedPhoneNumber in your API request
+								const requestData = {
+									...values,
+									phoneNumber: modifiedPhoneNumber, // Replace the original phoneNumber with the modified one
+								};
+
+								// Call the Initiate Register User Mutation
+								initiateLoginUser.mutate(requestData);
+								setOpenLoggin(false);
+								setSubmitting(false);
+							}, 400);
+						}}
+					>
+						<Form>
+							<TextInput
+								label="Phone Number eg (0720****20)"
+								name="phoneNumber"
+								type="text"
+								placeholder="Enter your Phone Number"
+							/>
+
+							<PasswordInput
+								label="Password"
+								name="password"
+								placeholder="Enter your Password"
+							/>
+
+							<button
+								type="submit"
+								className="bg-cyan-400 hover:bg-blue-400  mt-5 mb-2 p-3 rounded-full font-bold w-full cursor-pointer"
+							>
+								Submit
+							</button>
+							<div className="flex flex-col space-y-2 w-full justify-center items-center pt-2">
+								<p className="text-gray-400 text-sm">
+									Have an account?{" "}
+									<Link
+										href="/signup"
+										className="text-blue-400 hover:text-blue-300 transition-colors"
+									>
+										Register
+									</Link>
+								</p>
+								<p className="text-gray-400 text-sm">
+									<Link
+										href="/signup/business"
+										className="text-blue-400 hover:text-blue-300 transition-colors"
+									>
+										Create a Business Account?
+									</Link>
+								</p>
+							</div>
+						</Form>
+					</Formik>
+				</article>
+			</div>
+
+			{/* OTP Verification Dialog */}
+			<Dialog open={openOTP} onOpenChange={setOpenOTP}>
+				<DialogContent className="max-w-lg">
+					<DialogHeader>
+						<DialogTitle className="mb-[20px]">
+							Enter Verification Code
+						</DialogTitle>
+						<DialogDescription>
+							We&apos;ve sent a 6-digit verification code to your phone number.
+							Please enter it below to complete your login.
+						</DialogDescription>
+					</DialogHeader>
+
+					<div className="flex flex-col items-center space-y-6 h-screen">
+						<div className="flex justify-center space-x-2">
+							{[0, 1, 2, 3, 4, 5].map((index) => (
+								<input
+									key={index}
+									type="text"
+									maxLength={1}
+									value={otpCode[index] || ""}
+									onChange={(e) => {
+										const newOtp = otpCode.split("");
+										newOtp[index] = e.target.value;
+										setOtpCode(newOtp.join(""));
+
+										// Auto-focus next input
+										if (
+											e.target.value &&
+											index < 5 &&
+											typeof document !== "undefined"
+										) {
+											const nextInput = document.querySelector(
+												`input[data-index="${index + 1}"]`,
+											) as HTMLInputElement;
+											if (nextInput) nextInput.focus();
+										}
+									}}
+									onKeyDown={(e) => {
+										// Handle backspace to focus previous input
+										if (
+											e.key === "Backspace" &&
+											!otpCode[index] &&
+											index > 0 &&
+											typeof document !== "undefined"
+										) {
+											const prevInput = document.querySelector(
+												`input[data-index="${index - 1}"]`,
+											) as HTMLInputElement;
+											if (prevInput) prevInput.focus();
+										}
+									}}
+									data-index={index}
+									className="w-12 h-12 text-center text-xl font-semibold border-2 border-gray-300 rounded-lg focus:border-[#0795B0] focus:outline-none bg-white text-black"
+								/>
+							))}
+						</div>
+
+						<div className="flex space-x-3 w-full">
+							<button
+								onClick={() => {
+									setOpenOTP(false);
+									setOtpCode("");
+								}}
+								className="flex-1 bg-gray-500 text-white p-3 rounded-xl font-bold"
+							>
+								Cancel
+							</button>
+							<button
+								onClick={handleOTPSubmit}
+								disabled={otpCode.length !== 6 || verifyOTPMutation.isPending}
+								className="flex-1 bg-[#0795B0] text-white p-3 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+							>
+								{verifyOTPMutation.isPending ? "Verifying..." : "Verify"}
+							</button>
+						</div>
+					</div>
+				</DialogContent>
+			</Dialog>
+		</section>
+	);
 };
 
 export default Login;

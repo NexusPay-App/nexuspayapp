@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import AuthGuard from "@/components/auth/AuthGuard";
 import WalletOverview from "@/components/wallet/WalletOverview";
 import TokenTest from "@/components/debug/TokenTest";
+import { RecentTransactions } from "@/components/transactions/RecentTransactions";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
@@ -37,6 +38,12 @@ const WalletPage: React.FC = () => {
             <WalletOverview />
           </div>
           
+          {/* Recent Transactions */}
+          <div className="mt-8">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Transactions</h2>
+            <RecentTransactions />
+          </div>
+          
           {/* Quick Actions */}
           <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
             <Link 
@@ -59,12 +66,15 @@ const WalletPage: React.FC = () => {
                 <div className="font-medium">M-Pesa</div>
               </div>
             </button>
-            <button className="bg-orange-500 text-white p-4 rounded-lg hover:bg-orange-600 transition-colors">
+            <Link 
+              href="/transactions"
+              className="bg-orange-500 text-white p-4 rounded-lg hover:bg-orange-600 transition-colors"
+            >
               <div className="text-center">
                 <div className="text-2xl mb-2">📊</div>
                 <div className="font-medium">History</div>
               </div>
-            </button>
+            </Link>
           </div>
         </div>
       </div>

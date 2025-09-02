@@ -21,6 +21,8 @@ export const SendTokenForm: React.FC = () => {
   const [authMethod, setAuthMethod] = useState<'password' | 'googleAuth'>('password');
   const [authValue, setAuthValue] = useState<string>('');
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showError, setShowError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string>('');
   const [currentUserAddress, setCurrentUserAddress] = useState<string>('');
   const [loadingWallet, setLoadingWallet] = useState(true);
 
@@ -83,39 +85,108 @@ export const SendTokenForm: React.FC = () => {
       amount: parseFloat(sendFormData.amount),
       senderAddress: currentUserAddress,
       chain: sendFormData.chain,
-      tokenType: sendFormData.tokenType,
+      tokenSymbol: sendFormData.tokenType, // API expects tokenSymbol, not tokenType
       ...(authMethod === 'password' 
         ? { password: authValue }
         : { googleAuthCode: authValue }
       ),
     };
 
+    console.log('🚀 Attempting to send crypto with data:', {
+      ...requestData,
+      password: authMethod === 'password' ? '***HIDDEN***' : undefined,
+      googleAuthCode: authMethod === 'googleAuth' ? '***HIDDEN***' : undefined,
+    });
+    console.log('🔐 Auth method:', authMethod);
+    console.log('🎫 Current token:', localStorage.getItem('nexuspay_token') ? 'Present' : 'Missing');
+    console.log('👤 Current user:', localStorage.getItem('nexuspay_user') ? 'Present' : 'Missing');
+
     try {
       const response = await sendToken(requestData);
+      
+      console.log('✅ Send crypto response:', response);
 
       if (response.success) {
         setShowAuthModal(false);
         setShowSuccess(true);
         resetSendForm();
         setAuthValue('');
+        console.log('🎉 Transaction successful!');
       }
     } catch (error: any) {
+      console.error('❌ Send crypto failed:', error);
+      console.error('Error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message,
+        config: error.config?.url
+      });
+      
+      setShowAuthModal(false);
+      setAuthValue('');
+      
+      let displayMessage = 'Failed to send crypto';
+      
       if (error.response?.status === 400) {
-        const errorMessage = error.response?.data?.message || 'Validation failed';
+        const serverMessage = error.response?.data?.message || 'Validation failed';
         const errorDetails = error.response?.data?.error?.details;
+        const errorCode = error.response?.data?.error?.code;
         
-        if (errorDetails && Array.isArray(errorDetails)) {
+        if (errorCode) {
+          // Handle specific error codes from API
+          const errorMessage = error.response?.data?.error?.message || serverMessage;
+          
+          switch (errorCode) {
+            case 'INSUFFICIENT_FUNDS':
+              displayMessage = 'Insufficient balance to complete this transaction. Please check your wallet balance.';
+              break;
+            case 'INVALID_RECIPIENT':
+              displayMessage = 'Invalid recipient address, email, or phone number. Please check and try again.';
+              break;
+            case 'INVALID_AMOUNT':
+              displayMessage = 'Invalid transaction amount. Please enter a valid amount.';
+              break;
+            case 'AUTHENTICATION_FAILED':
+              displayMessage = 'Authentication failed. Please check your password or Google Authenticator code.';
+              break;
+            case 'TRANSACTION_LIMIT_EXCEEDED':
+              displayMessage = 'Transaction limit exceeded. Please try with a smaller amount.';
+              break;
+            case 'NETWORK_ERROR':
+              displayMessage = 'Network error occurred. Please check your connection and try again.';
+              break;
+            default:
+              displayMessage = `${errorCode}: ${errorMessage}`;
+          }
+        } else if (errorDetails && Array.isArray(errorDetails)) {
           // Show specific validation errors
           const specificErrors = errorDetails.map((detail: any) => 
             `${detail.field}: ${detail.message}`
           ).join(', ');
-          setValidationError(`Validation Error: ${specificErrors}`);
+          displayMessage = `Validation Error: ${specificErrors}`;
         } else {
-          setValidationError(`Error: ${errorMessage}`);
+          displayMessage = serverMessage;
         }
+      } else if (error.response?.status === 401) {
+        displayMessage = 'Authentication failed. Please check your password or Google Authenticator code and ensure you are logged in.';
+        
+        // Check if user is still authenticated
+        const token = localStorage.getItem('nexuspay_token');
+        const user = localStorage.getItem('nexuspay_user');
+        if (!token || !user) {
+          displayMessage += ' Your session may have expired. Please login again.';
+        }
+      } else if (error.response?.status === 403) {
+        displayMessage = 'Insufficient balance or unauthorized transaction.';
+      } else if (error.response?.status === 500) {
+        displayMessage = 'Server error occurred. Please try again later.';
       } else {
-        setValidationError(error.message || 'Failed to send crypto');
+        displayMessage = error.message || 'Failed to send crypto';
       }
+      
+      setErrorMessage(displayMessage);
+      setShowError(true);
     }
   };
 
@@ -224,21 +295,53 @@ export const SendTokenForm: React.FC = () => {
               <p><strong>Auth Token:</strong> {localStorage.getItem('nexuspay_token') ? '✅ Present' : '❌ Missing'}</p>
               <p><strong>User Data:</strong> {localStorage.getItem('nexuspay_user') ? '✅ Present' : '❌ Missing'}</p>
             </div>
-            <button
-              onClick={async () => {
-                console.log('🔍 Refreshing wallet address...');
-                try {
-                  const address = await getCurrentUserAddress();
-                  console.log('Fresh wallet address:', address);
-                  setCurrentUserAddress(address);
-                } catch (error) {
-                  console.error('Failed to refresh wallet address:', error);
-                }
-              }}
-              className="mt-2 px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
-            >
-              Refresh Wallet
-            </button>
+            <div className="flex space-x-2 mt-2">
+              <button
+                onClick={async () => {
+                  console.log('🔍 Refreshing wallet address...');
+                  try {
+                    const address = await getCurrentUserAddress();
+                    console.log('Fresh wallet address:', address);
+                    setCurrentUserAddress(address);
+                  } catch (error) {
+                    console.error('Failed to refresh wallet address:', error);
+                  }
+                }}
+                className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+              >
+                Refresh Wallet
+              </button>
+              <button
+                onClick={async () => {
+                  console.log('🔍 Testing API connection...');
+                  try {
+                    // Test with a simple API call that requires authentication
+                    const response = await fetch('http://localhost:8000/api/token/balance', {
+                      headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('nexuspay_token')}`,
+                        'Content-Type': 'application/json'
+                      }
+                    });
+                    console.log('API Test Response:', response.status, response.statusText);
+                    if (response.status === 401) {
+                      alert('❌ Authentication failed! Your token may be expired or invalid.');
+                    } else if (response.ok) {
+                      const data = await response.json();
+                      console.log('API Test Data:', data);
+                      alert('✅ Authentication working! Token is valid.');
+                    } else {
+                      alert(`⚠️ API returned status ${response.status}`);
+                    }
+                  } catch (error) {
+                    console.error('API test failed:', error);
+                    alert('❌ API test failed. Check console for details.');
+                  }
+                }}
+                className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+              >
+                Test Auth
+              </button>
+            </div>
           </div>
 
 
@@ -334,20 +437,53 @@ export const SendTokenForm: React.FC = () => {
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-400">Recipient:</span>
-                  <span className="text-white font-mono text-xs">{sendTokenData.data.recipient}</span>
+                  <span className="text-white font-mono text-xs">
+                    {sendTokenData.data.recipient?.identifier || sendTokenData.data.recipient?.address || 'N/A'}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">Amount:</span>
-                  <span className="text-white">{sendTokenData.data.amount}</span>
+                  <span className="text-white">
+                    {sendTokenData.data.transaction?.amountDisplay || sendTokenData.data.amount || 'N/A'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Chain:</span>
+                  <span className="text-white capitalize">{sendTokenData.data.chain}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">Transaction Hash:</span>
-                  <span className="text-white font-mono text-xs">{sendTokenData.data.transactionHash}</span>
+                  <span className="text-white font-mono text-xs">
+                    {sendTokenData.data.transactionHash || sendTokenData.data.transaction?.hash || 'N/A'}
+                  </span>
                 </div>
+                {sendTokenData.data.explorerUrl && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Explorer:</span>
+                    <a 
+                      href={sendTokenData.data.explorerUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:text-blue-300 text-xs underline"
+                    >
+                      View on Explorer
+                    </a>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-gray-400">Time:</span>
-                  <span className="text-white">{new Date().toLocaleString()}</span>
+                  <span className="text-white">
+                    {sendTokenData.data.timestamp?.local || new Date().toLocaleString()}
+                  </span>
                 </div>
+                {sendTokenData.data.security && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Security:</span>
+                    <span className="text-white capitalize">
+                      {sendTokenData.data.security.authMethod} ({sendTokenData.data.security.level})
+                    </span>
+                  </div>
+                )}
               </div>
 
               <button
@@ -359,6 +495,47 @@ export const SendTokenForm: React.FC = () => {
               >
                 Done
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Error Card */}
+        {showError && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-[#0A0E0E] border border-red-500 rounded-xl p-6 w-full max-w-md mx-4">
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl">❌</span>
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">Transaction Failed</h3>
+                <p className="text-gray-400">There was an error sending your crypto</p>
+              </div>
+
+              <div className="bg-red-900/20 border border-red-500 rounded-md p-4 mb-6">
+                <p className="text-red-300 text-sm">{errorMessage}</p>
+              </div>
+
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => {
+                    setShowError(false);
+                    setErrorMessage('');
+                  }}
+                  className="flex-1 py-3 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors duration-200"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => {
+                    setShowError(false);
+                    setErrorMessage('');
+                    setShowAuthModal(true);
+                  }}
+                  className="flex-1 py-3 bg-[#0795B0] text-white rounded-md hover:bg-[#0684A0] transition-colors duration-200"
+                >
+                  Try Again
+                </button>
+              </div>
             </div>
           </div>
         )}

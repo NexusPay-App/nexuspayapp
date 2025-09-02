@@ -66,23 +66,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     console.log("Processing auth success with response:", response);
     
     // Extract token from multiple possible locations
-    const token = response?.data?.token || 
-                 response?.token || 
-                 response?.data?.data?.token ||
-                 response?.data?.accessToken ||
-                 response?.accessToken;
+    const token = (response as any)?.data?.token || 
+                 (response as any)?.token || 
+                 (response as any)?.data?.data?.token ||
+                 (response as any)?.data?.accessToken ||
+                 (response as any)?.accessToken;
     
     if (token) {
       // Extract user data from response
-      const responseData = response.data || response;
-      const userFromResponse = responseData.user || responseData;
+      const responseData = (response as any).data || response;
+      const userFromResponse = (responseData as any).user || responseData;
       
       const userData: User = {
-        email: responseData.email || userFromResponse?.email || '',
-        phoneNumber: responseData.phoneNumber || userFromResponse?.phoneNumber || '',
-        arbitrumWallet: responseData.arbitrumWallet || userFromResponse?.arbitrumWallet || responseData.walletAddress || '',
-        celoWallet: responseData.celoWallet || userFromResponse?.celoWallet || responseData.walletAddress || '',
-        walletAddress: responseData.walletAddress || responseData.arbitrumWallet || userFromResponse?.arbitrumWallet || '', // fallback for compatibility
+        email: (responseData as any).email || userFromResponse?.email || '',
+        phoneNumber: (responseData as any).phoneNumber || userFromResponse?.phoneNumber || '',
+        arbitrumWallet: (responseData as any).arbitrumWallet || userFromResponse?.arbitrumWallet || (responseData as any).walletAddress || '',
+        celoWallet: (responseData as any).celoWallet || userFromResponse?.celoWallet || (responseData as any).walletAddress || '',
+        walletAddress: (responseData as any).walletAddress || (responseData as any).arbitrumWallet || userFromResponse?.arbitrumWallet || '', // fallback for compatibility
         token,
       };
       
@@ -92,7 +92,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       userUtils.setUser(userData);
       setUser(userData);
       
-      toast.success(response.message || 'Authentication successful');
+      toast.success((response as any).message || 'Authentication successful');
       return userData;
     } else {
       console.error("No token found in response:", response);
@@ -190,13 +190,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log("Full OTP verification response:", response);
       
       // Check multiple possible response structures for token
-      const token = response?.data?.token || 
-                   response?.token || 
-                   response?.data?.data?.token ||
-                   response?.data?.accessToken ||
-                   response?.accessToken;
+      const token = (response as any)?.data?.token || 
+                   (response as any)?.token || 
+                   (response as any)?.data?.data?.token ||
+                   (response as any)?.data?.accessToken ||
+                   (response as any)?.accessToken;
       
-      if (response.success && token) {
+      if ((response as any).success && token) {
         return handleAuthSuccess(response);
       } else {
         console.error("No token found in response. Response structure:", response);

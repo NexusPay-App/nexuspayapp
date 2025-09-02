@@ -36,6 +36,7 @@ const SignupBusiness = () => {
   const { login } = useAuth(); // Use the typed useAuth hook here
   const [openOTP, setOpenOTP] = useState(false);
   const router = useRouter();
+  const [tillNumberParts, setTillNumberParts] = useState("");
   const [openMerchantSuccess, setOpenMerchantSuccess] = useState(false);
   const [openSigningUp, setOpenSigningUp] = useState(false); // Opens the Account Creation Loading Dialog
   const [openConfirmingOTP, setOpenConfirmingOTP] = useState(false); // Opens the confirm otp Loading Dialog

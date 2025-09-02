@@ -35,10 +35,23 @@ apiClient.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid
+      // Check if this is a transaction-related endpoint that should show error instead of redirecting
+      const isTransactionEndpoint = error.config?.url?.includes('/token/sendToken') || 
+                                   error.config?.url?.includes('/token/pay') ||
+                                   error.config?.url?.includes('/token/balance') ||
+                                   error.config?.url?.includes('/token/receive');
+      
+      if (isTransactionEndpoint) {
+        // For transaction endpoints, don't redirect automatically
+        // Let the component handle the error and show appropriate message
+        console.log('Authentication failed for transaction endpoint:', error.config?.url);
+        return Promise.reject(error);
+      }
+      
+      // For other endpoints, clean up and redirect to login
       localStorage.removeItem('nexuspay_token');
       localStorage.removeItem('nexuspay_user');
-      window.location.href = '/auth/login';
+      window.location.href = '/login';
     }
     return Promise.reject(error);
   }

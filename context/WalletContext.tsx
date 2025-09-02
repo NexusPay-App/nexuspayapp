@@ -4,7 +4,8 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { walletAPI, WalletDetails, BalanceData, SendTokenData, PayMerchantData, TransferEvent } from "../lib/wallet";
 import { mpesaAPI, DepositData, WithdrawData, PayWithCryptoData } from "../lib/mpesa";
 import { liquidityAPI, LiquidityPosition, ProvideLiquidityData } from "../lib/liquidity";
-import { transactionsAPI, Transaction, DashboardInsights } from "../lib/transactions";
+import { transactionAPI } from "../lib/transactions";
+import { Transaction } from "../types/transaction-types";
 import { useAuth } from "./AuthContext";
 import toast from "react-hot-toast";
 
@@ -48,7 +49,6 @@ export interface WalletContextType {
   
   // Transaction History
   getTransactionHistory: (filters?: any) => Promise<Transaction[]>;
-  getDashboardData: () => Promise<DashboardInsights>;
   
   // Utility Functions
   formatBalance: (balance: string, decimals?: number) => string;
@@ -381,7 +381,7 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
   // Get transaction history
   const getTransactionHistory = async (filters?: any): Promise<Transaction[]> => {
     try {
-      const response = await transactionsAPI.getHistory(filters);
+      const response = await transactionAPI.getHistory(filters);
       
       if (response.success) {
         return response.data.transactions;
@@ -395,22 +395,7 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // Get dashboard data
-  const getDashboardData = async (): Promise<DashboardInsights> => {
-    try {
-      const response = await transactionsAPI.getDashboardInsights();
-      
-      if (response.success) {
-        return response.data;
-      } else {
-        throw new Error(response.message);
-      }
-    } catch (error: any) {
-      console.error('Failed to get dashboard data:', error);
-      toast.error('Failed to load dashboard data');
-      throw error;
-    }
-  };
+
 
   // Utility Functions
   const formatBalance = (balance: string, decimals: number = 4): string => {
@@ -457,7 +442,6 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
     provideLiquidity,
     getLiquidityPositions,
     getTransactionHistory,
-    getDashboardData,
     formatBalance,
     formatUSD,
     getTokenIcon,

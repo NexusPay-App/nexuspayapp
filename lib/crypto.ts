@@ -6,7 +6,7 @@ export interface SendTokenData {
   amount: number;
   senderAddress: string;
   chain: string;
-  tokenType?: string; // Optional, defaults to USDC
+  tokenSymbol?: string; // Optional, defaults to USDC (matches API spec)
   password?: string; // Required for security verification
   googleAuthCode?: string; // Alternative to password
 }
@@ -26,10 +26,57 @@ export interface SendTokenResponse {
   message: string;
   data: {
     transactionCode: string;
-    amount: string;
-    recipient: string;
     transactionHash: string;
-    authenticationMethod: string;
+    explorerUrl: string;
+    amount: string;
+    tokenSymbol: string;
+    chain: string;
+    sender: {
+      address: string;
+      phone?: string;
+      email?: string;
+    };
+    recipient: {
+      identifier: string;
+      address: string;
+      phone?: string;
+      email?: string;
+    };
+    timestamp: {
+      iso: string;
+      local: string;
+      unix: number;
+    };
+    transaction: {
+      hash: string;
+      explorerUrl: string;
+      chain: string;
+      token: string;
+      amount: number;
+      amountDisplay: string;
+      status: string;
+      confirmations: string;
+      gasUsed: string;
+      blockNumber: string;
+    };
+    security: {
+      level: string;
+      authMethod: string;
+      verified: boolean;
+      transactionType: string;
+    };
+    notifications: string[];
+  };
+}
+
+export interface SendTokenErrorResponse {
+  success: false;
+  message: string;
+  error: {
+    code: string;
+    message: string;
+    timestamp: string;
+    requestId: string;
   };
 }
 

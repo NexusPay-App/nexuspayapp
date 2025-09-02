@@ -51,8 +51,11 @@ export const PayMerchantForm: React.FC = () => {
     }
 
     try {
+      // Await the current user address
+      const userAddress = await currentUserAddress;
+      
       const response = await payMerchant({
-        senderAddress: currentUserAddress,
+        senderAddress: userAddress,
         merchantId: payFormData.merchantId,
         amount: parseFloat(payFormData.amount),
         confirm: payFormData.confirm,

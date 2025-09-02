@@ -171,7 +171,7 @@ const WalletOverview: React.FC<WalletOverviewProps> = ({ className = "" }) => {
           {/* Total Balance Card */}
           <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6 rounded-lg">
             <h3 className="text-lg font-semibold mb-2">Total Balance</h3>
-            <p className="text-3xl font-bold">{formatUSD(balance.totalUSDValue.toString())}</p>
+            <p className="text-3xl font-bold">{formatUSD(balance.totalUSDValue)}</p>
             <div className="flex justify-between items-center mt-3 text-sm opacity-90">
               <span>Across {balance.chainsWithBalance} chains</span>
               <span>Last updated: {new Date(balance.lastUpdated).toLocaleTimeString()}</span>
@@ -185,41 +185,41 @@ const WalletOverview: React.FC<WalletOverviewProps> = ({ className = "" }) => {
               <h4 className="font-medium mb-2 text-gray-700">Wallet Address</h4>
               <div className="flex items-center justify-between bg-white p-3 rounded border">
                 <span className="font-mono text-sm text-gray-800">
-                  {formatWalletAddress(wallet.walletAddress)}
+                  {wallet ? formatWalletAddress(wallet.walletAddress) : 'N/A'}
                 </span>
                 <Copy 
                   size={16} 
                   className="cursor-pointer text-gray-500 hover:text-blue-500"
-                  onClick={() => copyToClipboard(wallet.walletAddress, "Wallet address copied!")}
+                  onClick={() => wallet && copyToClipboard(wallet.walletAddress, "Wallet address copied!")}
                 />
               </div>
             </div>
 
             {/* Phone Number */}
-            {wallet.phoneNumber && (
+            {wallet?.phoneNumber && (
               <div>
                 <h4 className="font-medium mb-2 text-gray-700">Phone Number</h4>
                 <div className="flex items-center justify-between bg-white p-3 rounded border">
-                  <span className="text-sm text-gray-800">{wallet.phoneNumber}</span>
+                  <span className="text-sm text-gray-800">{wallet?.phoneNumber}</span>
                   <Copy 
                     size={16} 
                     className="cursor-pointer text-gray-500 hover:text-blue-500"
-                    onClick={() => copyToClipboard(wallet.phoneNumber, "Phone number copied!")}
+                    onClick={() => wallet?.phoneNumber && copyToClipboard(wallet.phoneNumber, "Phone number copied!")}
                   />
                 </div>
               </div>
             )}
 
             {/* Email */}
-            {wallet.email && (
+            {wallet?.email && (
               <div>
                 <h4 className="font-medium mb-2 text-gray-700">Email Address</h4>
                 <div className="flex items-center justify-between bg-white p-3 rounded border">
-                  <span className="text-sm text-gray-800">{wallet.email}</span>
+                  <span className="text-sm text-gray-800">{wallet?.email}</span>
                   <Copy 
                     size={16} 
                     className="cursor-pointer text-gray-500 hover:text-blue-500"
-                    onClick={() => copyToClipboard(wallet.email, "Email copied!")}
+                    onClick={() => wallet?.email && copyToClipboard(wallet.email, "Email copied!")}
                   />
                 </div>
               </div>
@@ -265,7 +265,7 @@ const WalletOverview: React.FC<WalletOverviewProps> = ({ className = "" }) => {
                       <div className="flex justify-between items-center mb-3">
                         <h5 className="font-medium capitalize text-gray-800">{chain}</h5>
                         <span className="text-sm text-gray-500">
-                          {formatUSD(getChainTotalUSD(chain).toString())}
+                          {formatUSD(getChainTotalUSD(chain))}
                         </span>
                       </div>
                       <div className="space-y-2">
@@ -280,8 +280,8 @@ const WalletOverview: React.FC<WalletOverviewProps> = ({ className = "" }) => {
                               <span className="font-medium">{tokenData.token}</span>
                             </div>
                             <div className="text-right">
-                              <p className="font-medium">{formatBalance(tokenData.balance.toString())}</p>
-                              <p className="text-sm text-gray-500">{formatUSD(tokenData.usdValue.toString())}</p>
+                              <p className="font-medium">{formatBalance(tokenData.balance)}</p>
+                              <p className="text-sm text-gray-500">{formatUSD(tokenData.usdValue)}</p>
                             </div>
                           </div>
                         ))}
@@ -294,7 +294,7 @@ const WalletOverview: React.FC<WalletOverviewProps> = ({ className = "" }) => {
                     <div className="flex justify-between items-center mb-3">
                       <h5 className="font-medium capitalize text-gray-800">{selectedChain}</h5>
                       <span className="text-sm text-gray-500">
-                        {formatUSD(getChainTotalUSD(selectedChain).toString())}
+                        {formatUSD(getChainTotalUSD(selectedChain))}
                       </span>
                     </div>
                     <div className="space-y-2">
@@ -309,8 +309,8 @@ const WalletOverview: React.FC<WalletOverviewProps> = ({ className = "" }) => {
                             <span className="font-medium">{tokenData.token}</span>
                           </div>
                           <div className="text-right">
-                            <p className="font-medium">{formatBalance(tokenData.balance.toString())}</p>
-                            <p className="text-sm text-gray-500">{formatUSD(tokenData.usdValue.toString())}</p>
+                            <p className="font-medium">{formatBalance(tokenData.balance)}</p>
+                            <p className="text-sm text-gray-500">{formatUSD(tokenData.usdValue)}</p>
                           </div>
                         </div>
                       ))}
@@ -323,25 +323,25 @@ const WalletOverview: React.FC<WalletOverviewProps> = ({ className = "" }) => {
             // No tokens found
             <div className="text-center py-8">
               <p className="text-gray-500 mb-2">No tokens found</p>
-              <p className="text-sm text-gray-400">Your wallet is set up but doesn't have any token balances yet.</p>
+              <p className="text-sm text-gray-400">Your wallet is set up but doesn&apos;t have any token balances yet.</p>
             </div>
           )}
 
           {/* Supported Chains Info */}
-          {wallet.supportedChains && wallet.supportedChains.length > 0 && (
+          {wallet?.supportedChains && wallet.supportedChains.length > 0 && (
             <div className="bg-blue-50 p-4 rounded-lg">
               <h4 className="font-medium mb-3 text-gray-700">Supported Networks</h4>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {wallet.supportedChains.map((chain) => (
+                {wallet?.supportedChains?.map((chain) => (
                   <div key={chain.id} className="flex items-center space-x-2 p-2 bg-white rounded">
                     <div className="w-2 h-2 bg-green-400 rounded-full"></div>
                     <span className="text-sm text-gray-700">{chain.name}</span>
                   </div>
                 ))}
               </div>
-              {wallet.note && (
+              {wallet?.note && (
                 <div className="mt-3 p-3 bg-blue-100 rounded text-sm text-blue-800">
-                  {wallet.note}
+                  {wallet?.note}
                 </div>
               )}
             </div>

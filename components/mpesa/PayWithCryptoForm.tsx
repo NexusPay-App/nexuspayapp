@@ -22,14 +22,14 @@ export const PayWithCryptoForm: React.FC = () => {
     
     try {
       const response = await payWithCrypto({
-        amount: parseFloat(formData.amount),
-        cryptoAmount: parseFloat(formData.cryptoAmount),
-        targetType: formData.targetType,
-        targetNumber: formData.targetNumber,
-        accountNumber: formData.targetType === 'paybill' ? formData.accountNumber : undefined,
+        recipient: formData.targetNumber,
+        amount: formData.amount,
+        token: formData.tokenType,
         chain: formData.chain,
-        tokenType: formData.tokenType,
-        description: formData.description,
+        paymentType: formData.targetType as 'paybill' | 'till' | 'send',
+        businessNumber: formData.targetType === 'paybill' ? formData.targetNumber : undefined,
+        accountNumber: formData.targetType === 'paybill' ? formData.accountNumber : undefined,
+        tillNumber: formData.targetType === 'till' ? formData.targetNumber : undefined,
       });
       
       if (response.success) {

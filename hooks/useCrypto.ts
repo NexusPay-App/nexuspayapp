@@ -44,8 +44,8 @@ export const useCrypto = () => {
     return sendTokenApi.execute(
       () => cryptoAPI.sendToken(data),
       {
-        showSuccessToast: true,
-        successMessage: 'Crypto sent successfully!',
+        showSuccessToast: false,
+        showErrorToast: false,
       }
     );
   }, [sendTokenApi]);
@@ -107,7 +107,7 @@ export const useCrypto = () => {
       recipientIdentifier: '',
       amount: '',
       chain: 'arbitrum',
-      tokenType: 'USDC',
+      tokenType: 'USDC', // Keep as tokenType for UI consistency
     });
   }, []);
 

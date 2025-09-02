@@ -4,7 +4,7 @@
 // // Home.tsx
 // "use client";
 
-// import Transactions from "@/components/transactions/Transactions";
+// import { RecentTransactions } from "@/components/transactions/RecentTransactions";
 // import {
 //   Select,
 //   SelectContent,
@@ -243,7 +243,7 @@
 // Home.tsx
 "use client";
 
-import Transactions from "@/components/transactions/Transactions";
+import { RecentTransactions } from "@/components/transactions/RecentTransactions";
 import {
   Select,
   SelectContent,
@@ -251,14 +251,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ARB, UserIcon } from "@/constants/svg";
+import { UserIcon } from "@/constants/svg";
 import {
   ArrowCircleDown,
   BellSimple,
   CreditCard,
   List,
   PaperPlaneTilt,
-  UserCircle,
 } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
@@ -266,13 +265,12 @@ import { Controller, useForm } from "react-hook-form";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LifeBuoy, LogOut, Settings, User, UserPlus } from "lucide-react";
+import { LogOut } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -306,12 +304,7 @@ const Home = () => {
 
   const [openLogoutDialog, setOpenLogoutDialog] = useState(false); // Opens the Logout Loading Dialog
   const router = useRouter();
-  const {
-    register,
-    handleSubmit,
-    control,
-    formState: { errors },
-  } = useForm();
+  const { control } = useForm();
 
   useEffect(() => {
     // Check if the user is authenticated using the auth context
@@ -386,23 +379,29 @@ const Home = () => {
             <SheetContent side="left">
               <SheetHeader>
                 <ul className="flex flex-col justify-around items-start text-base font-DM text-black w-auto">
-                  <a
-                    href="/reclaim"
+                  <Link
+                    href="/home"
                     className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer "
                   >
                     Home
-                  </a>
+                  </Link>
+                  <Link
+                    href="/wallet"
+                    className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer "
+                  >
+                    Wallet
+                  </Link>
+                  <Link
+                    href="/transactions"
+                    className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer "
+                  >
+                    Transactions
+                  </Link>
                   <Link
                     href="/reclaim"
                     className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer "
                   >
                     Reclaim
-                  </Link>
-                  <Link
-                    href="/forgotpassword"
-                    className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer "
-                  >
-                    Forgot Password
                   </Link>
                 </ul>
               </SheetHeader>
@@ -529,6 +528,12 @@ const Home = () => {
             </span>
             <h4 className="text-white my-1">Pay</h4>
           </div>
+          <div className="flex flex-col items-center" onClick={() => router.push('/transactions')}>
+            <span className="border border-[#0795B0] rounded-full p-4 bg-[#0A0E0E] hover:bg-white text-white hover:text-[#0795B0] hover:cursor-pointer hover:border-white">
+              <BellSimple size={24} weight="fill" />
+            </span>
+            <h4 className="text-white my-1">History</h4>
+          </div>
         </div>
       </article>
       <article className="mt-20 flex flex-col items-center p-5  xl:px-[200px]">
@@ -544,7 +549,25 @@ const Home = () => {
           </button>
         </div>
       </article>
-      <Transactions />
+
+      {/* Recent Transactions Section */}
+      <article className="mt-8 flex flex-col items-center p-5 xl:px-[200px]">
+        <div className="w-full max-w-4xl">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-white">Recent Transactions</h2>
+            <Link 
+              href="/transactions"
+              className="text-[#0795B0] hover:text-[#0AA5C0] text-sm font-medium transition-colors duration-200"
+            >
+              View All →
+            </Link>
+          </div>
+          
+          <div className="bg-[#0A0E0E] rounded-xl border border-[#0795B0] p-6">
+            <RecentTransactions />
+          </div>
+        </div>
+      </article>
     </section>
   );
 };

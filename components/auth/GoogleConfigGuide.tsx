@@ -58,7 +58,7 @@ const GoogleConfigGuide: React.FC<GoogleConfigGuideProps> = ({ isOpen, onClose }
                   <div className="bg-gray-100 p-2 rounded mt-1 font-mono text-sm">
                     http://localhost:3000
                   </div>
-                  <p className="text-gray-600 mt-1">Add this to "Authorized JavaScript origins"</p>
+                  <p className="text-gray-600 mt-1">Add this to &quot;Authorized JavaScript origins&quot;</p>
                 </div>
               </div>
 

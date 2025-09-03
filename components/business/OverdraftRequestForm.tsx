@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, CreditCard, CheckCircle, Warning, TrendingUp } from '@phosphor-icons/react';
+import { ArrowLeft, CreditCard, CheckCircle, Warning, TrendUp } from '@phosphor-icons/react';
 
 interface CreditAssessment {
   creditScore: number;
@@ -195,7 +195,7 @@ export const OverdraftRequestForm: React.FC = () => {
             {/* Credit Assessment */}
             <div className="bg-[#0A0E0E] rounded-xl border border-[#0795B0] p-6 shadow-lg">
               <h3 className="text-xl font-bold text-white mb-6 flex items-center">
-                <TrendingUp size={24} className="text-[#0795B0] mr-3" />
+                <TrendUp size={24} className="text-[#0795B0] mr-3" />
                 Credit Assessment
               </h3>
               

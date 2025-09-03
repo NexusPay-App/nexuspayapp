@@ -1,5 +1,6 @@
 import apiClient from './api';
 import { ApiResponse } from './wallet';
+import { CryptoToMpesaResponse } from '../types/api-types';
 
 // Types
 export interface DepositData {
@@ -40,14 +41,24 @@ export interface PayTillData {
 }
 
 export interface PayWithCryptoData {
-  recipient: string;
-  amount: string;
-  token: string;
+  amount: number; // fiat amount (KES)
+  cryptoAmount?: number; // backend may compute; optional from UI
+  targetType: 'paybill' | 'till';
+  targetNumber: string; // paybill or till number
+  accountNumber?: string; // required for paybill
   chain: string;
-  paymentType: 'paybill' | 'till' | 'send';
-  businessNumber?: string;
-  accountNumber?: string;
-  tillNumber?: string;
+  tokenType: string; // e.g., USDC
+  description?: string;
+  password?: string; // security: password or google
+  googleAuthCode?: string; // alternative to password
+}
+
+export interface CryptoToMpesaData {
+  amount: number; // crypto amount to withdraw
+  phone: string; // recipient phone e.g., 2547XXXXXXXX
+  tokenType?: string; // optional, defaults to "USDC"
+  chain?: string; // optional, defaults to "celo"
+  password: string; // required authentication (no longer optional)
 }
 
 export interface TransactionStatus {
@@ -96,6 +107,12 @@ export const mpesaAPI = {
     return response.data;
   },
 
+  // Crypto to M-Pesa (Send crypto, recipient gets M-Pesa)
+  cryptoToMpesa: async (data: CryptoToMpesaData): Promise<CryptoToMpesaResponse> => {
+    const response = await apiClient.post('/mpesa/crypto-to-mpesa', data);
+    return response.data;
+  },
+
   // Crypto Bill Payments
   payBill: async (data: PayBillData): Promise<ApiResponse> => {
     const response = await apiClient.post('/mpesa/pay/paybill', data);
@@ -108,8 +125,20 @@ export const mpesaAPI = {
   },
 
   payWithCrypto: async (data: PayWithCryptoData): Promise<ApiResponse> => {
-    const response = await apiClient.post('/mpesa/pay-with-crypto', data);
-    return response.data;
+    try {
+      console.log('Making payWithCrypto API call with data:', data);
+      console.log('API client headers:', apiClient.defaults.headers);
+      
+      const response = await apiClient.post('/mpesa/pay-with-crypto', data);
+      console.log('payWithCrypto API response:', response);
+      return response.data;
+    } catch (error: any) {
+      console.error('payWithCrypto API error:', error);
+      console.error('Error response:', error.response);
+      console.error('Error status:', error.response?.status);
+      console.error('Error data:', error.response?.data);
+      throw error;
+    }
   },
 
   // Transaction Management

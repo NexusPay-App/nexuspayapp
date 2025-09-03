@@ -15,8 +15,8 @@ export const PayMerchantForm: React.FC = () => {
   } = useCrypto();
 
   const [validationError, setValidationError] = useState<string>('');
-  const [paymentType, setPaymentType] = useState<'onchain' | 'offchain'>('onchain');
   const [googleAuthCode, setGoogleAuthCode] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
 
   // Get current user's wallet address
   const currentUserAddress = getCurrentUserAddress();
@@ -44,9 +44,9 @@ export const PayMerchantForm: React.FC = () => {
       return;
     }
 
-    // Validate Google auth code
-    if (!googleAuthCode.trim()) {
-      setValidationError('Please enter your Google Authenticator code');
+    // Validate authentication (password or Google code)
+    if (!googleAuthCode.trim() && !password.trim()) {
+      setValidationError('Please enter your Password or Google Authenticator code');
       return;
     }
 
@@ -61,13 +61,15 @@ export const PayMerchantForm: React.FC = () => {
         confirm: payFormData.confirm,
         chainName: payFormData.chainName,
         tokenSymbol: payFormData.tokenSymbol,
-        googleAuthCode: googleAuthCode,
+        ...(googleAuthCode ? { googleAuthCode } : {}),
+        ...(password ? { password } : {}),
       });
 
       if (response.success) {
         // Reset form on success
         resetPayForm();
         setGoogleAuthCode('');
+        setPassword('');
       }
     } catch (error: any) {
       setValidationError(error.message || 'Failed to pay merchant');
@@ -77,44 +79,8 @@ export const PayMerchantForm: React.FC = () => {
   return (
     <div className="w-full">
       <div className="bg-[#0A0E0E] rounded-xl border border-[#0795B0] p-6 shadow-lg">
-        <h2 className="text-2xl font-bold mb-6 text-center text-white">Pay Merchant</h2>
-        
-        {/* Payment Type Selection */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-300 mb-3">
-            Payment Method:
-          </label>
-          <div className="flex space-x-2">
-            <button
-              type="button"
-              onClick={() => setPaymentType('onchain')}
-              className={`flex-1 py-2 px-3 rounded-md border transition-all duration-200 ${
-                paymentType === 'onchain'
-                  ? 'bg-[#0795B0] text-white border-[#0795B0]'
-                  : 'bg-[#1A1E1E] text-gray-300 border-[#0795B0] hover:bg-[#0A0E0E]'
-              }`}
-            >
-              🔗 On-Chain Crypto
-            </button>
-            <button
-              type="button"
-              onClick={() => setPaymentType('offchain')}
-              className={`flex-1 py-2 px-3 rounded-md border transition-all duration-200 ${
-                paymentType === 'offchain'
-                  ? 'bg-[#0795B0] text-white border-[#0795B0]'
-                  : 'bg-[#1A1E1E] text-gray-300 border-[#0795B0] hover:bg-[#0A0E0E]'
-              }`}
-            >
-              💰 Crypto to MPesa
-            </button>
-          </div>
-          <p className="text-xs text-gray-400 mt-2">
-            {paymentType === 'onchain' 
-              ? 'Pay directly with crypto on the blockchain' 
-              : 'Convert your crypto to MPesa for the merchant'
-            }
-          </p>
-        </div>
+        <h2 className="text-2xl font-bold mb-1 text-center text-white">Pay Merchant</h2>
+        <p className="text-center text-gray-400 mb-6">Direct on-chain crypto payment to a registered merchant</p>
         
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Merchant ID */}
@@ -139,7 +105,7 @@ export const PayMerchantForm: React.FC = () => {
           {/* Amount */}
           <div>
             <label htmlFor="amount" className="block text-sm font-medium text-gray-300 mb-2">
-              Amount {paymentType === 'offchain' ? '(in Crypto)' : ''}
+              Amount (in Crypto)
             </label>
             <input
               type="number"
@@ -152,11 +118,6 @@ export const PayMerchantForm: React.FC = () => {
               className="w-full px-3 py-3 bg-[#1A1E1E] border border-[#0795B0] rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0795B0] focus:border-transparent hover:border-[#0AA5C0] transition-colors duration-200"
               required
             />
-            {paymentType === 'offchain' && (
-              <p className="text-xs text-gray-400 mt-1">
-                Amount in crypto. Will be converted to MPesa for the merchant
-              </p>
-            )}
           </div>
 
           {/* Token Selection */}
@@ -178,8 +139,8 @@ export const PayMerchantForm: React.FC = () => {
             </select>
           </div>
 
-          {/* Chain Selection - Only show for on-chain payments */}
-          {paymentType === 'onchain' && (
+          {/* Chain Selection */}
+          {true && (
             <div>
               <label htmlFor="chainName" className="block text-sm font-medium text-gray-300 mb-2">
                 Blockchain
@@ -199,24 +160,7 @@ export const PayMerchantForm: React.FC = () => {
             </div>
           )}
 
-          {/* MPesa Phone Number - Only show for off-chain payments */}
-          {paymentType === 'offchain' && (
-            <div>
-              <label htmlFor="mpesaPhone" className="block text-sm font-medium text-gray-300 mb-2">
-                Merchant MPesa Phone
-              </label>
-              <input
-                type="tel"
-                id="mpesaPhone"
-                placeholder="+254712345678"
-                className="w-full px-3 py-3 bg-[#1A1E1E] border border-[#0795B0] rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0795B0] focus:border-transparent hover:border-[#0AA5C0] transition-colors duration-200"
-                required
-              />
-              <p className="text-xs text-gray-400 mt-1">
-                MPesa phone number where the merchant will receive the payment
-              </p>
-            </div>
-          )}
+          {/* No MPesa phone here: on-chain only */}
 
           {/* Confirmation Checkbox */}
           <div className="flex items-center space-x-3">
@@ -233,24 +177,28 @@ export const PayMerchantForm: React.FC = () => {
             </label>
           </div>
 
-          {/* Google Auth Verification */}
+          {/* Authentication */}
           <div>
-            <label htmlFor="googleAuthCode" className="block text-sm font-medium text-gray-300 mb-2">
-              Google Authenticator Code
-            </label>
-            <input
-              type="text"
-              id="googleAuthCode"
-              value={googleAuthCode}
-              onChange={(e) => setGoogleAuthCode(e.target.value)}
-              placeholder="123456"
-              maxLength={6}
-              className="w-full px-3 py-3 bg-[#1A1E1E] border border-[#0795B0] rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0795B0] focus:border-transparent hover:border-[#0AA5C0] transition-colors duration-200"
-              required
-            />
-            <p className="text-xs text-gray-400 mt-1">
-              Enter your 6-digit Google Authenticator code for security verification
-            </p>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Authentication</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <input
+                type="password"
+                placeholder="Password (optional)"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-3 py-3 bg-[#1A1E1E] border border-[#0795B0] rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0795B0] focus:border-transparent hover:border-[#0AA5C0] transition-colors duration-200"
+              />
+              <input
+                type="text"
+                id="googleAuthCode"
+                value={googleAuthCode}
+                onChange={(e) => setGoogleAuthCode(e.target.value)}
+                placeholder="Google Auth Code (optional)"
+                maxLength={6}
+                className="w-full px-3 py-3 bg-[#1A1E1E] border border-[#0795B0] rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0795B0] focus:border-transparent hover:border-[#0AA5C0] transition-colors duration-200"
+              />
+            </div>
+            <p className="text-xs text-gray-400 mt-1">Provide either password or Google Auth code.</p>
           </div>
 
           {/* Error Display */}
@@ -265,10 +213,10 @@ export const PayMerchantForm: React.FC = () => {
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={payMerchantLoading || !payFormData.confirm || !googleAuthCode.trim()}
+            disabled={payMerchantLoading || !payFormData.confirm || (!googleAuthCode.trim() && !password.trim())}
             className="w-full flex justify-center py-4 px-6 border border-transparent rounded-md shadow-lg text-lg font-semibold text-white bg-[#0795B0] hover:bg-[#0684A0] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0795B0] disabled:opacity-50 transition-all duration-200 mt-8 transform hover:scale-[1.02] active:scale-[0.98]"
           >
-            {payMerchantLoading ? 'Processing...' : `Pay Merchant ${paymentType === 'offchain' ? '(Crypto to MPesa)' : '(On-Chain)'}`}
+            {payMerchantLoading ? 'Processing...' : 'Pay Merchant (On-Chain)'}
           </button>
         </form>
 
@@ -287,11 +235,8 @@ export const PayMerchantForm: React.FC = () => {
         {/* Info Box */}
         <div className="mt-6 p-4 bg-[#1A1E1E] border border-[#0795B0] rounded-md">
           <p className="text-sm text-gray-300">
-            💡 <strong>Payment Options:</strong> 
-            {paymentType === 'onchain' 
-              ? ' Pay directly with crypto on the blockchain for instant settlement.' 
-              : ' Convert your crypto to MPesa for the merchant. The merchant receives MPesa while you pay with crypto.'
-            }
+            💡 This flow pays merchants directly in crypto on-chain.
+            To convert crypto to M-Pesa (paybills/tills), use the Pay with Crypto form.
           </p>
         </div>
       </div>

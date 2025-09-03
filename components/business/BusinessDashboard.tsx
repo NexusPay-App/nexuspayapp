@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Building, CreditCard, TrendingUp, Wallet, Users, ChartLine } from '@phosphor-icons/react';
+import { ArrowLeft, Building, CreditCard, TrendUp, Wallet, Users, ChartLine } from '@phosphor-icons/react';
 
 interface BusinessData {
   businessId: string;
@@ -165,7 +165,7 @@ export const BusinessDashboard: React.FC = () => {
             <div className="p-6 bg-blue-900/20 border border-blue-500 rounded-lg max-w-md mx-auto">
               <Building size={48} className="text-blue-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-blue-400 mb-2">No Business Account</h3>
-              <p className="text-sm text-blue-300 mb-4">You don't have a business account yet.</p>
+              <p className="text-sm text-blue-300 mb-4">You don&apos;t have a business account yet.</p>
               <button
                 onClick={() => router.push('/business/create')}
                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
@@ -230,7 +230,7 @@ export const BusinessDashboard: React.FC = () => {
 
             <div className="bg-[#0A0E0E] rounded-xl border border-[#0795B0] p-6 shadow-lg">
               <div className="flex items-center mb-4">
-                <TrendingUp size={24} className="text-[#0795B0] mr-3" />
+                <TrendUp size={24} className="text-[#0795B0] mr-3" />
                 <h3 className="text-lg font-semibold text-white">Monthly Volume</h3>
               </div>
               <p className="text-3xl font-bold text-blue-400 mb-2">
@@ -322,7 +322,7 @@ export const BusinessDashboard: React.FC = () => {
                   onClick={() => router.push('/business/repay')}
                   className="w-full p-4 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors duration-200 flex items-center justify-center"
                 >
-                  <TrendingUp size={20} className="mr-2" />
+                  <TrendUp size={20} className="mr-2" />
                   Repay Overdraft
                 </button>
                 

@@ -542,7 +542,7 @@ const SignupBusiness = () => {
             />
             <div className="text-xs text-gray-300 mb-4 bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
               <p className="mb-2">
-                💡 <strong>Don't have your User ID?</strong>
+                💡 <strong>Don&apos;t have your User ID?</strong>
               </p>
               <div className="space-y-1">
                 <p>1. <button onClick={() => router.push("/login")} className="text-blue-300 hover:text-blue-200 underline">Login to your account</button></p>

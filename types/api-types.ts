@@ -148,3 +148,38 @@ export type LoginResponse = {
   };
   request: Record<string, unknown>;
 };
+
+// New type for crypto-to-mpesa response
+export type CryptoToMpesaResponse = {
+  success: boolean;
+  message: string;
+  data: {
+    transactionId: string;
+    amount: number;
+    cryptoAmount: number;
+    status: string;
+    mpesaTransactionId: string;
+    createdAt: string;
+    estimatedCompletionTime: string;
+    message: string;
+    transactionDetails: {
+      type: string;
+      chain: string;
+      tokenType: string;
+      recipientPhone: string;
+      exchangeRate: number;
+      fees: {
+        amount: string;
+        percentage: number;
+      };
+      blockchainTransaction: {
+        hash: string;
+        explorerUrl: string;
+      };
+    };
+  } | null;
+  error: {
+    code: string;
+    message: string;
+  } | null;
+}

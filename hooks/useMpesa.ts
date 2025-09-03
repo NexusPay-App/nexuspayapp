@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { mpesaAPI, DepositData, BuyCryptoData, WithdrawData, PayWithCryptoData } from '../lib/mpesa';
+import { mpesaAPI, DepositData, BuyCryptoData, WithdrawData, PayWithCryptoData, PayBillData, PayTillData, CryptoToMpesaData } from '../lib/mpesa';
 import { useApi } from './useApi';
 
 export const useMpesa = () => {
@@ -7,6 +7,9 @@ export const useMpesa = () => {
   const buyCryptoApi = useApi();
   const withdrawApi = useApi();
   const payWithCryptoApi = useApi();
+  const payBillApi = useApi();
+  const payTillApi = useApi();
+  const cryptoToMpesaApi = useApi();
   const submitReceiptApi = useApi();
   const transactionStatusApi = useApi();
 
@@ -58,6 +61,38 @@ export const useMpesa = () => {
     );
   }, [payWithCryptoApi]);
 
+  // Crypto to M-Pesa (Send crypto, recipient gets M-Pesa)
+  const cryptoToMpesa = useCallback(async (data: CryptoToMpesaData) => {
+    return cryptoToMpesaApi.execute(
+      () => mpesaAPI.cryptoToMpesa(data),
+      {
+        showSuccessToast: true,
+        successMessage: 'Crypto to M-Pesa transaction initiated successfully!',
+      }
+    );
+  }, [cryptoToMpesaApi]);
+
+  // Dedicated endpoints
+  const payBill = useCallback(async (data: PayBillData) => {
+    return payBillApi.execute(
+      () => mpesaAPI.payBill(data),
+      {
+        showSuccessToast: true,
+        successMessage: 'Paybill payment initiated',
+      }
+    );
+  }, [payBillApi]);
+
+  const payTill = useCallback(async (data: PayTillData) => {
+    return payTillApi.execute(
+      () => mpesaAPI.payTill(data),
+      {
+        showSuccessToast: true,
+        successMessage: 'Till payment initiated',
+      }
+    );
+  }, [payTillApi]);
+
   // Submit M-Pesa receipt
   const submitReceipt = useCallback(async (data: any) => {
     return submitReceiptApi.execute(
@@ -99,6 +134,18 @@ export const useMpesa = () => {
     payWithCrypto,
     payWithCryptoLoading: payWithCryptoApi.loading,
     payWithCryptoError: payWithCryptoApi.error,
+
+    cryptoToMpesa,
+    cryptoToMpesaLoading: cryptoToMpesaApi.loading,
+    cryptoToMpesaError: cryptoToMpesaApi.error,
+
+    // Dedicated
+    payBill,
+    payBillLoading: payBillApi.loading,
+    payBillError: payBillApi.error,
+    payTill,
+    payTillLoading: payTillApi.loading,
+    payTillError: payTillApi.error,
 
     // Submit receipt
     submitReceipt,

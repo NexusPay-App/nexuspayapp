@@ -14,6 +14,7 @@ export interface BuyCryptoData {
   phone: string;
   chain: string;
   tokenType: string;
+  currency?: 'KES' | 'USD'; // Optional currency field for backend processing
 }
 
 export interface WithdrawData {

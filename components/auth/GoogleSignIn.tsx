@@ -25,11 +25,22 @@ const GoogleSignIn: React.FC<GoogleSignInProps> = ({ mode, onSuccess, onError })
   const [isLoading, setIsLoading] = useState(false);
   const [googleConfig, setGoogleConfig] = useState<any>(null);
   const [showConfigGuide, setShowConfigGuide] = useState(false);
+  const [backendStatus, setBackendStatus] = useState<'checking' | 'online' | 'offline'>('checking');
 
   useEffect(() => {
     // Load Google configuration
     const loadGoogleConfig = async () => {
       try {
+        // Check backend status first
+        try {
+          // Skip backend health check for now since endpoint doesn't exist
+          setBackendStatus('online');
+          console.log("Backend status: online (skipping health check)");
+        } catch (error) {
+          console.warn('Backend server is not running:', error);
+          setBackendStatus('offline');
+        }
+
         let clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
         
         // Try to get config from server first, fallback to env variable
@@ -131,7 +142,17 @@ const GoogleSignIn: React.FC<GoogleSignInProps> = ({ mode, onSuccess, onError })
       }
     } catch (error: any) {
       console.error("Google authentication failed:", error);
-      onError?.(error.message || "Google authentication failed");
+      
+      // Handle specific network errors
+      if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+        onError?.("Backend server is not running. Please ensure the server is started on localhost:8000");
+      } else if (error.response?.status === 404) {
+        onError?.("Google authentication endpoint not found. Please check backend configuration.");
+      } else if (error.response?.status === 500) {
+        onError?.("Server error occurred. Please try again later.");
+      } else {
+        onError?.(error.message || "Google authentication failed");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -158,6 +179,7 @@ const GoogleSignIn: React.FC<GoogleSignInProps> = ({ mode, onSuccess, onError })
                 <li>Create OAuth 2.0 credentials</li>
                 <li>Add http://localhost:3000 to authorized origins</li>
                 <li>Set NEXT_PUBLIC_GOOGLE_CLIENT_ID in .env.local</li>
+                <li>Ensure backend server is running on localhost:8000</li>
               </ol>
             </div>
           </details>

@@ -28,6 +28,9 @@ export interface AuthContextType {
   linkGoogle: (data: any) => Promise<any>;
   getGoogleConfig: () => Promise<any>;
   
+  // User profile
+  getUserProfile: () => Promise<any>;
+  
   // Logout
   logout: () => void;
 }
@@ -305,6 +308,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // Get user profile
+  const getUserProfile = async () => {
+    try {
+      // Since the backend endpoint doesn't exist yet, return the current user data
+      const profileData = {
+        id: user?.id,
+        email: user?.email,
+        phoneNumber: user?.phoneNumber,
+        googleId: user?.googleId,
+        arbitrumWallet: user?.arbitrumWallet,
+        celoWallet: user?.celoWallet,
+        walletAddress: user?.walletAddress,
+        authMethods: user?.phoneNumber ? ['phone'] : [],
+        ...(user?.email && { authMethods: [...(user?.phoneNumber ? ['phone'] : []), 'email'] })
+      };
+      
+      return {
+        success: true,
+        data: profileData,
+        message: 'Profile loaded successfully'
+      };
+    } catch (error: any) {
+      console.error("Failed to get user profile:", error);
+      throw error;
+    }
+  };
+
   // Logout
   const logout = async () => {
     try {
@@ -335,6 +365,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     googleAuth,
     linkGoogle,
     getGoogleConfig,
+    getUserProfile,
     logout,
   };
 

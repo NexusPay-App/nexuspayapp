@@ -52,6 +52,7 @@ import { useQuery } from "@tanstack/react-query";
 import useAxios from "./useAxios";
 import { Transaction } from "@/types/api-types";
 import { useChain } from "@/context/ChainContext";
+import { cryptoConverter } from "@/lib/crypto-converter";
 
 interface ApiHookResponse<T> {
   data: T | undefined;
@@ -63,10 +64,27 @@ export function useGetConversionRate(): ApiHookResponse<number> {
   const api = useAxios();
   const { isLoading, data, error } = useQuery({
     queryKey: ["getConversionRate"],
-    queryFn: () =>
-      api.get("usdc/conversionrate").then((res) => {
+    queryFn: async () => {
+      try {
+        // First try to get rate from backend
+        const res = await api.get("usdc/conversionrate");
         return res.data.rate;
-      }),
+      } catch (backendError) {
+        console.log('Backend conversion rate endpoint not available, using crypto converter...');
+        
+        // Fallback to crypto converter
+        try {
+          const rates = await cryptoConverter.getConversionRates();
+          // Return KES per USD rate (e.g., 129.23 KES = 1 USD)
+          return 1 / rates.kes;
+        } catch (converterError) {
+          console.error('Both backend and crypto converter failed:', converterError);
+          throw converterError;
+        }
+      }
+    },
+    retry: 1, // Only retry once since we have fallback
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
   return { isLoading, data, error };
 }

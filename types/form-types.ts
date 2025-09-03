@@ -1,6 +1,7 @@
 // Define the expected type for the useAuth hook's return value
 export interface AuthContextType {
   user: any; // Replace `any` with your actual user type
+  isAuthenticated: boolean;
   login: (userData: any) => Promise<any>; // Adjust according to the actual parameters and types
   verifyLogin: (data: any) => Promise<any>; // Add verifyLogin method
   logout: () => void;
@@ -24,12 +25,12 @@ export type SignUpFormData = {
 };
 
 export type SignUpBusinessFormData = {
+  userId: string;
   ownerName: string;
   businessName: string;
   location: string;
   phoneNumber: string;
-  password: string;
-  confirmPassword: string;
+  businessType: string;
 };
 
 

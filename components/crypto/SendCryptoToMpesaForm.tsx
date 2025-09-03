@@ -4,22 +4,23 @@ import React, { useState, useEffect } from 'react';
 import { useMpesa } from '../../hooks/useMpesa';
 import { cryptoConverter, CryptoConversion } from '../../lib/crypto-converter';
 
-export const BuyCryptoForm: React.FC = () => {
-  const { buyCrypto, buyCryptoLoading } = useMpesa();
+export const SendCryptoToMpesaForm: React.FC = () => {
+  const { withdraw, withdrawLoading } = useMpesa();
   
   const [formData, setFormData] = useState({
-    fiatAmount: '', // Amount in KES/USD
+    cryptoAmount: '', // Amount in crypto
     phone: '',
     chain: 'arbitrum',
     tokenType: 'USDC',
-    currency: 'KES' as 'KES' | 'USD',
   });
 
   // Conversion state
-  const [conversion, setConversion] = useState<CryptoConversion | null>(null);
-  const [marketPrices, setMarketPrices] = useState<Record<string, { usd: number; kes: number }>>({});
+  const [conversion, setConversion] = useState<{
+    cryptoAmount: number;
+    kesAmount: number;
+    conversionRate: number;
+  } | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
-  const [currentRates, setCurrentRates] = useState<{ usd: number; kes: number } | null>(null);
 
   // Transaction result state
   const [transactionResult, setTransactionResult] = useState<{
@@ -54,71 +55,48 @@ export const BuyCryptoForm: React.FC = () => {
         phone: userData.phoneNumber || '',
       }));
     }
-
-    // Load market prices
-    loadMarketPrices();
   }, []);
 
-  // Load current market prices
-  const loadMarketPrices = async () => {
-    try {
-      const prices = await cryptoConverter.getMarketPrices();
-      setMarketPrices(prices);
-      
-      // Also get current conversion rates for display
-      const rates = await cryptoConverter.getConversionRates();
-      setCurrentRates(rates);
-      console.log('Current rates loaded:', rates);
-    } catch (error) {
-      console.error('Failed to load market prices:', error);
-    }
-  };
-
-  // Get current KES/USD rate for display
-  const [currentRate, setCurrentRate] = useState<string>('Loading...');
-
+  // Calculate conversion when crypto amount changes
   useEffect(() => {
-    const loadRates = async () => {
-      try {
-        const rates = await cryptoConverter.getConversionRates();
-        setCurrentRates(rates);
-        const usdToKes = (1 / rates.kes).toFixed(2);
-        setCurrentRate(`1 USD = ${usdToKes} KES`);
-      } catch (error) {
-        setCurrentRate('Rate unavailable');
-      }
-    };
-    
-    loadRates();
-  }, []);
-
-  // Update currentRates when backend rate changes
-  useEffect(() => {
-    if (currentRates) {
-      setCurrentRates(currentRates);
-    }
-  }, [currentRates]);
-
-  // Calculate conversion when amount or currency changes
-  useEffect(() => {
-    if (formData.fiatAmount && parseFloat(formData.fiatAmount) > 0) {
+    if (formData.cryptoAmount && parseFloat(formData.cryptoAmount) > 0) {
       calculateConversion();
     } else {
       setConversion(null);
     }
-  }, [formData.fiatAmount, formData.currency, formData.tokenType]);
+  }, [formData.cryptoAmount, formData.tokenType]);
 
   const calculateConversion = async () => {
-    if (!formData.fiatAmount || parseFloat(formData.fiatAmount) <= 0) return;
+    if (!formData.cryptoAmount || parseFloat(formData.cryptoAmount) <= 0) return;
     
     setIsCalculating(true);
     try {
-      const result = await cryptoConverter.convertFiatToCrypto(
-        parseFloat(formData.fiatAmount),
-        formData.currency,
-        formData.tokenType
-      );
-      setConversion(result);
+      const rates = await cryptoConverter.getConversionRates();
+      const cryptoAmount = parseFloat(formData.cryptoAmount);
+      
+      // Convert crypto to KES (assuming 1:1 for USDC)
+      let kesAmount: number;
+      let conversionRate: number;
+      
+      switch (formData.tokenType) {
+        case 'USDC':
+          kesAmount = cryptoAmount / rates.kes; // Convert to KES
+          conversionRate = 1 / rates.kes;
+          break;
+        case 'USDT':
+          kesAmount = cryptoAmount / rates.kes;
+          conversionRate = 1 / rates.kes;
+          break;
+        default:
+          kesAmount = cryptoAmount / rates.kes;
+          conversionRate = 1 / rates.kes;
+      }
+      
+      setConversion({
+        cryptoAmount,
+        kesAmount,
+        conversionRate
+      });
     } catch (error) {
       console.error('Conversion calculation failed:', error);
     } finally {
@@ -138,7 +116,7 @@ export const BuyCryptoForm: React.FC = () => {
     e.preventDefault();
     
     if (!authStatus.hasToken) {
-      alert('You must be logged in to buy crypto. Please login first.');
+      alert('You must be logged in to send crypto. Please login first.');
       return;
     }
 
@@ -147,68 +125,46 @@ export const BuyCryptoForm: React.FC = () => {
       return;
     }
     
-    // Convert USD to KES if the user selected USD currency
-    let amountInKes = parseFloat(formData.fiatAmount);
-    if (formData.currency === 'USD') {
-      // Get current conversion rates to convert USD to KES
-      try {
-        const rates = await cryptoConverter.getConversionRates();
-        amountInKes = parseFloat(formData.fiatAmount) / rates.kes; // Convert USD to KES
-        console.log(`Converting ${formData.fiatAmount} USD to ${amountInKes.toFixed(2)} KES`);
-        console.log(`Conversion rate used: 1 USD = ${(1 / rates.kes).toFixed(2)} KES`);
-      } catch (error) {
-        console.error('Failed to get conversion rates:', error);
-        alert('Failed to convert USD to KES. Please try again.');
-        return;
-      }
-    } else {
-      console.log(`Using KES amount directly: ${amountInKes} KES`);
-    }
-    
     // Log the data being sent
     const requestData = {
-      amount: amountInKes, // Send amount in KES to backend
-      phone: formData.phone,
+      amount: formData.cryptoAmount, // Send crypto amount
+      phoneNumber: formData.phone,
+      token: formData.tokenType,
       chain: formData.chain,
-      tokenType: formData.tokenType,
-      currency: formData.currency, // Send original currency for backend reference
     };
     
-    console.log('Sending data to API:', requestData);
-    console.log('Original amount:', formData.fiatAmount, formData.currency);
-    console.log('Amount in KES:', amountInKes);
+    console.log('Sending crypto to M-Pesa:', requestData);
     console.log('Conversion details:', conversion);
     
     try {
-      const response = await buyCrypto(requestData);
+      const response = await withdraw(requestData);
       
       if (response.success) {
         // Set transaction result
         setTransactionResult({
           success: true,
-          message: response.message || 'Crypto purchase initiated successfully',
+          message: response.message || 'Crypto sent to M-Pesa successfully',
           data: response.data,
           status: response.data?.status || 'processing'
         });
         
         // Reset form
         setFormData({
-          fiatAmount: '',
+          cryptoAmount: '',
           phone: authStatus.user?.phoneNumber || '', // Keep phone number
           chain: 'arbitrum',
           tokenType: 'USDC',
-          currency: 'KES',
         });
         setConversion(null);
       }
     } catch (error: any) {
-      console.error('Buy crypto error:', error);
+      console.error('Send crypto to M-Pesa error:', error);
       console.error('Error response data:', error.response?.data);
       
       // Set error result
       setTransactionResult({
         success: false,
-        message: error.response?.data?.message || error.message || 'An unexpected error occurred',
+        message: error.response?.data?.message || error.message || 'Failed to send crypto to M-Pesa',
         data: error.response?.data,
         status: 'failed'
       });
@@ -218,85 +174,28 @@ export const BuyCryptoForm: React.FC = () => {
   return (
     <div className="w-full">
       <div className="bg-[#0A0E0E] rounded-xl border border-[#0795B0] p-6 shadow-lg">
-        <h2 className="text-2xl font-bold mb-6 text-center text-white">Buy Crypto with M-Pesa</h2>
+        <h2 className="text-2xl font-bold mb-6 text-center text-white">Send Crypto to M-Pesa</h2>
         
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Current Rate Display */}
-          <div className="p-3 bg-[#0A0E0E] border border-[#0795B0] rounded-md">
-            <div className="flex justify-between items-center">
-              <div className="text-center flex-1">
-                <p className="text-sm text-gray-300">
-                  💱 <strong>Current Rate:</strong> {currentRate}
-                </p>
-                <p className="text-xs text-gray-400 mt-1">
-                  Rates update every 5 minutes
-                </p>
-              </div>
-              <button
-                onClick={async () => {
-                  setCurrentRate('Refreshing...');
-                  try {
-                    // Refresh backend conversion rate
-                    window.location.reload();
-                  } catch (error) {
-                    setCurrentRate('Rate unavailable');
-                  }
-                }}
-                className="px-3 py-1 bg-[#0795B0] text-white text-xs rounded hover:bg-[#0684A0] transition-colors duration-200"
-              >
-                🔄 Refresh
-              </button>
-              <button
-                onClick={async () => {
-                  try {
-                    await cryptoConverter.testConversion();
-                  } catch (error) {
-                    console.error('Test failed:', error);
-                  }
-                }}
-                className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors duration-200"
-              >
-                🧪 Test
-              </button>
-            </div>
-          </div>
-          
           <div>
-            <label htmlFor="fiatAmount" className="block text-sm font-medium text-gray-300 mb-2">
-              Amount (KES/USD)
+            <label htmlFor="cryptoAmount" className="block text-sm font-medium text-gray-300 mb-2">
+              Crypto Amount
             </label>
-            <div className="flex space-x-3">
-              <input
-                type="number"
-                id="fiatAmount"
-                name="fiatAmount"
-                value={formData.fiatAmount}
-                onChange={handleInputChange}
-                className="flex-1 px-3 py-3 bg-[#1A1E1E] border border-[#0795B0] rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0795B0] focus:border-transparent hover:border-[#0AA5C0] transition-colors duration-200"
-                placeholder="1000"
-                step="0.01"
-                min="0"
-                required
-              />
-              <select
-                id="currency"
-                name="currency"
-                value={formData.currency}
-                onChange={handleInputChange}
-                className="px-4 py-3 bg-[#1A1E1E] border border-[#0795B0] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#0795B0] focus:border-transparent hover:border-[#0AA5C0] transition-colors duration-200"
-              >
-                <option value="KES">KES</option>
-                <option value="USD">USD</option>
-              </select>
-            </div>
+            <input
+              type="number"
+              id="cryptoAmount"
+              name="cryptoAmount"
+              value={formData.cryptoAmount}
+              onChange={handleInputChange}
+              className="w-full px-3 py-3 bg-[#1A1E1E] border border-[#0795B0] rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0795B0] focus:border-transparent hover:border-[#0AA5C0] transition-colors duration-200"
+              placeholder="10.5"
+              step="0.01"
+              min="0"
+              required
+            />
             <p className="text-xs text-gray-400 mt-1">
-              Enter the amount you want to spend in KES or USD
+              Enter the amount of crypto you want to send
             </p>
-            {formData.currency === 'USD' && (
-              <p className="text-xs text-yellow-400 mt-1">
-                💡 Note: USD amounts will be converted to KES for M-Pesa payment
-              </p>
-            )}
           </div>
           
           <div>
@@ -331,8 +230,6 @@ export const BuyCryptoForm: React.FC = () => {
             >
               <option value="USDC">USDC</option>
               <option value="USDT">USDT</option>
-              <option value="ETH">ETH</option>
-              <option value="BTC">BTC</option>
             </select>
           </div>
           
@@ -356,10 +253,10 @@ export const BuyCryptoForm: React.FC = () => {
           
           <button
             type="submit"
-            disabled={buyCryptoLoading || isCalculating}
+            disabled={withdrawLoading || isCalculating}
             className="w-full flex justify-center py-4 px-6 border border-transparent rounded-md shadow-lg text-lg font-semibold text-white bg-[#0795B0] hover:bg-[#0684A0] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0795B0] disabled:opacity-50 transition-all duration-200 mt-8 transform hover:scale-[1.02] active:scale-[0.98]"
           >
-            {buyCryptoLoading || isCalculating ? 'Processing...' : 'Buy Crypto'}
+            {withdrawLoading || isCalculating ? 'Processing...' : 'Send to M-Pesa'}
           </button>
         </form>
 
@@ -376,67 +273,25 @@ export const BuyCryptoForm: React.FC = () => {
             <h3 className="text-lg font-semibold text-white mb-4">💱 Conversion Details</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="p-4 bg-[#0A0E0E] border border-[#0795B0] rounded-md">
-                <p className="text-sm text-gray-400 mb-1">You Pay</p>
+                <p className="text-sm text-gray-400 mb-1">You Send</p>
                 <p className="text-xl font-bold text-white">
-                  {conversion.fiatAmount.toLocaleString()} {conversion.fiatCurrency}
+                  {conversion.cryptoAmount.toFixed(6)} {formData.tokenType}
                 </p>
-                {formData.currency === 'USD' && (
-                  <p className="text-xs text-gray-400 mt-1">
-                    ≈ {currentRates ? (conversion.fiatAmount / currentRates.kes).toFixed(0) : '...'} KES
-                  </p>
-                )}
               </div>
               <div className="p-4 bg-[#0A0E0E] border border-[#0795B0] rounded-md">
-                <p className="text-sm text-gray-400 mb-1">You Receive</p>
+                <p className="text-sm text-gray-400 mb-1">They Receive</p>
                 <p className="text-xl font-bold text-white">
-                  {conversion.cryptoAmount.toFixed(6)} {conversion.cryptoToken}
+                  {conversion.kesAmount.toFixed(0)} KES
                 </p>
               </div>
             </div>
             <div className="mt-4 p-3 bg-[#0A0E0E] border border-[#0795B0] rounded-md">
               <p className="text-sm text-gray-400">
-                💡 Rate: 1 {conversion.cryptoToken} = {conversion.conversionRate.toFixed(2)} USD
-                {conversion.fiatCurrency === 'KES' && currentRates && ` (≈ ${(conversion.conversionRate / currentRates.kes).toFixed(0)} KES)`}
+                💡 Rate: 1 {formData.tokenType} = {conversion.conversionRate.toFixed(2)} KES
               </p>
-              {formData.currency === 'USD' && (
-                <p className="text-sm text-gray-400 mt-2">
-                  ⚠️ M-Pesa will charge you in KES: ≈ {currentRates ? (conversion.fiatAmount / currentRates.kes).toFixed(0) : '...'} KES
-                </p>
-              )}
             </div>
           </div>
         )}
-
-        {/* Market Prices */}
-        {Object.keys(marketPrices).length > 0 && (
-          <div className="mt-6 p-6 bg-[#1A1E1E] border border-[#0795B0] rounded-md">
-            <h3 className="text-lg font-semibold text-white mb-4">📊 Current Market Prices</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {Object.entries(marketPrices).map(([token, prices]) => (
-                <div key={token} className="p-3 bg-[#0A0E0E] border border-[#0795B0] rounded-md text-center">
-                  <p className="text-sm font-medium text-white mb-1">{token}</p>
-                  <p className="text-xs text-gray-400">${prices.usd.toFixed(2)}</p>
-                  <p className="text-xs text-gray-400">KES{currentRates ? (prices.usd / currentRates.kes).toFixed(0) : prices.kes.toFixed(0)}</p>
-                </div>
-              ))}
-            </div>
-            <div className="mt-3 text-right">
-              <button
-                onClick={loadMarketPrices}
-                className="text-xs text-[#0795B0] hover:text-[#0684A0] transition-colors duration-200"
-              >
-                🔄 Refresh Rates
-              </button>
-            </div>
-          </div>
-        )}
-        
-        <div className="mt-6 p-4 bg-[#1A1E1E] border border-[#0795B0] rounded-md">
-          <p className="text-sm text-gray-300">
-            💡 You&apos;ll receive an M-Pesa prompt to complete the payment. 
-            Your crypto will be automatically transferred to your wallet once payment is confirmed.
-          </p>
-        </div>
 
         {/* Transaction Result Cards */}
         {transactionResult && (
@@ -465,34 +320,18 @@ export const BuyCryptoForm: React.FC = () => {
                         <p className="text-green-400 capitalize">{transactionResult.data.status}</p>
                       </div>
                       <div>
-                        <span className="text-gray-400">Amount:</span>
-                        <p className="text-white">{transactionResult.data.mpesaAmount} KES</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-400">Crypto:</span>
+                        <span className="text-gray-400">Crypto Sent:</span>
                         <p className="text-white">{transactionResult.data.cryptoAmount} {transactionResult.data.tokenType}</p>
                       </div>
-                    </div>
-                    
-                    {transactionResult.data.transactionDetails?.mpesaReceiptNumber && (
-                      <div className="p-3 bg-green-900/30 border border-green-500/50 rounded">
-                        <p className="text-sm text-green-300">
-                          <strong>M-Pesa Receipt:</strong> {transactionResult.data.transactionDetails.mpesaReceiptNumber}
-                        </p>
+                      <div>
+                        <span className="text-gray-400">KES Amount:</span>
+                        <p className="text-white">{transactionResult.data.kesAmount} KES</p>
                       </div>
-                    )}
+                    </div>
                     
                     {transactionResult.data.note && (
                       <div className="p-3 bg-blue-900/30 border border-blue-500/50 rounded">
                         <p className="text-sm text-blue-300">{transactionResult.data.note}</p>
-                      </div>
-                    )}
-                    
-                    {transactionResult.data.estimatedCompletionTime && (
-                      <div className="p-3 bg-yellow-900/30 border border-yellow-500/50 rounded">
-                        <p className="text-sm text-yellow-300">
-                          <strong>Estimated Completion:</strong> {new Date(transactionResult.data.estimatedCompletionTime).toLocaleString()}
-                        </p>
                       </div>
                     )}
                   </div>
@@ -547,6 +386,13 @@ export const BuyCryptoForm: React.FC = () => {
             )}
           </div>
         )}
+        
+        <div className="mt-6 p-4 bg-[#1A1E1E] border border-[#0795B0] rounded-md">
+          <p className="text-sm text-gray-300">
+            💡 Your crypto will be converted to KES and sent to the M-Pesa number. 
+            The recipient will receive the KES amount directly in their M-Pesa account.
+          </p>
+        </div>
       </div>
     </div>
   );

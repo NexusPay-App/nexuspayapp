@@ -84,8 +84,10 @@ export interface AuthResponse {
 }
 
 export interface User {
+    id?: string; // User ID for business account creation
     email: string;
     phoneNumber: string;
+    googleId?: string; // Google account ID
     arbitrumWallet?: string;
     celoWallet?: string;
     walletAddress?: string;
@@ -175,6 +177,12 @@ export const authAPI = {
     // Get Google Config
     getGoogleConfig: async (): Promise<GoogleConfigResponse> => {
         const response = await apiClient.get('/auth/google-config');
+        return response.data;
+    },
+
+    // Get user profile (includes user ID)
+    getUserProfile: async (): Promise<AuthResponse> => {
+        const response = await apiClient.get('/auth/profile');
         return response.data;
     },
 };

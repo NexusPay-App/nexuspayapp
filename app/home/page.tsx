@@ -270,7 +270,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut } from "lucide-react";
+import { LogOut, Settings, User, UserPlus, Copy, Eye, EyeOff, Smartphone, Mail } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -339,6 +339,11 @@ const Home = () => {
     setTimeout(() => {
       router.replace("/");
     }, 1000);
+  };
+
+  // Handle settings click
+  const handleSettings = () => {
+    router.push("/settings");
   };
 
   // Helper function to get USDC balance for selected chain or total
@@ -413,11 +418,24 @@ const Home = () => {
               <Image src={UserIcon} alt="tree" />
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuLabel className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                My Account
+              </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              
+              {/* Settings */}
+              <DropdownMenuItem onClick={handleSettings}>
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Settings</span>
+              </DropdownMenuItem>
+              
+              <DropdownMenuSeparator />
+              
+              {/* Logout */}
+              <DropdownMenuItem onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
-                <span onClick={handleLogout}>Log out</span>
+                <span>Log out</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

@@ -441,7 +441,7 @@ export const SendCryptoToMpesaForm: React.FC = () => {
                 <p className="text-green-200 text-sm text-center">
                   💬 {result.message || 'Your withdrawal is being processed. You&apos;ll receive an SMS confirmation shortly.'}
                 </p>
-              </div>
+            </div>
           </div>
         )}
       </div>

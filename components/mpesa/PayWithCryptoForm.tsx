@@ -46,14 +46,20 @@ export const PayWithCryptoForm: React.FC = () => {
         ? Number(formData.amount)
         : Math.round(Number(formData.amount) * (rate ?? 130));
 
+      // Calculate crypto amount based on current rate
+      const currentRate = rate ?? 130; // KES per USD
+      const cryptoAmount = fiatKES / currentRate; // Convert KES to USD (since USDC ≈ USD)
+
       const payload = {
         amount: fiatKES,
+        cryptoAmount: parseFloat(cryptoAmount.toFixed(6)), // Required field - auto-calculated
         targetType: formData.targetType,
         targetNumber: formData.targetNumber,
-        accountNumber: formData.targetType === 'paybill' ? formData.accountNumber : undefined,
+        ...(formData.targetType === 'paybill' && formData.accountNumber ? { accountNumber: formData.accountNumber } : {}),
         chain: formData.chain,
         tokenType: formData.tokenType,
         description: formData.description,
+        // Only include authentication fields that have values
         ...(password ? { password } : {}),
         ...(googleAuthCode ? { googleAuthCode } : {}),
       };
@@ -63,6 +69,11 @@ export const PayWithCryptoForm: React.FC = () => {
       console.log('Currency:', currency);
       console.log('Rate:', rate);
       console.log('Fiat KES amount:', fiatKES);
+      console.log('Crypto amount calculated:', cryptoAmount);
+      console.log('Password provided:', password ? 'Yes' : 'No');
+      console.log('Google Auth provided:', googleAuthCode ? 'Yes' : 'No');
+      console.log('Payload keys:', Object.keys(payload));
+      console.log('Payload values:', Object.values(payload));
       
       const response = await payWithCrypto(payload);
       
@@ -98,7 +109,9 @@ export const PayWithCryptoForm: React.FC = () => {
         
         // Set user-friendly error message
         if (axiosError.response?.status === 400) {
-          setError(`Bad Request: ${axiosError.response?.data?.message || 'Invalid request data'}`);
+          const errorMessage = axiosError.response?.data?.message || 'Invalid request data';
+          const errorDetails = axiosError.response?.data?.error;
+          setError(`Bad Request: ${errorMessage}${errorDetails ? ` (${JSON.stringify(errorDetails)})` : ''}`);
         } else if (axiosError.response?.status === 429) {
           setError('Too many requests. Please wait a moment and try again.');
         } else {
@@ -251,7 +264,7 @@ export const PayWithCryptoForm: React.FC = () => {
         
         <div>
           <label htmlFor="cryptoAmount" className="block text-sm font-medium text-gray-300">
-            Crypto Amount (auto)
+            Crypto Amount (auto-calculated)
           </label>
           <input
             type="text"
@@ -260,13 +273,18 @@ export const PayWithCryptoForm: React.FC = () => {
             disabled
             value={formData.amount ? (
               currency === 'USD'
-                ? Number(formData.amount).toFixed(2)
-                : (Number(formData.amount) / (rate ?? 130)).toFixed(2)
+                ? Number(formData.amount).toFixed(6)
+                : (Number(formData.amount) / (rate ?? 130)).toFixed(6)
             ) : ''}
             className="mt-1 block w-full px-3 py-2 bg-[#0A0E0E] border border-[#0795B0] rounded-md text-gray-400"
             placeholder="Auto-calculated"
           />
-          <p className="text-xs text-gray-500 mt-1">We auto-convert your amount to crypto at the current rate.</p>
+          <p className="text-xs text-gray-500 mt-1">
+            {formData.amount ? 
+              `${formData.amount} ${currency} = ${currency === 'USD' ? Number(formData.amount).toFixed(6) : (Number(formData.amount) / (rate ?? 130)).toFixed(6)} ${formData.tokenType}` :
+              'We auto-convert your amount to crypto at the current rate.'
+            }
+          </p>
         </div>
         
         <div className="grid grid-cols-2 gap-4">

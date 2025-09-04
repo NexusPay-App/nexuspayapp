@@ -42,7 +42,7 @@ export interface PayTillData {
 
 export interface PayWithCryptoData {
   amount: number; // fiat amount (KES)
-  cryptoAmount?: number; // backend may compute; optional from UI
+  cryptoAmount: number; // token amount to spend (REQUIRED)
   targetType: 'paybill' | 'till';
   targetNumber: string; // paybill or till number
   accountNumber?: string; // required for paybill
@@ -137,6 +137,7 @@ export const mpesaAPI = {
       console.error('Error response:', error.response);
       console.error('Error status:', error.response?.status);
       console.error('Error data:', error.response?.data);
+      console.error('Full error object:', JSON.stringify(error.response?.data, null, 2));
       throw error;
     }
   },

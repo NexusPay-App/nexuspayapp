@@ -46,7 +46,7 @@ export const BusinessDashboard: React.FC = () => {
         return;
       }
 
-      const response = await fetch('http://localhost:8000/api/business/details', {
+      const response = await fetch(`${process.env.NODE_ENV === 'production' ? 'https://api.nexuspaydefi.xyz' : 'http://localhost:8000'}/api/business/details`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',

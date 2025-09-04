@@ -46,7 +46,7 @@ export const OverdraftRequestForm: React.FC = () => {
       const userData = JSON.parse(user);
       setBusinessId(userData.id);
 
-      const response = await fetch(`http://localhost:8000/api/business/overdraft/assessment/${userData.id}`, {
+      const response = await fetch(`${process.env.NODE_ENV === 'production' ? 'https://api.nexuspaydefi.xyz' : 'http://localhost:8000'}/api/business/overdraft/assessment/${userData.id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -86,7 +86,7 @@ export const OverdraftRequestForm: React.FC = () => {
         return;
       }
 
-      const response = await fetch('http://localhost:8000/api/business/overdraft/request', {
+      const response = await fetch(`${process.env.NODE_ENV === 'production' ? 'https://api.nexuspaydefi.xyz' : 'http://localhost:8000'}/api/business/overdraft/request`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

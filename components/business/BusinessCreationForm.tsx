@@ -64,7 +64,7 @@ export const BusinessCreationForm: React.FC = () => {
 
       const userData = JSON.parse(user);
 
-      const response = await fetch('http://localhost:8000/api/business/request-upgrade', {
+      const response = await fetch(`${process.env.NODE_ENV === 'production' ? 'https://api.nexuspaydefi.xyz' : 'http://localhost:8000'}/api/business/request-upgrade`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -118,7 +118,7 @@ export const BusinessCreationForm: React.FC = () => {
 
       const userData = JSON.parse(user);
 
-      const response = await fetch('http://localhost:8000/api/business/complete-upgrade', {
+      const response = await fetch(`${process.env.NODE_ENV === 'production' ? 'https://api.nexuspaydefi.xyz' : 'http://localhost:8000'}/api/business/complete-upgrade`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

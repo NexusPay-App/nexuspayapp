@@ -53,6 +53,8 @@ Create a `.env.local` file (if needed for production):
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api
 ```
 
+For production, the API will automatically use: `https://api.nexuspaydefi.xyz/api`
+
 ## 🚀 Usage Examples
 
 ### Authentication
@@ -331,7 +333,7 @@ The integration is mobile-ready:
 
 1. **Environment Variables**:
 ```env
-NEXT_PUBLIC_API_BASE_URL=https://api.nexuspay.app/api
+NEXT_PUBLIC_API_BASE_URL=https://api.nexuspaydefi.xyz/api
 ```
 
 2. **Build Optimization**:

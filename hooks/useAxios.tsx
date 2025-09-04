@@ -1,8 +1,9 @@
 import axios, { AxiosInstance } from "axios";
 import * as dotenv from "dotenv";
+import { getApiBaseUrl } from "../lib/config";
 dotenv.config();
 
-const baseURL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:8000/api";
+const baseURL = process.env.NEXT_PUBLIC_BASE_URL || getApiBaseUrl();
 
 const useAxios = () => {
   const $http: AxiosInstance = axios.create({

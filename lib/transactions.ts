@@ -29,7 +29,7 @@ export const transactionAPI = {
       const url = `/transactions/history${queryString ? `?${queryString}` : ''}`;
       
       console.log('🔍 Fetching transaction history:', url);
-      console.log('🔍 Full URL:', `http://localhost:8000/api${url}`);
+      console.log('🔍 Full URL:', `${process.env.NODE_ENV === 'production' ? 'https://api.nexuspaydefi.xyz' : 'http://localhost:8000'}/api${url}`);
       console.log('🔍 Filters:', filters);
       console.log('🔍 Auth token:', localStorage.getItem('nexuspay_token') ? 'Present' : 'Missing');
       

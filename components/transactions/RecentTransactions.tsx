@@ -852,7 +852,7 @@ export const RecentTransactions: React.FC<RecentTransactionsProps> = ({ classNam
                 onClick={async () => {
                   console.log('🧪 Testing API connection...');
                   try {
-                    const response = await fetch('http://localhost:8000/api/transactions/history?limit=1', {
+                    const response = await fetch(`${process.env.NODE_ENV === 'production' ? 'https://api.nexuspaydefi.xyz' : 'http://localhost:8000'}/api/transactions/history?limit=1`, {
                       headers: {
                         'Authorization': `Bearer ${localStorage.getItem('nexuspay_token')}`,
                         'Content-Type': 'application/json'

@@ -89,7 +89,12 @@ const ForgotPassword: React.FC = () => {
       
       // Check for specific error types
       if (error?.response?.status === 404) {
-        setErrorMessage("Phone number not found. Please check your number or create an account.");
+        // Check if it's a route not found error (API endpoint not implemented)
+        if (error?.response?.data?.error?.code === 'ROUTE_NOT_FOUND') {
+          setErrorMessage("Forgot password functionality is currently being updated. Please contact support for assistance or try again later.");
+        } else {
+          setErrorMessage("Phone number not found. Please check your number or create an account.");
+        }
       } else if (error?.response?.status === 400) {
         setErrorMessage("Invalid phone number format. Please check your number.");
       } else {
@@ -134,7 +139,14 @@ const ForgotPassword: React.FC = () => {
       console.error("Failed to reset password:", error);
       
       // Check for specific error types
-      if (error?.response?.status === 400) {
+      if (error?.response?.status === 404) {
+        // Check if it's a route not found error (API endpoint not implemented)
+        if (error?.response?.data?.error?.code === 'ROUTE_NOT_FOUND') {
+          setErrorMessage("Forgot password functionality is currently being updated. Please contact support for assistance or try again later.");
+        } else {
+          setErrorMessage("Password reset service not available. Please contact support.");
+        }
+      } else if (error?.response?.status === 400) {
         if (error?.response?.data?.error?.code === 'INVALID_OTP') {
           setErrorMessage("Invalid or expired OTP. Please try again.");
         } else if (error?.response?.data?.error?.code === 'MISSING_FIELDS') {

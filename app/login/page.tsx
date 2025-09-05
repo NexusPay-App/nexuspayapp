@@ -33,6 +33,7 @@ import { Form, Formik } from "formik";
 import TextInput from "@/components/inputs/TextInput";
 import PasswordInput from "@/components/inputs/PasswordInput";
 import GoogleSignIn from "@/components/auth/GoogleSignIn";
+import { formatPhoneNumberToE164, validateE164PhoneNumber } from "@/lib/phone-utils";
 
 // A wrapper or assertion to cast the useAuth hook's return type
 const useAuth = () => useAuthOriginal() as unknown as AuthContextType;
@@ -159,22 +160,27 @@ const Login: React.FC = () => {
           onSubmit={(values, { setSubmitting }) => {
             setTimeout(async () => {
               setOpenLoading(true);
-              // Check if phoneNumber starts with '01' or '07' and modify it
-              let modifiedPhoneNumber = values.phoneNumber;
-              if (
-                modifiedPhoneNumber.toString().startsWith("01") ||
-                modifiedPhoneNumber.toString().startsWith("07")
-              ) {
-                modifiedPhoneNumber = "+254" + values.phoneNumber.substring(1);
+              
+              // Format phone number to E.164 format using utility function
+              const formattedPhoneNumber = formatPhoneNumberToE164(values.phoneNumber);
+              
+              // Validate the formatted phone number
+              if (!validateE164PhoneNumber(formattedPhoneNumber)) {
+                console.error('Invalid phone number format:', formattedPhoneNumber);
+                setOpenLoading(false);
+                setOpenAccErr(true);
+                setSubmitting(false);
+                return;
               }
 
-              // Use the modifiedPhoneNumber in your API request
+              // Use the formatted phone number in your API request
               const requestData = {
                 ...values,
-                phoneNumber: modifiedPhoneNumber, // Replace the original phoneNumber with the modified one
+                phoneNumber: formattedPhoneNumber, // Now properly formatted as E.164
               };
 
-              // Call the Initiate Register User Mutation
+              // Call the Initiate Login User Mutation
+              console.log('Formatted login request data:', requestData);
               initiateLoginUser.mutate(requestData);
               setOpenLoggin(false);
               setSubmitting(false);
@@ -195,6 +201,11 @@ const Login: React.FC = () => {
               placeholder="Enter your Password"
             />
             <div className="flex flex-col justify-start mb-5">
+              <p className="text-[#909090] p-1 text-sm font-semibold">
+                <Link href="/forgotpassword" className="hover:text-white">
+                  Forgot Password?
+                </Link>
+              </p>
               <p className="text-[#909090] p-1 text-sm font-semibold">
                 <Link href="/signup" className="hover:text-white">
                   Create a Personal Account

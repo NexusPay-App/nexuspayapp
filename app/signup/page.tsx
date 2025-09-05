@@ -26,6 +26,7 @@ import ErrorDialog from "@/components/dialog/ErrorDialog";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import GoogleSignIn from "@/components/auth/GoogleSignIn";
+import { formatPhoneNumberToE164, validateE164PhoneNumber } from "@/lib/phone-utils";
 
 // A wrapper or assertion to cast the useAuth hook's return type
 const useAuth = () => useAuthOriginal() as unknown as AuthContextType;
@@ -38,6 +39,7 @@ const Signup = () => {
   const [openSigningUp, setOpenSigningUp] = useState(false); // Opens the Account Creation Loading Dialog
   const [openConfirmingOTP, setOpenConfirmingOTP] = useState(false); // Opens the confirm otp Loading Dialog
   const [openAccErr, setOpenAccErr] = useState(false); // Opens the Failed Acc Creation Loading Dialog
+  const [errorMessage, setErrorMessage] = useState("Failed to Create Account"); // Error message to display
   const api = useAxios();
   const [userDetails, setUserDetails] = useState<SignUpFormData>({
     phoneNumber: "",
@@ -73,9 +75,18 @@ const Signup = () => {
       setUserDetails(variables); // Store user details with the modified phone number
       setOpenOTP(true); // Open the OTP dialog
     },
-    onError: (error, variables, context) => {
+    onError: (error: any, variables, context) => {
       // Handle errors, e.g., show a message to the user
-      console.error("Failed to initiate sign-up.");
+      console.error("Failed to initiate sign-up:", error);
+      
+      // Check for specific error types
+      if (error?.response?.status === 409) {
+        console.error("Phone number already exists. Please use a different phone number or try logging in.");
+        setErrorMessage("This phone number is already registered. Please use a different number or try logging in.");
+      } else {
+        setErrorMessage("Failed to Create Account");
+      }
+      
       setOpenAccErr(true);
     },
     onSettled: (data, error, variables, context) => {
@@ -216,7 +227,7 @@ const Signup = () => {
         setOpenLoading={setOpenConfirmingOTP}
       />
       <ErrorDialog
-        message="Failed to Create Account"
+        message={errorMessage}
         openError={openAccErr}
         setOpenError={setOpenAccErr}
       />
@@ -249,24 +260,27 @@ const Signup = () => {
           onSubmit={(values, { setSubmitting }) => {
             setTimeout(async () => {
               setOpenSigningUp(true);
-              // Check if phoneNumber starts with '01' or '07' and modify it
-              let modifiedPhoneNumber = values.phoneNumber;
-              if (
-                modifiedPhoneNumber.toString().startsWith("1") ||
-                modifiedPhoneNumber.toString().startsWith("7")
-              ) {
-                modifiedPhoneNumber =
-                  "+254" + values.phoneNumber.toString().substring(0);
+              
+              // Format phone number to E.164 format using utility function
+              const formattedPhoneNumber = formatPhoneNumberToE164(values.phoneNumber);
+              
+              // Validate the formatted phone number
+              if (!validateE164PhoneNumber(formattedPhoneNumber)) {
+                console.error('Invalid phone number format:', formattedPhoneNumber);
+                setOpenSigningUp(false);
+                setOpenAccErr(true);
+                setSubmitting(false);
+                return;
               }
 
-              // Use the modifiedPhoneNumber in your API request
+              // Use the formatted phone number in your API request
               const requestData = {
                 ...values,
-                phoneNumber: modifiedPhoneNumber, // Replace the original phoneNumber with the modified one
+                phoneNumber: formattedPhoneNumber, // Now properly formatted as E.164
               };
 
               // Call the Initiate Register User Mutation
-              console.log(requestData);
+              console.log('Formatted request data:', requestData);
               initiateRegisterUser.mutate(requestData);
               setOpenSigningUp(false);
               setSubmitting(false);

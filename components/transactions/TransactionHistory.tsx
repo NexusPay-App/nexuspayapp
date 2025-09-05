@@ -253,7 +253,7 @@ export const TransactionHistory: React.FC = () => {
             <h2 className="text-2xl font-bold text-white">Transaction History</h2>
             {summary && (
               <p className="text-gray-400 text-sm">
-                {summary.total} transactions • Page {summary.page} of {summary.pages}
+                {summary.total} transactions • Showing {transactions.length} loaded • Page {summary.page} of {summary.pages}
               </p>
             )}
           </div>
@@ -273,72 +273,6 @@ export const TransactionHistory: React.FC = () => {
           </div>
         </div>
 
-        {/* Debug Info - Temporary */}
-        <div className="mb-6 p-4 bg-blue-900/20 border border-blue-500 rounded-lg">
-          <h4 className="text-sm font-semibold text-blue-300 mb-3">🔍 Debug Info:</h4>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs text-gray-300">
-            <div>
-              <p><strong>Loading:</strong> {loading ? '⏳ Yes' : '✅ No'}</p>
-              <p><strong>Error:</strong> {error ? '❌ ' + error : '✅ None'}</p>
-            </div>
-            <div>
-              <p><strong>Transactions:</strong> {transactions.length}</p>
-              <p><strong>Has More:</strong> {hasMore ? '✅ Yes' : '❌ No'}</p>
-            </div>
-            <div>
-              <p><strong>Auth Token:</strong> {localStorage.getItem('nexuspay_token') ? '✅ Present' : '❌ Missing'}</p>
-              <p><strong>User Data:</strong> {localStorage.getItem('nexuspay_user') ? '✅ Present' : '❌ Missing'}</p>
-            </div>
-            <div>
-              <p><strong>Current Filters:</strong></p>
-              <p className="text-xs">{JSON.stringify(currentFilters, null, 2)}</p>
-            </div>
-          </div>
-          <div className="mt-3 flex space-x-2">
-            <button
-              onClick={async () => {
-                console.log('🔍 Manual API test...');
-                try {
-                  const response = await fetch(`${process.env.NODE_ENV === 'production' ? 'https://api.nexuspaydefi.xyz' : 'http://localhost:8000'}/api/transactions/history`, {
-                    headers: {
-                      'Authorization': `Bearer ${localStorage.getItem('nexuspay_token')}`,
-                      'Content-Type': 'application/json'
-                    }
-                  });
-                  console.log('🔍 Manual API Response:', response.status, response.statusText);
-                  if (response.ok) {
-                    const data = await response.json();
-                    console.log('🔍 Manual API Data:', data);
-                    alert('✅ API working! Check console for details.');
-                  } else {
-                    alert(`❌ API returned status ${response.status}`);
-                  }
-                } catch (error) {
-                  console.error('🔍 Manual API test failed:', error);
-                  alert('❌ API test failed. Check console for details.');
-                }
-              }}
-              className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
-            >
-              Test API
-            </button>
-            <button
-              onClick={() => {
-                console.log('🔍 Current state:', {
-                  transactions,
-                  loading,
-                  error,
-                  summary,
-                  filtersInfo,
-                  currentFilters
-                });
-              }}
-              className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
-            >
-              Log State
-            </button>
-          </div>
-        </div>
 
         {/* Enhanced Filters */}
         {showFilters && (
@@ -546,23 +480,29 @@ export const TransactionHistory: React.FC = () => {
           </div>
         )}
 
-        {/* Load More */}
+        {/* Load More - Optimized for performance */}
         {hasMore && (
           <div className="text-center mt-6">
             <button
               onClick={loadMore}
               disabled={loadingMore}
-              className="px-6 py-3 bg-[#0795B0] text-white rounded hover:bg-[#0684A0] disabled:opacity-50 transition-colors duration-200"
+              className="px-6 py-3 bg-[#0795B0] text-white rounded hover:bg-[#0684A0] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
             >
               {loadingMore ? (
                 <div className="flex items-center space-x-2">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  <span>Loading...</span>
+                  <span>Loading more transactions...</span>
                 </div>
               ) : (
-                'Load More'
+                <div className="flex items-center space-x-2">
+                  <span>📄</span>
+                  <span>Load More (5 at a time)</span>
+                </div>
               )}
             </button>
+            <p className="text-gray-400 text-xs mt-2">
+              Loading 5 transactions at a time for better performance
+            </p>
           </div>
         )}
       </div>

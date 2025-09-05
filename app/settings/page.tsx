@@ -11,6 +11,14 @@ import { Badge } from "../../components/ui/badge";
 import { Smartphone, Mail, Link, Unlink, ArrowLeft, CheckCircle, AlertCircle, Copy, Eye, EyeOff, User, Settings as SettingsIcon } from "lucide-react";
 import toast from "react-hot-toast";
 import AuthGuard from "../../components/auth/AuthGuard";
+import { useMutation } from "@tanstack/react-query";
+import useAxios from "../../hooks/useAxios";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../../components/ui/dialog";
+import { Form, Formik } from "formik";
+import * as Yup from "yup";
+import TextInput from "../../components/inputs/TextInput";
+import PasswordInput from "../../components/inputs/PasswordInput";
+import { formatPhoneNumberToE164, validateE164PhoneNumber } from "../../lib/phone-utils";
 
 const SettingsPage = () => {
   const { user, isAuthenticated } = useAuth();
@@ -22,6 +30,87 @@ const SettingsPage = () => {
   const [showUserId, setShowUserId] = useState(false);
   const [copied, setCopied] = useState(false);
   const [initializing, setInitializing] = useState(false);
+  const [showPhoneLinkDialog, setShowPhoneLinkDialog] = useState(false);
+  const [showOTPDialog, setShowOTPDialog] = useState(false);
+  const [pendingPhoneNumber, setPendingPhoneNumber] = useState("");
+  const [pendingPassword, setPendingPassword] = useState("");
+  const [showGoogleSignIn, setShowGoogleSignIn] = useState(false);
+  const api = useAxios();
+
+  // Mutation to link Google account
+  const linkGoogleMutation = useMutation({
+    mutationFn: async (idToken: string) => {
+      return api.post("auth/google/link", {
+        idToken: idToken
+      });
+    },
+    onSuccess: (data) => {
+      console.log('Google linking success response:', data);
+      toast.success("Google account linked successfully!");
+      setShowGoogleSignIn(false);
+      
+      // Update userProfile with Google account info
+      if (data?.data?.user) {
+        console.log('Updating userProfile with Google data:', data.data.user);
+        setUserProfile(prev => ({
+          ...prev,
+          googleId: data.data.user.googleId || data.data.user.email,
+          email: data.data.user.email,
+          authMethods: data.data.user.authMethods || ['google']
+        }));
+      }
+      
+      loadUserProfile(); // Refresh user profile
+    },
+    onError: (error: any) => {
+      console.error("Failed to link Google account:", error);
+      if (error?.response?.status === 409) {
+        toast.error("This Google account is already linked to another user");
+      } else {
+        toast.error("Failed to link Google account. Please try again.");
+      }
+    }
+  });
+
+  // Mutation to add phone and password
+  const addPhonePasswordMutation = useMutation({
+    mutationFn: async (data: { phoneNumber: string; password: string }) => {
+      return api.post("auth/settings/add-phone-password", {
+        phoneNumber: data.phoneNumber,
+        password: data.password
+      });
+    },
+    onSuccess: (data, variables) => {
+      toast.success("OTP sent to your phone number");
+      setPendingPhoneNumber(variables.phoneNumber);
+      setPendingPassword(variables.password);
+      setShowPhoneLinkDialog(false);
+      setShowOTPDialog(true);
+    },
+    onError: (error: any) => {
+      console.error("Failed to add phone and password:", error);
+      toast.error("Failed to add phone and password. Please try again.");
+    }
+  });
+
+  // Mutation to verify phone and password setup
+  const verifyPhonePasswordMutation = useMutation({
+    mutationFn: async (data: { phoneNumber: string; otp: string }) => {
+      return api.post("auth/settings/verify-phone-password", {
+        phoneNumber: data.phoneNumber,
+        otp: data.otp
+      });
+    },
+    onSuccess: (data) => {
+      toast.success("Phone and password added successfully!");
+      setShowOTPDialog(false);
+      loadUserProfile(); // Refresh user profile
+    },
+    onError: (error: any) => {
+      console.error("Failed to verify phone and password:", error);
+      toast.error("Invalid OTP. Please try again.");
+    }
+  });
 
   // Load user profile on mount
   useEffect(() => {
@@ -29,6 +118,24 @@ const SettingsPage = () => {
       loadUserProfile();
     }
   }, [isAuthenticated, user]);
+
+  // Initialize Google Sign-In when component mounts
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.google) {
+      window.google.accounts.id.initialize({
+        client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
+        callback: (response: any) => {
+          if (response.credential) {
+            linkGoogleMutation.mutate(response.credential);
+          } else {
+            toast.error("Failed to get Google credentials");
+          }
+        },
+        auto_select: false,
+        cancel_on_tap_outside: true
+      });
+    }
+  }, []);
 
   const loadUserProfile = async () => {
     try {
@@ -39,9 +146,11 @@ const SettingsPage = () => {
         id: user?.id || `user_${Date.now()}`, // Generate a temporary ID if none exists
         email: user?.email,
         phoneNumber: user?.phoneNumber,
-        googleId: user?.googleId,
-        authMethods: user?.phoneNumber ? ['phone'] : [],
-        ...(user?.email && { authMethods: [...(user?.phoneNumber ? ['phone'] : []), 'email'] })
+        googleId: user?.googleId || user?.email, // Use email as googleId if no specific googleId
+        authMethods: [
+          ...(user?.phoneNumber ? ['phone'] : []),
+          ...(user?.email ? ['google'] : [])
+        ]
       });
       toast.success("Profile loaded successfully");
     } catch (error) {
@@ -52,9 +161,11 @@ const SettingsPage = () => {
         id: user?.id || `user_${Date.now()}`,
         email: user?.email,
         phoneNumber: user?.phoneNumber,
-        googleId: user?.googleId,
-        authMethods: user?.phoneNumber ? ['phone'] : [],
-        ...(user?.email && { authMethods: [...(user?.phoneNumber ? ['phone'] : []), 'email'] })
+        googleId: user?.googleId || user?.email, // Use email as googleId if no specific googleId
+        authMethods: [
+          ...(user?.phoneNumber ? ['phone'] : []),
+          ...(user?.email ? ['google'] : [])
+        ]
       });
     } finally {
       setProfileLoading(false);
@@ -112,22 +223,39 @@ const SettingsPage = () => {
 
   const handleLinkGoogle = async () => {
     try {
-      setProfileLoading(true);
-      // This would typically open Google OAuth flow
-      toast("Google linking feature coming soon!", { icon: "ℹ️" });
+      setShowGoogleSignIn(true);
+      
+      // Check if Google Sign-In is available
+      if (typeof window !== 'undefined' && window.google) {
+        // Render the sign-in button after a short delay to ensure DOM is ready
+        setTimeout(() => {
+          const buttonDiv = document.getElementById('google-signin-button-settings');
+          if (buttonDiv) {
+            buttonDiv.innerHTML = ''; // Clear any existing content
+            window.google.accounts.id.renderButton(buttonDiv, {
+              theme: 'outline',
+              size: 'large',
+              text: 'signin_with',
+              shape: 'rectangular',
+              width: 200
+            });
+          }
+        }, 100);
+      } else {
+        toast.error("Google Sign-In is not available. Please refresh the page and try again.");
+        setShowGoogleSignIn(false);
+      }
     } catch (error) {
       console.error("Failed to link Google:", error);
       toast.error("Failed to link Google account");
-    } finally {
-      setProfileLoading(false);
+      setShowGoogleSignIn(false);
     }
   };
 
   const handleLinkPhone = async () => {
     try {
       setProfileLoading(true);
-      // This would typically open phone verification flow
-      toast("Phone linking feature coming soon!", { icon: "ℹ️" });
+      setShowPhoneLinkDialog(true);
     } catch (error) {
       console.error("Failed to link phone:", error);
       toast.error("Failed to link phone number");
@@ -139,9 +267,18 @@ const SettingsPage = () => {
   const getAuthMethodStatus = (method: string) => {
     if (!userProfile) return { linked: false, icon: <AlertCircle className="h-4 w-4 text-gray-400" /> };
     
-    const linked = userProfile.authMethods?.includes(method) || 
-                   (method === 'phone' && userProfile.phoneNumber) ||
-                   (method === 'google' && userProfile.googleId);
+    let linked = false;
+    
+    if (method === 'phone') {
+      linked = userProfile.authMethods?.includes('phone') || 
+               userProfile.phoneNumber || 
+               user?.phoneNumber;
+    } else if (method === 'google') {
+      linked = userProfile.authMethods?.includes('google') || 
+               userProfile.googleId || 
+               user?.googleId ||
+               user?.email; // If user has email, they might have Google linked
+    }
     
     return {
       linked,
@@ -204,7 +341,7 @@ const SettingsPage = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => setShowUserId(!showUserId)}
-                    className="border-[#0795B0] text-white"
+                    className="border-[#0795B0] text-white bg-transparent hover:bg-[#0795B0]/20 hover:text-white"
                   >
                     {showUserId ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
@@ -212,7 +349,7 @@ const SettingsPage = () => {
                     variant="outline"
                     size="sm"
                     onClick={copyUserId}
-                    className="border-[#0795B0] text-white"
+                    className="border-[#0795B0] text-white bg-transparent hover:bg-[#0795B0]/20 hover:text-white"
                     disabled={!userProfile?.id && !user?.id}
                   >
                     <Copy className="h-4 w-4" />
@@ -246,7 +383,7 @@ const SettingsPage = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => copyToClipboard(universalWalletAddress)}
-                      className="border-[#0795B0] text-white"
+                      className="border-[#0795B0] text-white bg-transparent hover:bg-[#0795B0]/20 hover:text-white"
                     >
                       <Copy className="h-4 w-4" />
                     </Button>
@@ -277,7 +414,7 @@ const SettingsPage = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => copyToClipboard(user?.arbitrumWallet || user?.walletAddress || "")}
-                      className="border-[#0795B0] text-white"
+                      className="border-[#0795B0] text-white bg-transparent hover:bg-[#0795B0]/20 hover:text-white disabled:opacity-50"
                       disabled={!user?.arbitrumWallet && !user?.walletAddress}
                     >
                       <Copy className="h-4 w-4" />
@@ -294,7 +431,7 @@ const SettingsPage = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => copyToClipboard(user?.celoWallet || user?.walletAddress || "")}
-                      className="border-[#0795B0] text-white"
+                      className="border-[#0795B0] text-white bg-transparent hover:bg-[#0795B0]/20 hover:text-white disabled:opacity-50"
                       disabled={!user?.celoWallet && !user?.walletAddress}
                     >
                       <Copy className="h-4 w-4" />
@@ -341,39 +478,64 @@ const SettingsPage = () => {
                   {getAuthMethodStatus('phone').icon}
                   <Button
                     onClick={handleLinkPhone}
-                    disabled={loading}
+                    disabled={loading || addPhonePasswordMutation.isPending}
                     variant="outline"
                     size="sm"
-                    className="border-[#0795B0] text-white"
+                    className="border-[#0795B0] text-white bg-transparent hover:bg-[#0795B0]/20 hover:text-white disabled:opacity-50"
                   >
                     {user?.phoneNumber ? <Unlink className="h-4 w-4" /> : <Link className="h-4 w-4" />}
-                    {user?.phoneNumber ? "Unlink" : "Link"}
+                    {user?.phoneNumber ? "Unlink" : "Add Phone"}
                   </Button>
                 </div>
               </div>
 
               {/* Google Account */}
-              <div className="flex items-center justify-between p-4 bg-black/40 rounded-lg mt-3">
-                <div className="flex items-center gap-3">
-                  <Mail className="h-5 w-5 text-red-400" />
-                  <div>
-                    <h3 className="font-medium">Google Account</h3>
-                    <p className="text-gray-400 text-sm">{userProfile?.googleId ? "Google account linked" : "No Google account linked"}</p>
+              <div className="p-4 bg-black/40 rounded-lg mt-3">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <Mail className="h-5 w-5 text-red-400" />
+                    <div>
+                      <h3 className="font-medium">Google Account</h3>
+                      <p className="text-gray-400 text-sm">
+                        {getAuthMethodStatus('google').linked 
+                          ? `Google account linked (${userProfile?.email || user?.email || 'Google account'})` 
+                          : "No Google account linked"
+                        }
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {getAuthMethodStatus('google').icon}
+                    {!showGoogleSignIn && (
+                      <Button
+                        onClick={handleLinkGoogle}
+                        disabled={loading || linkGoogleMutation.isPending}
+                        variant="outline"
+                        size="sm"
+                        className="border-[#0795B0] text-white bg-transparent hover:bg-[#0795B0]/20 hover:text-white disabled:opacity-50"
+                      >
+                        {getAuthMethodStatus('google').linked ? <Unlink className="h-4 w-4" /> : <Link className="h-4 w-4" />}
+                        {getAuthMethodStatus('google').linked ? "Unlink" : "Link Google"}
+                      </Button>
+                    )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {getAuthMethodStatus('google').icon}
-                  <Button
-                    onClick={handleLinkGoogle}
-                    disabled={loading}
-                    variant="outline"
-                    size="sm"
-                    className="border-[#0795B0] text-white"
-                  >
-                    {userProfile?.googleId ? <Unlink className="h-4 w-4" /> : <Link className="h-4 w-4" />}
-                    {userProfile?.googleId ? "Unlink" : "Link"}
-                  </Button>
-                </div>
+                
+                {/* Google Sign-In Button */}
+                {showGoogleSignIn && (
+                  <div className="mt-3 p-3 bg-white/10 rounded-lg">
+                    <p className="text-white text-sm mb-3">Click the button below to link your Google account:</p>
+                    <div id="google-signin-button-settings" className="flex justify-center"></div>
+                    <Button
+                      onClick={() => setShowGoogleSignIn(false)}
+                      variant="outline"
+                      size="sm"
+                      className="mt-3 border-gray-500 text-gray-300 bg-transparent hover:bg-gray-500/20 hover:text-white"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -416,6 +578,158 @@ const SettingsPage = () => {
             </div>
           </div>
         </article>
+
+        {/* Phone Linking Dialog */}
+        <Dialog open={showPhoneLinkDialog} onOpenChange={setShowPhoneLinkDialog}>
+          <DialogContent className="max-w-md bg-white">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold text-black mb-2">
+                Add Phone Number & Password
+              </DialogTitle>
+              <DialogDescription className="text-gray-600 mb-4">
+                Add a phone number and password to your account for alternative login methods
+              </DialogDescription>
+            </DialogHeader>
+            
+            <Formik
+              initialValues={{
+                phoneNumber: "",
+                password: "",
+                confirmPassword: "",
+              }}
+              validationSchema={Yup.object({
+                phoneNumber: Yup.string()
+                  .required("Phone Number is Required"),
+                password: Yup.string()
+                  .min(5, "Password must be at least 5 characters")
+                  .max(20, "Password must be 20 characters or less")
+                  .required("Password is Required"),
+                confirmPassword: Yup.string()
+                  .oneOf([Yup.ref('password')], 'Passwords must match')
+                  .required("Confirm Password is Required"),
+              })}
+              onSubmit={(values, { setSubmitting }) => {
+                // Format phone number to E.164 format
+                const formattedPhoneNumber = formatPhoneNumberToE164(values.phoneNumber);
+                
+                // Validate the formatted phone number
+                if (!validateE164PhoneNumber(formattedPhoneNumber)) {
+                  toast.error("Invalid phone number format");
+                  setSubmitting(false);
+                  return;
+                }
+
+                addPhonePasswordMutation.mutate({
+                  phoneNumber: formattedPhoneNumber,
+                  password: values.password
+                });
+                setSubmitting(false);
+              }}
+            >
+              <Form>
+                <TextInput
+                  label="Phone Number"
+                  name="phoneNumber"
+                  type="text"
+                  placeholder="Enter your phone number (e.g., 0720123456)"
+                />
+                
+                <PasswordInput
+                  label="Password"
+                  name="password"
+                  placeholder="Enter your password"
+                />
+                
+                <PasswordInput
+                  label="Confirm Password"
+                  name="confirmPassword"
+                  placeholder="Confirm your password"
+                />
+
+                <div className="flex gap-3 mt-6">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowPhoneLinkDialog(false)}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={addPhonePasswordMutation.isPending}
+                    className="flex-1 bg-[#0795B0] hover:bg-[#0684A0] text-white"
+                  >
+                    {addPhonePasswordMutation.isPending ? "Sending..." : "Send OTP"}
+                  </Button>
+                </div>
+              </Form>
+            </Formik>
+          </DialogContent>
+        </Dialog>
+
+        {/* OTP Verification Dialog */}
+        <Dialog open={showOTPDialog} onOpenChange={setShowOTPDialog}>
+          <DialogContent className="max-w-md bg-white">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold text-black mb-2">
+                Verify Phone Number
+              </DialogTitle>
+              <DialogDescription className="text-gray-600 mb-4">
+                Enter the OTP code sent to {pendingPhoneNumber}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <Formik
+              initialValues={{
+                otp: "",
+              }}
+              validationSchema={Yup.object({
+                otp: Yup.string()
+                  .min(6, "OTP must be 6 digits")
+                  .max(6, "OTP must be 6 digits")
+                  .required("OTP is Required"),
+              })}
+              onSubmit={(values, { setSubmitting }) => {
+                verifyPhonePasswordMutation.mutate({
+                  phoneNumber: pendingPhoneNumber,
+                  otp: values.otp
+                });
+                setSubmitting(false);
+              }}
+            >
+              <Form>
+                <TextInput
+                  label="OTP Code"
+                  name="otp"
+                  type="text"
+                  placeholder="Enter 6-digit OTP"
+                />
+
+                <div className="flex gap-3 mt-6">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowOTPDialog(false);
+                      setShowPhoneLinkDialog(true);
+                    }}
+                    className="flex-1"
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={verifyPhonePasswordMutation.isPending}
+                    className="flex-1 bg-[#0795B0] hover:bg-[#0684A0] text-white"
+                  >
+                    {verifyPhonePasswordMutation.isPending ? "Verifying..." : "Verify"}
+                  </Button>
+                </div>
+              </Form>
+            </Formik>
+          </DialogContent>
+        </Dialog>
       </section>
     </AuthGuard>
   );

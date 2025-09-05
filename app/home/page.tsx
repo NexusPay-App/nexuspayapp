@@ -4,8 +4,7 @@
 // // Home.tsx
 // "use client";
 
-// import { RecentTransactions } from "@/components/transactions/RecentTransactions";
-// import {
+// // import {
 //   Select,
 //   SelectContent,
 //   SelectItem,
@@ -23,8 +22,7 @@
 // } from "@phosphor-icons/react";
 // import { useRouter } from "next/navigation";
 // import React, { useEffect, useState } from "react";
-// import { Controller, useForm } from "react-hook-form";
-// import {
+// // import {
 //   DropdownMenu,
 //   DropdownMenuContent,
 //   DropdownMenuGroup,
@@ -51,11 +49,9 @@
 // import { Player } from "@lottiefiles/react-lottie-player";
 // import loadingJson from "@/public/json/loading.json";
 // import { useBalance } from "@/context/BalanceContext";
-// import { useChain } from "@/context/ChainContext"; // Import useChain hook
-
+// 
 // const Home = () => {
-//   const { chain, setChain } = useChain(); // Use the useChain hook
-//   const { data, isLoading, error } = useBalance();
+// //   const { data, isLoading, error } = useBalance();
 
 //   const [openLogoutDialog, setOpenLogoutDialog] = useState(false); // Opens the Logout Loading Dialog
 //   const router = useRouter();
@@ -243,14 +239,6 @@
 // Home.tsx
 "use client";
 
-import { RecentTransactions } from "@/components/transactions/RecentTransactions";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { UserIcon } from "@/constants/svg";
 import {
   ArrowCircleDown,
@@ -259,9 +247,15 @@ import {
   List,
   PaperPlaneTilt,
 } from "@phosphor-icons/react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -293,18 +287,17 @@ const Player = dynamic(
   () => import("@lottiefiles/react-lottie-player").then((mod) => mod.Player),
   { ssr: false }
 );
-import { useWallet } from "@/context/WalletContext";
-import { useChain } from "@/context/ChainContext"; // Import useChain hook
 import { useAuth } from "@/context/AuthContext";
+import { useWalletBalance } from "@/hooks/useWalletBalance";
+import { RecentTransactions } from "@/components/transactions/RecentTransactions";
 
 const Home = () => {
-  const { chain, setChain } = useChain(); // Use the useChain hook
-  const { balance, loading, refreshing, hasWallet } = useWallet();
   const { user, isAuthenticated, logout } = useAuth();
+  const { balance, chainBalance, loading, error, fetchAllBalances, fetchChainBalance } = useWalletBalance();
 
   const [openLogoutDialog, setOpenLogoutDialog] = useState(false); // Opens the Logout Loading Dialog
+  const [selectedChain, setSelectedChain] = useState<string>('all');
   const router = useRouter();
-  const { control } = useForm();
 
   useEffect(() => {
     // Check if the user is authenticated using the auth context
@@ -312,9 +305,8 @@ const Home = () => {
       // If not logged in, redirect to the login page
       router.replace("/login");
     }
-    console.log("Chain:", chain);
     console.log("User:", user);
-  }, [router, chain, isAuthenticated, user]);
+  }, [router, isAuthenticated, user]);
 
   const handleSend = () => {
     router.replace("/crypto");
@@ -346,32 +338,48 @@ const Home = () => {
     router.push("/settings");
   };
 
-  // Helper function to get USDC balance for selected chain or total
-  const getUSDCBalance = () => {
-    if (!balance) return 0;
-    
-    let usdcBalance = 0;
-    
-    if (chain && chain !== "all" && balance.balances[chain]?.USDC) {
-      usdcBalance = balance.balances[chain].USDC;
+  // Handle chain selection
+  const handleChainChange = (chain: string) => {
+    setSelectedChain(chain);
+    if (chain === 'all') {
+      fetchAllBalances();
     } else {
-      // Sum USDC across all chains
-      Object.values(balance.balances).forEach(chainBalances => {
-        if (chainBalances.USDC) {
-          usdcBalance += chainBalances.USDC;
-        }
-      });
+      fetchChainBalance(chain);
     }
-    
-    return usdcBalance;
   };
 
-  // Helper function to convert USDC to KES (using fixed rate for now)
-  const getKESEquivalent = () => {
-    const usdcAmount = getUSDCBalance();
-    const kesRate = 130; // 1 USDC = 130 KES (you can make this dynamic later)
-    return usdcAmount * kesRate;
+  // Get current balance data based on selection
+  const getCurrentBalance = () => {
+    if (selectedChain === 'all') {
+      return balance;
+    } else {
+      return chainBalance;
+    }
   };
+
+  // Get total USD value
+  const getTotalUSDValue = () => {
+    const currentBalance = getCurrentBalance();
+    return currentBalance?.totalUSDValue || 0;
+  };
+
+  // Get chain-specific balances
+  const getChainBalances = () => {
+    const currentBalance = getCurrentBalance();
+    if (selectedChain === 'all') {
+      return currentBalance?.balances || {};
+    } else {
+      return currentBalance?.balances ? { [selectedChain]: currentBalance.balances } : {};
+    }
+  };
+
+  // Convert USD to KES (using fixed rate for now)
+  const getKESEquivalent = () => {
+    const usdAmount = getTotalUSDValue();
+    const kesRate = 130; // 1 USD = 130 KES (you can make this dynamic later)
+    return usdAmount * kesRate;
+  };
+
 
   return (
     <section className="home-background">
@@ -389,18 +397,6 @@ const Home = () => {
                     className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer "
                   >
                     Home
-                  </Link>
-                  <Link
-                    href="/wallet"
-                    className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer "
-                  >
-                    Wallet
-                  </Link>
-                  <Link
-                    href="/transactions"
-                    className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer "
-                  >
-                    Transactions
                   </Link>
                   <Link
                     href="/reclaim"
@@ -457,73 +453,88 @@ const Home = () => {
           </Dialog>
         </div>
         <div className="flex flex-col items-center my-[20px]">
-          <Controller
-            name="region"
-            control={control}
-            render={({ field }) => (
-              <Select
-                defaultValue="ARB"
-                onValueChange={(value: string) => {
-                  field.onChange(value);
-                  setChain(value); // Update the chain state
-                }}
-                value={chain} // Use the chain state
-              >
-                <SelectTrigger className="w-full my-[20px] p-3">
-                  <SelectValue
-                    defaultValue="Arbitrum One"
-                    placeholder="Select Chain"
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="arbitrum">Arbitrum</SelectItem>
-                  <SelectItem value="celo">Celo</SelectItem>
-                </SelectContent>
-              </Select>
-            )}
-          />
+          {/* Chain Selector */}
+          <div className="w-full max-w-md mb-4">
+            <Select value={selectedChain} onValueChange={handleChainChange}>
+              <SelectTrigger className="w-full my-[20px] p-3">
+                <SelectValue placeholder="Select Chain" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Chains</SelectItem>
+                <SelectItem value="arbitrum">Arbitrum</SelectItem>
+                <SelectItem value="base">Base</SelectItem>
+                <SelectItem value="celo">Celo</SelectItem>
+                <SelectItem value="polygon">Polygon</SelectItem>
+                <SelectItem value="optimism">Optimism</SelectItem>
+                <SelectItem value="avalanche">Avalanche</SelectItem>
+                <SelectItem value="bnb">BNB Chain</SelectItem>
+                <SelectItem value="scroll">Scroll</SelectItem>
+                <SelectItem value="gnosis">Gnosis</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           <h3 className="text-white my-2">Wallet Balance</h3>
           
-          {!hasWallet ? (
-            <div className="text-center">
-              <h1 className="text-4xl text-white font-bold mb-3">Wallet Setup Required</h1>
-              <p className="text-sm text-gray-400 mb-4">Set up your wallet to view balances</p>
-              <button
-                onClick={() => router.push('/wallet')}
-                className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600"
-              >
-                Set Up Wallet
-              </button>
-            </div>
-          ) : loading || refreshing ? (
+          {loading ? (
             <div className="text-center">
               <h1 className="text-4xl text-white font-bold mb-3">Loading...</h1>
               <p className="text-sm text-gray-400">Fetching your balance</p>
             </div>
-          ) : balance ? (
+          ) : error ? (
+            <div className="text-center">
+              <h1 className="text-4xl text-white font-bold mb-3">Error</h1>
+              <p className="text-sm text-red-400 mb-4">{error}</p>
+              <button
+                onClick={() => selectedChain === 'all' ? fetchAllBalances() : fetchChainBalance(selectedChain)}
+                className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600"
+              >
+                Retry
+              </button>
+            </div>
+          ) : getCurrentBalance() ? (
             <>
               {/* KES Equivalent (Primary Display) */}
               <h1 className="text-4xl text-white font-bold mb-3 text-center">
                 {getKESEquivalent().toFixed(2)} KES
               </h1>
               
-              {/* USDC Balance (from selected chain or total) */}
+              {/* USD Value */}
               <h1 className="text-xl text-white font-bold mb-3 text-center">
-                {getUSDCBalance().toFixed(6)} USDC
+                ${getTotalUSDValue().toFixed(2)} USD
               </h1>
               
               {/* Exchange Rate */}
               <p className="text-sm mt-2 text-white">
-                Current Rate: 1 USDC = 130.00 KES
+                Current Rate: 1 USD = 130.00 KES
               </p>
+              
+              {/* Chain-specific balances */}
+              <div className="text-center w-full max-w-md">
+                {Object.entries(getChainBalances()).map(([chain, tokens]) => (
+                  <div key={chain} className="mb-4">
+                    <h2 className="text-lg text-gray-300 mb-2 capitalize">
+                      {chain === 'all' ? 'All Chains' : chain}
+                    </h2>
+                    {Object.entries(tokens).length > 0 ? (
+                      <div className="space-y-1">
+                        {Object.entries(tokens).map(([token, amount]) => (
+                          <p key={token} className="text-sm text-gray-300">
+                            {Number(amount).toFixed(6)} {token}
+                          </p>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-400">No tokens found</p>
+                    )}
+                  </div>
+                ))}
+              </div>
             </>
           ) : (
             <div className="text-center">
-              <h1 className="text-4xl text-white font-bold mb-3">0.00 USD</h1>
-              <h1 className="text-xl text-white font-bold mb-3">0.000000 USDC</h1>
-              <p className="text-sm mt-2 text-white">Current Rate: 1 USDC = 130.00 KES</p>
-              <p className="text-lg text-gray-300 mt-2">≈ 0.00 KES</p>
+              <h1 className="text-4xl text-white font-bold mb-3">No Balance</h1>
+              <p className="text-sm text-gray-400">Your wallet appears to be empty</p>
             </div>
           )}
         </div>
@@ -545,12 +556,6 @@ const Home = () => {
               <CreditCard size={24} weight="fill" />
             </span>
             <h4 className="text-white my-1">Pay</h4>
-          </div>
-          <div className="flex flex-col items-center" onClick={() => router.push('/transactions')}>
-            <span className="border border-[#0795B0] rounded-full p-4 bg-[#0A0E0E] hover:bg-white text-white hover:text-[#0795B0] hover:cursor-pointer hover:border-white">
-              <BellSimple size={24} weight="fill" />
-            </span>
-            <h4 className="text-white my-1">History</h4>
           </div>
         </div>
       </article>

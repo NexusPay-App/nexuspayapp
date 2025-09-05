@@ -39,6 +39,7 @@ import { Form, Formik } from "formik";
 import TextInput from "@/components/inputs/TextInput";
 import PasswordInput from "@/components/inputs/PasswordInput";
 import SuccessDialog from "@/components/dialog/SuccessDialog";
+import { formatPhoneNumberToE164, validateE164PhoneNumber } from "@/lib/phone-utils";
 
 // A wrapper or assertion to cast the useAuth hook's return type
 const useAuth = () => useAuthOriginal() as unknown as AuthContextType;
@@ -49,6 +50,7 @@ const ForgotPassword: React.FC = () => {
   const [passwordVisibility, setPasswordVisibility] = useState("password");
   const [openSendingOTP, setOpenSendingOTP] = useState(false); // Opens the Account Creation Loading Dialog
   const [openAccErr, setOpenAccErr] = useState(false); // Opens the Failed Acc Creation Loading Dialog
+  const [errorMessage, setErrorMessage] = useState("Failed to Reset Password"); // Error message to display
   const [openResetPassword, setOpenResetPassword] = useState(false);
   const [openPasswordResetSuccess, setOpenPasswordResetSuccess] =
     useState(false);
@@ -57,14 +59,15 @@ const ForgotPassword: React.FC = () => {
     newPassword: "",
     otp: "",
   });
+  const [storedPhoneNumber, setStoredPhoneNumber] = useState<string>("");
   const api = useAxios();
   const router = useRouter();
 
-  // Mutation to Initiate Login User
+  // Mutation to Request Password Reset (Phone)
   const initiateForgotPassword = useMutation({
     mutationFn: (initiateForgotPasswordPost: ForgotPasswordFormFields) => {
       return api.post(
-        "auth/password-reset/request",
+        "auth/password-reset/phone/request",
         {
           phoneNumber: initiateForgotPasswordPost.phoneNumber,
         },
@@ -76,26 +79,38 @@ const ForgotPassword: React.FC = () => {
     onSuccess: (data, variables, context) => {
       setOpenLoading(false);
       setOpenSendingOTP(true);
+      setStoredPhoneNumber(variables.phoneNumber); // Store the phone number for the next form
       setOpenResetPassword(true);
       setOpenSendingOTP(false);
     },
-    onError: (error, variables, context) => {
+    onError: (error: any, variables, context) => {
       // Handle errors, e.g., show a message to the user
-      console.error(error);
+      console.error("Failed to request password reset:", error);
+      
+      // Check for specific error types
+      if (error?.response?.status === 404) {
+        setErrorMessage("Phone number not found. Please check your number or create an account.");
+      } else if (error?.response?.status === 400) {
+        setErrorMessage("Invalid phone number format. Please check your number.");
+      } else {
+        setErrorMessage("Failed to send reset code. Please try again.");
+      }
+      
+      setOpenLoading(false);
       setOpenAccErr(true);
     },
     onSettled: (data, error, variables, context) => {},
   });
 
-  // Mutation to Initiate Register User
+  // Mutation to Reset Password (Phone)
   const initiateResetPassword = useMutation({
     mutationFn: (initiateResetPasswordPost: OTPFormData) => {
       setOpenSendingOTP(false);
       setOpenLoading(true);
       return api.post(
-        "auth/password-reset",
+        "auth/password-reset/phone",
         {
-          phoneNumber: initiateResetPasswordPost.phoneNumber,
+          phoneNumber: storedPhoneNumber, // Use the stored phone number instead of form input
           newPassword: initiateResetPasswordPost.newPassword,
           otp: initiateResetPasswordPost.otp,
         },
@@ -107,12 +122,30 @@ const ForgotPassword: React.FC = () => {
     onSuccess: (data, variables, context) => {
       setOpenLoading(false);
       setOpenPasswordResetSuccess(true);
-      router.replace("/home");
-      setUserDetails(variables); // Store user details with the modified phone number
+      setOpenResetPassword(false); // Close the reset password dialog
+      
+      // Redirect to login after a short delay
+      setTimeout(() => {
+        router.replace("/login");
+      }, 2000);
     },
-    onError: (error, variables, context) => {
+    onError: (error: any, variables, context) => {
       // Handle errors, e.g., show a message to the user
-      console.error("Failed to initiate sign-up.");
+      console.error("Failed to reset password:", error);
+      
+      // Check for specific error types
+      if (error?.response?.status === 400) {
+        if (error?.response?.data?.error?.code === 'INVALID_OTP') {
+          setErrorMessage("Invalid or expired OTP. Please try again.");
+        } else if (error?.response?.data?.error?.code === 'MISSING_FIELDS') {
+          setErrorMessage("All fields are required for password reset.");
+        } else {
+          setErrorMessage("Invalid data provided. Please check your inputs.");
+        }
+      } else {
+        setErrorMessage("Failed to reset password. Please try again.");
+      }
+      
       setOpenLoading(false);
       setOpenAccErr(true);
     },
@@ -137,7 +170,7 @@ const ForgotPassword: React.FC = () => {
         setOpenSuccess={setOpenPasswordResetSuccess}
       />
       <ErrorDialog
-        message="Failed to Login"
+        message={errorMessage}
         openError={openAccErr}
         setOpenError={setOpenAccErr}
       />
@@ -159,22 +192,27 @@ const ForgotPassword: React.FC = () => {
           onSubmit={(values, { setSubmitting }) => {
             setTimeout(async () => {
               setOpenLoading(true);
-              // Check if phoneNumber starts with '01' or '07' and modify it
-              let modifiedPhoneNumber = values.phoneNumber;
-              if (
-                modifiedPhoneNumber.toString().startsWith("01") ||
-                modifiedPhoneNumber.toString().startsWith("07")
-              ) {
-                modifiedPhoneNumber = "+254" + values.phoneNumber.substring(1);
+              
+              // Format phone number to E.164 format using utility function
+              const formattedPhoneNumber = formatPhoneNumberToE164(values.phoneNumber);
+              
+              // Validate the formatted phone number
+              if (!validateE164PhoneNumber(formattedPhoneNumber)) {
+                console.error('Invalid phone number format:', formattedPhoneNumber);
+                setOpenLoading(false);
+                setOpenAccErr(true);
+                setSubmitting(false);
+                return;
               }
 
-              // Use the modifiedPhoneNumber in your API request
+              // Use the formatted phone number in your API request
               const requestData = {
                 ...values,
-                phoneNumber: modifiedPhoneNumber, // Replace the original phoneNumber with the modified one
+                phoneNumber: formattedPhoneNumber, // Now properly formatted as E.164
               };
 
-              // Call the Initiate Register User Mutation
+              // Call the Initiate Forgot Password Mutation
+              console.log('Forgot password request data:', requestData);
               initiateForgotPassword.mutate(requestData);
 
               setOpenSendingOTP(false);
@@ -191,13 +229,13 @@ const ForgotPassword: React.FC = () => {
             />
             <div className="flex flex-col justify-start mb-5">
               <p className="text-[#909090] p-1 text-sm font-semibold">
-                <Link href="/signup" className="hover:text-white">
-                  Create a Personal Account
+                <Link href="/login" className="hover:text-white">
+                  Remember your password? Login
                 </Link>
               </p>
               <p className="text-[#909090] p-1 text-sm font-semibold">
-                <Link href="/signup/business" className="hover:text-white">
-                  Create a Business Account?
+                <Link href="/signup" className="hover:text-white">
+                  Don't have an account? Sign Up
                 </Link>
               </p>
             </div>
@@ -210,21 +248,21 @@ const ForgotPassword: React.FC = () => {
           </Form>
         </Formik>
         <Dialog open={openResetPassword} onOpenChange={setOpenResetPassword}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg bg-white">
             <DialogHeader>
-              <DialogTitle className="text-black">
-                Enter New Password
+              <DialogTitle className="text-2xl font-bold text-black mb-2">
+                Reset Your Password
               </DialogTitle>
+              <DialogDescription className="text-gray-600 mb-4">
+                Enter the OTP code sent to your phone and create a new password
+              </DialogDescription>
               <Formik
                 initialValues={{
-                  phoneNumber: "",
                   otp: "",
                   newPassword: "",
+                  confirmPassword: "",
                 }}
                 validationSchema={Yup.object({
-                  phoneNumber: Yup.number()
-                    .min(13, "Min of 13 Characters required")
-                    .required("Phone Number is Required"),
                   otp: Yup.string()
                     .min(6, "Min of 6 Characters required")
                     .required("OTP is Required"),
@@ -232,44 +270,37 @@ const ForgotPassword: React.FC = () => {
                     .max(20, "Must be 20 characters or less")
                     .min(5, "Min of 5 Characters required")
                     .required("Password is Required"),
+                  confirmPassword: Yup.string()
+                    .oneOf([Yup.ref('newPassword')], 'Passwords must match')
+                    .required("Confirm Password is Required"),
                 })}
                 onSubmit={(values, { setSubmitting }) => {
                   setTimeout(async () => {
-                    // Check if phoneNumber starts with '01' or '07' and modify it
-                    let modifiedPhoneNumber = values.phoneNumber;
-                    if (
-                      modifiedPhoneNumber.toString().startsWith("1") ||
-                      modifiedPhoneNumber.toString().startsWith("7")
-                    ) {
-                      modifiedPhoneNumber =
-                        "+254" + values.phoneNumber.toString().substring(0);
-                    }
-
-                    // Use the modifiedPhoneNumber in your API request
+                    // Use the stored phone number and form values
                     const requestData = {
-                      ...values,
-                      phoneNumber: modifiedPhoneNumber, // Replace the original phoneNumber with the modified one
+                      phoneNumber: storedPhoneNumber, // Use stored phone number
+                      otp: values.otp,
+                      newPassword: values.newPassword,
                     };
 
-                    // Call the Initiate Register User Mutation
-                    console.log(requestData);
+                    // Call the Reset Password Mutation
+                    console.log('Reset password request data:', requestData);
                     initiateResetPassword.mutate(requestData);
                     setSubmitting(false);
                   }, 400);
                 }}
               >
                 <Form>
-                  <TextInput
-                    label="Phone Number"
-                    name="phoneNumber"
-                    type="number"
-                    placeholder="Enter your Phone Number eg (0720****20)"
-                  />
+                  <div className="mb-4 p-3 bg-gray-100 rounded-lg">
+                    <p className="text-sm text-gray-600 mb-1">Phone Number</p>
+                    <p className="text-gray-800 font-medium">{storedPhoneNumber}</p>
+                  </div>
+                  
                   <TextInput
                     label="OTP Code"
                     name="otp"
                     type="text"
-                    placeholder="Enter your OTP Code "
+                    placeholder="Enter your OTP Code"
                   />
 
                   <PasswordInput
@@ -278,9 +309,15 @@ const ForgotPassword: React.FC = () => {
                     placeholder="Enter New Password"
                   />
 
+                  <PasswordInput
+                    label="Confirm Password"
+                    name="confirmPassword"
+                    placeholder="Confirm New Password"
+                  />
+
                   <button
                     type="submit"
-                    className="bg-black text-white mt-5 p-3 rounded-full font-bold w-full cursor-pointer"
+                    className="bg-white text-black mt-5 p-3 rounded-full font-bold w-full cursor-pointer hover:bg-gray-100 transition-colors duration-200"
                   >
                     Reset Password
                   </button>

@@ -92,7 +92,7 @@ const GoogleSignIn: React.FC<GoogleSignInProps> = ({ mode, onSuccess, onError })
                     window.google.accounts.id.renderButton(buttonElement, { 
                       theme: 'outline', 
                       size: 'large',
-                      width: 300,
+                      width: '100%',
                       text: mode === 'login' ? 'signin_with' : 'signup_with'
                     });
                     console.log("Google button rendered successfully");
@@ -190,9 +190,9 @@ const GoogleSignIn: React.FC<GoogleSignInProps> = ({ mode, onSuccess, onError })
 
   return (
     <>
-      <div className="w-full">
+      <div className="w-full flex flex-col items-center">
         {/* Native Google Sign-In Button */}
-        <div id="google-signin-button" className="w-full"></div>
+        <div id="google-signin-button" className="flex justify-center w-full"></div>
         
         {isLoading && (
           <p className="text-center text-sm text-gray-300 mt-2">

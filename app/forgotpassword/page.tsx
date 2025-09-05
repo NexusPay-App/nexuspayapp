@@ -235,7 +235,7 @@ const ForgotPassword: React.FC = () => {
               </p>
               <p className="text-[#909090] p-1 text-sm font-semibold">
                 <Link href="/signup" className="hover:text-white">
-                  Don't have an account? Sign Up
+                  Don&apos;t have an account? Sign Up
                 </Link>
               </p>
             </div>

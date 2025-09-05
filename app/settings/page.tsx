@@ -52,7 +52,7 @@ const SettingsPage = () => {
       // Update userProfile with Google account info
       if (data?.data?.user) {
         console.log('Updating userProfile with Google data:', data.data.user);
-        setUserProfile(prev => ({
+        setUserProfile((prev: any) => ({
           ...prev,
           googleId: data.data.user.googleId || data.data.user.email,
           email: data.data.user.email,

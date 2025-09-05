@@ -21,12 +21,12 @@ const OfflinePage: React.FC = () => {
 
           {/* Title */}
           <h1 className="text-2xl font-bold text-white mb-4">
-            You're Offline
+            You&apos;re Offline
           </h1>
 
           {/* Description */}
           <p className="text-gray-300 mb-8 leading-relaxed">
-            It looks like you're not connected to the internet. Check your connection and try again.
+            It looks like you&apos;re not connected to the internet. Check your connection and try again.
           </p>
 
           {/* Features Available Offline */}

@@ -135,7 +135,7 @@ const PWAUpdateNotification: React.FC<PWAUpdateNotificationProps> = ({ onUpdate,
         
         <div className="space-y-4">
           <div className="bg-green-50 p-4 rounded-lg">
-            <h3 className="font-semibold text-green-800 mb-2">What's new in this update?</h3>
+            <h3 className="font-semibold text-green-800 mb-2">What&apos;s new in this update?</h3>
             <ul className="text-sm text-green-700 space-y-1">
               <li>• Performance improvements</li>
               <li>• Bug fixes and stability enhancements</li>

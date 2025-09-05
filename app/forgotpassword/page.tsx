@@ -22,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Eye, EyeSlash } from "@phosphor-icons/react";
 import {
@@ -90,8 +91,10 @@ const ForgotPassword: React.FC = () => {
       // Check for specific error types
       if (error?.response?.status === 404) {
         // Check if it's a route not found error (API endpoint not implemented)
-        if (error?.response?.data?.error?.code === 'ROUTE_NOT_FOUND') {
-          setErrorMessage("Forgot password functionality is currently being updated. Please contact support for assistance or try again later.");
+        if (error?.response?.data?.error?.code === 'ROUTE_NOT_FOUND' || 
+            error?.response?.data?.message?.includes('Route') ||
+            error?.response?.data?.message?.includes('not found')) {
+          setErrorMessage("Password reset is temporarily unavailable. Please contact support at support@nexuspaydefi.xyz or create a new account.");
         } else {
           setErrorMessage("Phone number not found. Please check your number or create an account.");
         }
@@ -141,8 +144,10 @@ const ForgotPassword: React.FC = () => {
       // Check for specific error types
       if (error?.response?.status === 404) {
         // Check if it's a route not found error (API endpoint not implemented)
-        if (error?.response?.data?.error?.code === 'ROUTE_NOT_FOUND') {
-          setErrorMessage("Forgot password functionality is currently being updated. Please contact support for assistance or try again later.");
+        if (error?.response?.data?.error?.code === 'ROUTE_NOT_FOUND' || 
+            error?.response?.data?.message?.includes('Route') ||
+            error?.response?.data?.message?.includes('not found')) {
+          setErrorMessage("Password reset is temporarily unavailable. Please contact support at support@nexuspaydefi.xyz for assistance.");
         } else {
           setErrorMessage("Password reset service not available. Please contact support.");
         }
@@ -181,11 +186,46 @@ const ForgotPassword: React.FC = () => {
         openSuccess={openPasswordResetSuccess}
         setOpenSuccess={setOpenPasswordResetSuccess}
       />
-      <ErrorDialog
-        message={errorMessage}
-        openError={openAccErr}
-        setOpenError={setOpenAccErr}
-      />
+      <Dialog open={openAccErr} onOpenChange={setOpenAccErr}>
+        <DialogContent className="max-w-lg bg-white">
+          <DialogHeader>
+            <DialogTitle className="mb-4 text-red-600">{errorMessage}</DialogTitle>
+            {errorMessage.includes("temporarily unavailable") && (
+              <div className="space-y-3">
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h4 className="font-semibold text-blue-800 mb-2">Alternative Solutions:</h4>
+                  <ul className="text-sm text-blue-700 space-y-1">
+                    <li>• Contact support at support@nexuspaydefi.xyz</li>
+                    <li>• Create a new account with a different phone number</li>
+                    <li>• Try again later when the service is restored</li>
+                  </ul>
+                </div>
+                <div className="flex space-x-3">
+                  <Button
+                    onClick={() => {
+                      setOpenAccErr(false);
+                      window.location.href = '/signup';
+                    }}
+                    className="flex-1 bg-[#0795B0] hover:bg-[#0795B0]/90 text-white"
+                  >
+                    Create New Account
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setOpenAccErr(false);
+                      window.location.href = 'mailto:support@nexuspaydefi.xyz?subject=Password Reset Help';
+                    }}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Contact Support
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
       <article>
         <h2 className="text-4xl text-white font-bold">Forgot Password</h2>
         <h4 className="text-white my-5">

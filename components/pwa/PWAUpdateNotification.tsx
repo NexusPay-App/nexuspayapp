@@ -16,7 +16,7 @@ const PWAUpdateNotification: React.FC<PWAUpdateNotificationProps> = ({ onUpdate,
   const [updateAvailable, setUpdateAvailable] = useState(false);
 
   useEffect(() => {
-    let registration: ServiceWorkerRegistration | null = null;
+    let registration: ServiceWorkerRegistration | null | undefined = null;
 
     const checkForUpdates = async () => {
       if ('serviceWorker' in navigator) {

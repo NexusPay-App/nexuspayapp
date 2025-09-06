@@ -1,4 +1,5 @@
-import useAxios from '@/hooks/useAxios';
+import axios from 'axios';
+import { getApiBaseUrl } from './config';
 
 // Balance preloader service for immediate data loading after login
 export class BalancePreloader {
@@ -8,8 +9,34 @@ export class BalancePreloader {
   private preloadPromise: Promise<any> | null = null;
 
   private constructor() {
-    // Initialize API instance
-    this.api = useAxios();
+    // Initialize API instance with axios directly
+    this.api = axios.create({
+      baseURL: getApiBaseUrl(),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    // Add request interceptor to include auth token
+    this.api.interceptors.request.use(
+      (config: any) => {
+        const token = localStorage.getItem('nexuspay_token') || localStorage.getItem('user');
+        if (token) {
+          try {
+            const parsedToken = token.startsWith('{') ? JSON.parse(token)?.data?.token || JSON.parse(token)?.token : token;
+            if (parsedToken) {
+              config.headers.Authorization = `Bearer ${parsedToken}`;
+            }
+          } catch (error) {
+            console.error('Error parsing token:', error);
+          }
+        }
+        return config;
+      },
+      (error: any) => {
+        return Promise.reject(error);
+      }
+    );
   }
 
   public static getInstance(): BalancePreloader {

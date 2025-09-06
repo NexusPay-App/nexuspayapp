@@ -67,15 +67,23 @@ const ForgotPassword: React.FC = () => {
   // Mutation to Request Password Reset (Phone)
   const initiateForgotPassword = useMutation({
     mutationFn: (initiateForgotPasswordPost: ForgotPasswordFormFields) => {
-      return api.post(
-        "auth/password-reset/phone/request",
-        {
-          phoneNumber: initiateForgotPasswordPost.phoneNumber,
-        },
-        {
-          method: "POST",
-        }
-      );
+      // Use different endpoints based on environment
+      const endpoint = process.env.NODE_ENV === 'production' 
+        ? "auth/password-reset/request" 
+        : "auth/password-reset/phone/request";
+      
+      const requestData = process.env.NODE_ENV === 'production'
+        ? {
+            phoneNumber: initiateForgotPasswordPost.phoneNumber,
+            email: initiateForgotPasswordPost.phoneNumber, // Include email for production compatibility
+          }
+        : {
+            phoneNumber: initiateForgotPasswordPost.phoneNumber,
+          };
+      
+      return api.post(endpoint, requestData, {
+        method: "POST",
+      });
     },
     onSuccess: (data, variables, context) => {
       setOpenLoading(false);
@@ -115,17 +123,28 @@ const ForgotPassword: React.FC = () => {
     mutationFn: (initiateResetPasswordPost: OTPFormData) => {
       setOpenSendingOTP(false);
       setOpenLoading(true);
-      return api.post(
-        "auth/password-reset/phone",
-        {
-          phoneNumber: storedPhoneNumber, // Use the stored phone number instead of form input
-          newPassword: initiateResetPasswordPost.newPassword,
-          otp: initiateResetPasswordPost.otp,
-        },
-        {
-          method: "POST",
-        }
-      );
+      
+      // Use different endpoints based on environment
+      const endpoint = process.env.NODE_ENV === 'production' 
+        ? "auth/password-reset" 
+        : "auth/password-reset/phone";
+      
+      const requestData = process.env.NODE_ENV === 'production'
+        ? {
+            phoneNumber: storedPhoneNumber,
+            email: storedPhoneNumber, // Include email for production compatibility
+            newPassword: initiateResetPasswordPost.newPassword,
+            otp: initiateResetPasswordPost.otp,
+          }
+        : {
+            phoneNumber: storedPhoneNumber,
+            newPassword: initiateResetPasswordPost.newPassword,
+            otp: initiateResetPasswordPost.otp,
+          };
+      
+      return api.post(endpoint, requestData, {
+        method: "POST",
+      });
     },
     onSuccess: (data, variables, context) => {
       setOpenLoading(false);
@@ -265,6 +284,9 @@ const ForgotPassword: React.FC = () => {
 
               // Call the Initiate Forgot Password Mutation
               console.log('Forgot password request data:', requestData);
+              console.log('API Base URL:', process.env.NEXT_PUBLIC_API_BASE_URL || 'Using default');
+              console.log('Environment:', process.env.NODE_ENV);
+              console.log('Using endpoint:', process.env.NODE_ENV === 'production' ? 'auth/password-reset/request' : 'auth/password-reset/phone/request');
               initiateForgotPassword.mutate(requestData);
 
               setOpenSendingOTP(false);
@@ -337,6 +359,9 @@ const ForgotPassword: React.FC = () => {
 
                     // Call the Reset Password Mutation
                     console.log('Reset password request data:', requestData);
+                    console.log('API Base URL:', process.env.NEXT_PUBLIC_API_BASE_URL || 'Using default');
+                    console.log('Environment:', process.env.NODE_ENV);
+                    console.log('Using endpoint:', process.env.NODE_ENV === 'production' ? 'auth/password-reset' : 'auth/password-reset/phone');
                     initiateResetPassword.mutate(requestData);
                     setSubmitting(false);
                   }, 400);

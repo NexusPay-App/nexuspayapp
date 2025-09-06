@@ -67,23 +67,15 @@ const ForgotPassword: React.FC = () => {
   // Mutation to Request Password Reset (Phone)
   const initiateForgotPassword = useMutation({
     mutationFn: (initiateForgotPasswordPost: ForgotPasswordFormFields) => {
-      // Use different endpoints based on environment
-      const endpoint = process.env.NODE_ENV === 'production' 
-        ? "auth/password-reset/request" 
-        : "auth/password-reset/phone/request";
-      
-      const requestData = process.env.NODE_ENV === 'production'
-        ? {
-            phoneNumber: initiateForgotPasswordPost.phoneNumber,
-            email: initiateForgotPasswordPost.phoneNumber, // Include email for production compatibility
-          }
-        : {
-            phoneNumber: initiateForgotPasswordPost.phoneNumber,
-          };
-      
-      return api.post(endpoint, requestData, {
-        method: "POST",
-      });
+      return api.post(
+        "auth/password-reset/request",
+        {
+          phoneNumber: initiateForgotPasswordPost.phoneNumber,
+        },
+        {
+          method: "POST",
+        }
+      );
     },
     onSuccess: (data, variables, context) => {
       setOpenLoading(false);
@@ -96,18 +88,22 @@ const ForgotPassword: React.FC = () => {
       // Handle errors, e.g., show a message to the user
       console.error("Failed to request password reset:", error);
       
-      // Check for specific error types
-      if (error?.response?.status === 404) {
-        // Check if it's a route not found error (API endpoint not implemented)
-        if (error?.response?.data?.error?.code === 'ROUTE_NOT_FOUND' || 
-            error?.response?.data?.message?.includes('Route') ||
-            error?.response?.data?.message?.includes('not found')) {
-          setErrorMessage("Password reset is temporarily unavailable. Please contact support at support@nexuspaydefi.xyz or create a new account.");
-        } else {
-          setErrorMessage("Phone number not found. Please check your number or create an account.");
-        }
+      const errorData = error?.response?.data;
+      const errorCode = errorData?.error?.code;
+      
+      // Handle specific error codes from API specification
+      if (errorCode === 'MISSING_PHONE_NUMBER') {
+        setErrorMessage("Phone number is required for password reset.");
+      } else if (errorCode === 'USER_NOT_FOUND') {
+        setErrorMessage("No account found with this phone number. Please check your number or create an account.");
+      } else if (errorCode === 'OTP_SEND_FAILED') {
+        setErrorMessage("Failed to send OTP. Please try again or contact support at support@nexuspaydefi.xyz");
       } else if (error?.response?.status === 400) {
         setErrorMessage("Invalid phone number format. Please check your number.");
+      } else if (error?.response?.status === 404) {
+        setErrorMessage("Password reset service not available. Please contact support.");
+      } else if (error?.response?.status === 500) {
+        setErrorMessage("Server error. Please try again later or contact support.");
       } else {
         setErrorMessage("Failed to send reset code. Please try again.");
       }
@@ -124,27 +120,17 @@ const ForgotPassword: React.FC = () => {
       setOpenSendingOTP(false);
       setOpenLoading(true);
       
-      // Use different endpoints based on environment
-      const endpoint = process.env.NODE_ENV === 'production' 
-        ? "auth/password-reset" 
-        : "auth/password-reset/phone";
-      
-      const requestData = process.env.NODE_ENV === 'production'
-        ? {
-            phoneNumber: storedPhoneNumber,
-            email: storedPhoneNumber, // Include email for production compatibility
-            newPassword: initiateResetPasswordPost.newPassword,
-            otp: initiateResetPasswordPost.otp,
-          }
-        : {
-            phoneNumber: storedPhoneNumber,
-            newPassword: initiateResetPasswordPost.newPassword,
-            otp: initiateResetPasswordPost.otp,
-          };
-      
-      return api.post(endpoint, requestData, {
-        method: "POST",
-      });
+      return api.post(
+        "auth/password-reset",
+        {
+          phoneNumber: storedPhoneNumber,
+          newPassword: initiateResetPasswordPost.newPassword,
+          otp: initiateResetPasswordPost.otp,
+        },
+        {
+          method: "POST",
+        }
+      );
     },
     onSuccess: (data, variables, context) => {
       setOpenLoading(false);
@@ -160,24 +146,24 @@ const ForgotPassword: React.FC = () => {
       // Handle errors, e.g., show a message to the user
       console.error("Failed to reset password:", error);
       
-      // Check for specific error types
-      if (error?.response?.status === 404) {
-        // Check if it's a route not found error (API endpoint not implemented)
-        if (error?.response?.data?.error?.code === 'ROUTE_NOT_FOUND' || 
-            error?.response?.data?.message?.includes('Route') ||
-            error?.response?.data?.message?.includes('not found')) {
-          setErrorMessage("Password reset is temporarily unavailable. Please contact support at support@nexuspaydefi.xyz for assistance.");
-        } else {
-          setErrorMessage("Password reset service not available. Please contact support.");
-        }
+      const errorData = error?.response?.data;
+      const errorCode = errorData?.error?.code;
+      
+      // Handle specific error codes from API specification
+      if (errorCode === 'MISSING_FIELDS') {
+        setErrorMessage("Phone number, OTP, and new password are required for password reset.");
+      } else if (errorCode === 'INVALID_OTP') {
+        setErrorMessage("Invalid or expired OTP. Please try again.");
+      } else if (errorCode === 'USER_NOT_FOUND') {
+        setErrorMessage("No account found with this phone number. Please check your number.");
+      } else if (errorCode === 'INTERNAL_ERROR') {
+        setErrorMessage("Server error occurred. Please try again later or contact support.");
       } else if (error?.response?.status === 400) {
-        if (error?.response?.data?.error?.code === 'INVALID_OTP') {
-          setErrorMessage("Invalid or expired OTP. Please try again.");
-        } else if (error?.response?.data?.error?.code === 'MISSING_FIELDS') {
-          setErrorMessage("All fields are required for password reset.");
-        } else {
-          setErrorMessage("Invalid data provided. Please check your inputs.");
-        }
+        setErrorMessage("Invalid data provided. Please check your inputs.");
+      } else if (error?.response?.status === 404) {
+        setErrorMessage("Password reset service not available. Please contact support.");
+      } else if (error?.response?.status === 500) {
+        setErrorMessage("Server error. Please try again later or contact support.");
       } else {
         setErrorMessage("Failed to reset password. Please try again.");
       }
@@ -256,8 +242,10 @@ const ForgotPassword: React.FC = () => {
             phoneNumber: "",
           }}
           validationSchema={Yup.object({
-            phoneNumber: Yup.number()
-              .min(13, "Min of 13 Characters required")
+            phoneNumber: Yup.string()
+              .matches(/^\+[1-9]\d{1,14}$/, "Phone number must be in E.164 format (e.g., +254712345678)")
+              .min(10, "Phone number too short")
+              .max(16, "Phone number too long")
               .required("Phone Number is Required"),
           })}
           onSubmit={(values, { setSubmitting }) => {
@@ -286,7 +274,7 @@ const ForgotPassword: React.FC = () => {
               console.log('Forgot password request data:', requestData);
               console.log('API Base URL:', process.env.NEXT_PUBLIC_API_BASE_URL || 'Using default');
               console.log('Environment:', process.env.NODE_ENV);
-              console.log('Using endpoint:', process.env.NODE_ENV === 'production' ? 'auth/password-reset/request' : 'auth/password-reset/phone/request');
+              console.log('Using endpoint: auth/password-reset/request');
               initiateForgotPassword.mutate(requestData);
 
               setOpenSendingOTP(false);
@@ -338,11 +326,13 @@ const ForgotPassword: React.FC = () => {
                 }}
                 validationSchema={Yup.object({
                   otp: Yup.string()
-                    .min(6, "Min of 6 Characters required")
+                    .min(6, "OTP must be 6 digits")
+                    .max(6, "OTP must be 6 digits")
+                    .matches(/^\d{6}$/, "OTP must be 6 digits")
                     .required("OTP is Required"),
                   newPassword: Yup.string()
-                    .max(20, "Must be 20 characters or less")
-                    .min(5, "Min of 5 Characters required")
+                    .min(8, "Password must be at least 8 characters")
+                    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, "Password must contain uppercase, lowercase, and number")
                     .required("Password is Required"),
                   confirmPassword: Yup.string()
                     .oneOf([Yup.ref('newPassword')], 'Passwords must match')
@@ -361,7 +351,7 @@ const ForgotPassword: React.FC = () => {
                     console.log('Reset password request data:', requestData);
                     console.log('API Base URL:', process.env.NEXT_PUBLIC_API_BASE_URL || 'Using default');
                     console.log('Environment:', process.env.NODE_ENV);
-                    console.log('Using endpoint:', process.env.NODE_ENV === 'production' ? 'auth/password-reset' : 'auth/password-reset/phone');
+                    console.log('Using endpoint: auth/password-reset');
                     initiateResetPassword.mutate(requestData);
                     setSubmitting(false);
                   }, 400);

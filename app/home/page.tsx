@@ -288,12 +288,13 @@ const Player = dynamic(
   { ssr: false }
 );
 import { useAuth } from "@/context/AuthContext";
-import { useWalletBalance } from "@/hooks/useWalletBalance";
+import { useOptimizedBalance } from "@/hooks/useOptimizedBalance";
+import { BalanceSkeleton, BalanceErrorState, BalanceEmptyState } from "@/components/ui/balance-skeleton";
 import { RecentTransactions } from "@/components/transactions/RecentTransactions";
 
 const Home = () => {
   const { user, isAuthenticated, logout } = useAuth();
-  const { balance, chainBalance, loading, error, fetchAllBalances, fetchChainBalance } = useWalletBalance();
+  const { balance, chainBalance, loading, error, fetchAllBalances, fetchChainBalance } = useOptimizedBalance();
 
   const [openLogoutDialog, setOpenLogoutDialog] = useState(false); // Opens the Logout Loading Dialog
   const [selectedChain, setSelectedChain] = useState<string>('all');
@@ -345,6 +346,15 @@ const Home = () => {
       fetchAllBalances();
     } else {
       fetchChainBalance(chain);
+    }
+  };
+
+  // Handle manual refresh
+  const handleRefresh = () => {
+    if (selectedChain === 'all') {
+      fetchAllBalances(true); // Force refresh
+    } else {
+      fetchChainBalance(selectedChain, true); // Force refresh
     }
   };
 
@@ -474,24 +484,27 @@ const Home = () => {
             </Select>
           </div>
 
-          <h3 className="text-white my-2">Wallet Balance</h3>
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <h3 className="text-white">Wallet Balance</h3>
+            <button
+              onClick={handleRefresh}
+              disabled={loading}
+              className="text-gray-400 hover:text-white transition-colors duration-200 disabled:opacity-50"
+              title="Refresh balance"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+          </div>
           
-          {loading ? (
-            <div className="text-center">
-              <h1 className="text-4xl text-white font-bold mb-3">Loading...</h1>
-              <p className="text-sm text-gray-400">Fetching your balance</p>
-            </div>
-          ) : error ? (
-            <div className="text-center">
-              <h1 className="text-4xl text-white font-bold mb-3">Error</h1>
-              <p className="text-sm text-red-400 mb-4">{error}</p>
-              <button
-                onClick={() => selectedChain === 'all' ? fetchAllBalances() : fetchChainBalance(selectedChain)}
-                className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600"
-              >
-                Retry
-              </button>
-            </div>
+          {loading && !getCurrentBalance() ? (
+            <BalanceSkeleton />
+          ) : error && !getCurrentBalance() ? (
+            <BalanceErrorState 
+              error={error} 
+              onRetry={() => selectedChain === 'all' ? fetchAllBalances(true) : fetchChainBalance(selectedChain, true)} 
+            />
           ) : getCurrentBalance() ? (
             <>
               {/* KES Equivalent (Primary Display) */}
@@ -532,10 +545,7 @@ const Home = () => {
               </div>
             </>
           ) : (
-            <div className="text-center">
-              <h1 className="text-4xl text-white font-bold mb-3">No Balance</h1>
-              <p className="text-sm text-gray-400">Your wallet appears to be empty</p>
-            </div>
+            <BalanceEmptyState />
           )}
         </div>
         <div className="flex justify-around relative top-20 ">

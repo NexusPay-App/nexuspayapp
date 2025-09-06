@@ -66,61 +66,19 @@ const ForgotPassword: React.FC = () => {
 
   // Mutation to Request Password Reset (Phone)
   const initiateForgotPassword = useMutation({
-    mutationFn: async (initiateForgotPasswordPost: ForgotPasswordFormFields) => {
-      // Try the request with the formatted phone number
-      try {
-        return await api.post(
-          "auth/password-reset/request",
-          {
-            phoneNumber: initiateForgotPasswordPost.phoneNumber,
-          },
-          {
-            method: "POST",
-          }
-        );
-      } catch (error: any) {
-        // If the request fails with 400, try alternative formats
-        if (error?.response?.status === 400) {
-          console.log('First attempt failed, trying alternative phone number formats...');
-          
-          // Try without the + prefix
-          const phoneWithoutPlus = initiateForgotPasswordPost.phoneNumber.replace('+', '');
-          try {
-            return await api.post(
-              "auth/password-reset/request",
-              {
-                phoneNumber: phoneWithoutPlus,
-              },
-              {
-                method: "POST",
-              }
-            );
-          } catch (secondError: any) {
-            // Try with just the national number (remove country code)
-            const nationalNumber = initiateForgotPasswordPost.phoneNumber.replace('+254', '').replace('254', '');
-            if (nationalNumber !== initiateForgotPasswordPost.phoneNumber) {
-              try {
-                return await api.post(
-                  "auth/password-reset/request",
-                  {
-                    phoneNumber: nationalNumber,
-                  },
-                  {
-                    method: "POST",
-                  }
-                );
-              } catch (thirdError: any) {
-                // If all attempts fail, throw the original error
-                throw error;
-              }
-            }
-            throw error;
-          }
+    mutationFn: (initiateForgotPasswordPost: ForgotPasswordFormFields) => {
+      return api.post(
+        "auth/password-reset/request",
+        {
+          phoneNumber: initiateForgotPasswordPost.phoneNumber,
+        },
+        {
+          method: "POST",
         }
-        throw error;
-      }
+      );
     },
     onSuccess: (data, variables, context) => {
+      console.log('Password reset OTP sent successfully:', data);
       setOpenLoading(false);
       setOpenSendingOTP(true);
       setStoredPhoneNumber(variables.phoneNumber); // Store the phone number for the next form
@@ -133,8 +91,8 @@ const ForgotPassword: React.FC = () => {
       
       const errorData = error?.response?.data;
       const errorCode = errorData?.error?.code;
+      const errorMessage = error?.response?.data?.message;
       
-      // Handle specific error codes from API specification
       if (errorCode === 'MISSING_PHONE_NUMBER') {
         setErrorMessage("Phone number is required for password reset.");
       } else if (errorCode === 'USER_NOT_FOUND') {
@@ -142,12 +100,9 @@ const ForgotPassword: React.FC = () => {
       } else if (errorCode === 'OTP_SEND_FAILED') {
         setErrorMessage("Failed to send OTP. Please try again or contact support at support@nexuspaydefi.xyz");
       } else if (error?.response?.status === 400) {
-        // Get more specific error message from backend
-        const backendMessage = error?.response?.data?.message || error?.response?.data?.error?.message;
-        if (backendMessage && backendMessage.includes('phone')) {
-          setErrorMessage(`Phone number error: ${backendMessage}`);
-        } else if (backendMessage) {
-          setErrorMessage(`Request error: ${backendMessage}`);
+        // Use the exact error message from the API
+        if (errorMessage) {
+          setErrorMessage(errorMessage);
         } else {
           setErrorMessage("Invalid phone number format. Please check your number.");
         }
@@ -210,7 +165,13 @@ const ForgotPassword: React.FC = () => {
       } else if (errorCode === 'INTERNAL_ERROR') {
         setErrorMessage("Server error occurred. Please try again later or contact support.");
       } else if (error?.response?.status === 400) {
-        setErrorMessage("Invalid data provided. Please check your inputs.");
+        // Use the exact error message from the API
+        const errorMessage = error?.response?.data?.message;
+        if (errorMessage) {
+          setErrorMessage(errorMessage);
+        } else {
+          setErrorMessage("Invalid data provided. Please check your inputs.");
+        }
       } else if (error?.response?.status === 404) {
         setErrorMessage("Password reset service not available. Please contact support.");
       } else if (error?.response?.status === 500) {
@@ -294,9 +255,9 @@ const ForgotPassword: React.FC = () => {
           }}
           validationSchema={Yup.object({
             phoneNumber: Yup.string()
-              .matches(/^(\+254|254|0)?[17]\d{8}$/, "Please enter a valid Kenyan phone number (e.g., 0712345678, 254712345678, or +254712345678)")
-              .min(9, "Phone number too short")
-              .max(15, "Phone number too long")
+              .matches(/^\+254[17]\d{8}$/, "Phone number must be in E.164 format (e.g., +254712345678)")
+              .min(13, "Phone number too short")
+              .max(13, "Phone number too long")
               .required("Phone Number is Required"),
           })}
           onSubmit={(values, { setSubmitting }) => {
@@ -341,7 +302,7 @@ const ForgotPassword: React.FC = () => {
               label="Phone Number"
               name="phoneNumber"
               type="text"
-              placeholder="Enter your phone number (e.g., 0712345678, 254712345678, or +254712345678)"
+              placeholder="Enter your phone number (e.g., +254712345678)"
             />
             <div className="flex flex-col justify-start mb-5">
               <p className="text-[#909090] p-1 text-sm font-semibold">

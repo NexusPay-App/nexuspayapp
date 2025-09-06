@@ -66,16 +66,59 @@ const ForgotPassword: React.FC = () => {
 
   // Mutation to Request Password Reset (Phone)
   const initiateForgotPassword = useMutation({
-    mutationFn: (initiateForgotPasswordPost: ForgotPasswordFormFields) => {
-      return api.post(
-        "auth/password-reset/request",
-        {
-          phoneNumber: initiateForgotPasswordPost.phoneNumber,
-        },
-        {
-          method: "POST",
+    mutationFn: async (initiateForgotPasswordPost: ForgotPasswordFormFields) => {
+      // Try the request with the formatted phone number
+      try {
+        return await api.post(
+          "auth/password-reset/request",
+          {
+            phoneNumber: initiateForgotPasswordPost.phoneNumber,
+          },
+          {
+            method: "POST",
+          }
+        );
+      } catch (error: any) {
+        // If the request fails with 400, try alternative formats
+        if (error?.response?.status === 400) {
+          console.log('First attempt failed, trying alternative phone number formats...');
+          
+          // Try without the + prefix
+          const phoneWithoutPlus = initiateForgotPasswordPost.phoneNumber.replace('+', '');
+          try {
+            return await api.post(
+              "auth/password-reset/request",
+              {
+                phoneNumber: phoneWithoutPlus,
+              },
+              {
+                method: "POST",
+              }
+            );
+          } catch (secondError: any) {
+            // Try with just the national number (remove country code)
+            const nationalNumber = initiateForgotPasswordPost.phoneNumber.replace('+254', '').replace('254', '');
+            if (nationalNumber !== initiateForgotPasswordPost.phoneNumber) {
+              try {
+                return await api.post(
+                  "auth/password-reset/request",
+                  {
+                    phoneNumber: nationalNumber,
+                  },
+                  {
+                    method: "POST",
+                  }
+                );
+              } catch (thirdError: any) {
+                // If all attempts fail, throw the original error
+                throw error;
+              }
+            }
+            throw error;
+          }
         }
-      );
+        throw error;
+      }
     },
     onSuccess: (data, variables, context) => {
       setOpenLoading(false);
@@ -99,7 +142,15 @@ const ForgotPassword: React.FC = () => {
       } else if (errorCode === 'OTP_SEND_FAILED') {
         setErrorMessage("Failed to send OTP. Please try again or contact support at support@nexuspaydefi.xyz");
       } else if (error?.response?.status === 400) {
-        setErrorMessage("Invalid phone number format. Please check your number.");
+        // Get more specific error message from backend
+        const backendMessage = error?.response?.data?.message || error?.response?.data?.error?.message;
+        if (backendMessage && backendMessage.includes('phone')) {
+          setErrorMessage(`Phone number error: ${backendMessage}`);
+        } else if (backendMessage) {
+          setErrorMessage(`Request error: ${backendMessage}`);
+        } else {
+          setErrorMessage("Invalid phone number format. Please check your number.");
+        }
       } else if (error?.response?.status === 404) {
         setErrorMessage("Password reset service not available. Please contact support.");
       } else if (error?.response?.status === 500) {
@@ -243,9 +294,9 @@ const ForgotPassword: React.FC = () => {
           }}
           validationSchema={Yup.object({
             phoneNumber: Yup.string()
-              .matches(/^\+[1-9]\d{1,14}$/, "Phone number must be in E.164 format (e.g., +254712345678)")
-              .min(10, "Phone number too short")
-              .max(16, "Phone number too long")
+              .matches(/^(\+254|254|0)?[17]\d{8}$/, "Please enter a valid Kenyan phone number (e.g., 0712345678, 254712345678, or +254712345678)")
+              .min(9, "Phone number too short")
+              .max(15, "Phone number too long")
               .required("Phone Number is Required"),
           })}
           onSubmit={(values, { setSubmitting }) => {
@@ -255,9 +306,13 @@ const ForgotPassword: React.FC = () => {
               // Format phone number to E.164 format using utility function
               const formattedPhoneNumber = formatPhoneNumberToE164(values.phoneNumber);
               
+              console.log('Original phone number:', values.phoneNumber);
+              console.log('Formatted phone number:', formattedPhoneNumber);
+              
               // Validate the formatted phone number
               if (!validateE164PhoneNumber(formattedPhoneNumber)) {
                 console.error('Invalid phone number format:', formattedPhoneNumber);
+                setErrorMessage("Invalid phone number format. Please enter a valid Kenyan phone number.");
                 setOpenLoading(false);
                 setOpenAccErr(true);
                 setSubmitting(false);
@@ -266,7 +321,6 @@ const ForgotPassword: React.FC = () => {
 
               // Use the formatted phone number in your API request
               const requestData = {
-                ...values,
                 phoneNumber: formattedPhoneNumber, // Now properly formatted as E.164
               };
 
@@ -284,10 +338,10 @@ const ForgotPassword: React.FC = () => {
         >
           <Form>
             <TextInput
-              label="Phone Number eg (0720****20)"
+              label="Phone Number"
               name="phoneNumber"
               type="text"
-              placeholder="Enter your Phone Number"
+              placeholder="Enter your phone number (e.g., 0712345678, 254712345678, or +254712345678)"
             />
             <div className="flex flex-col justify-start mb-5">
               <p className="text-[#909090] p-1 text-sm font-semibold">

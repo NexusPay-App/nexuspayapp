@@ -44,13 +44,16 @@ export const TransactionHistory: React.FC = () => {
     { value: 'crypto_to_till', label: 'Till Payment' },
   ];
 
+  // Visible chains only: Arbitrum, Base, Botchain. Others commented, not removed.
   const chainOptions = [
     { value: '', label: 'All Chains' },
     { value: 'arbitrum', label: 'Arbitrum' },
-    { value: 'celo', label: 'Celo' },
-    { value: 'polygon', label: 'Polygon' },
+    // { value: 'celo', label: 'Celo' },
+    // { value: 'polygon', label: 'Polygon' },
     { value: 'base', label: 'Base' },
-    { value: 'optimism', label: 'Optimism' },
+    // { value: 'optimism', label: 'Optimism' },
+    { value: 'botchain-testnet', label: 'BOT Chain Testnet' },
+    { value: 'botchain', label: 'BOT Chain' },
   ];
 
   const tokenOptions = [
@@ -63,6 +66,8 @@ export const TransactionHistory: React.FC = () => {
     { value: 'WBTC', label: 'WBTC' },
     { value: 'DAI', label: 'DAI' },
     { value: 'CELO', label: 'CELO' },
+    { value: 'BOT', label: 'BOT' },
+    { value: 'WBOT', label: 'WBOT' },
   ];
 
   const handleFilterChange = (key: keyof TransactionHistoryFilters, value: string) => {

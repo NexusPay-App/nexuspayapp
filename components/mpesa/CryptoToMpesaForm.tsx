@@ -81,7 +81,7 @@ export const CryptoToMpesaForm: React.FC = () => {
         setFormData({
           amount: '',
           recipientPhone: '',
-          chain: chain || 'polygon',
+    chain: chain || 'arbitrum',
           tokenType: 'USDC',
           description: '',
         });
@@ -175,15 +175,18 @@ export const CryptoToMpesaForm: React.FC = () => {
             onChange={handleInputChange}
             className="mt-1 block w-full px-3 py-2 bg-[#1A1E1E] border border-[#0795B0] rounded-md focus:outline-none focus:ring-2 focus:ring-[#0795B0] text-white"
           >
+            {/* Visible: Arbitrum, Base, Botchain only. Others commented, not removed. */}
             <option value="arbitrum">Arbitrum</option>
-            <option value="polygon">Polygon</option>
+            {/* <option value="polygon">Polygon</option> */}
             <option value="base">Base</option>
-            <option value="optimism">Optimism</option>
-            <option value="celo">Celo</option>
-            <option value="scroll">Scroll</option>
-            <option value="fuse">Fuse</option>
-            <option value="gnosis">Gnosis</option>
-            <option value="aurora">Aurora</option>
+            {/* <option value="optimism">Optimism</option> */}
+            {/* <option value="celo">Celo</option> */}
+            {/* <option value="scroll">Scroll</option> */}
+            {/* <option value="fuse">Fuse</option> */}
+            {/* <option value="gnosis">Gnosis</option> */}
+            {/* <option value="aurora">Aurora</option> */}
+            <option value="botchain-testnet">BOT Chain Testnet</option>
+            <option value="botchain">BOT Chain</option>
           </select>
         </div>
 

@@ -1,0 +1,113 @@
+{
+  "auditReportVersion": 2,
+  "vulnerabilities": {
+    "@reclaimprotocol/js-sdk": {
+      "name": "@reclaimprotocol/js-sdk",
+      "severity": "high",
+      "isDirect": true,
+      "via": [
+        "node-forge",
+        "uuid"
+      ],
+      "effects": [],
+      "range": "<=4.3.1 || >=4.5.0",
+      "nodes": [
+        "node_modules/@reclaimprotocol/js-sdk"
+      ],
+      "fixAvailable": {
+        "name": "@reclaimprotocol/js-sdk",
+        "version": "4.15.2",
+        "isSemVerMajor": true
+      }
+    },
+    "node-forge": {
+      "name": "node-forge",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1240912,
+          "name": "node-forge",
+          "dependency": "node-forge",
+          "title": "node-forge RSA PKCS#1 v1.5 signature verification accepts extra nested DigestAlgorithm elements",
+          "url": "https://github.com/advisories/GHSA-86w9-cpqp-85rv",
+          "severity": "high",
+          "cwe": [
+            "CWE-347"
+          ],
+          "cvss": {
+            "score": 7.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:N"
+          },
+          "range": "<=1.4.0"
+        }
+      ],
+      "effects": [
+        "@reclaimprotocol/js-sdk"
+      ],
+      "range": "*",
+      "nodes": [
+        "node_modules/node-forge"
+      ],
+      "fixAvailable": {
+        "name": "@reclaimprotocol/js-sdk",
+        "version": "4.15.2",
+        "isSemVerMajor": true
+      }
+    },
+    "uuid": {
+      "name": "uuid",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1119441,
+          "name": "uuid",
+          "dependency": "uuid",
+          "title": "uuid: Missing buffer bounds check in v3/v5/v6 when buf is provided",
+          "url": "https://github.com/advisories/GHSA-w5hq-g745-h8pq",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-787",
+            "CWE-1285"
+          ],
+          "cvss": {
+            "score": 7.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:N"
+          },
+          "range": "<11.1.1"
+        }
+      ],
+      "effects": [
+        "@reclaimprotocol/js-sdk"
+      ],
+      "range": "<11.1.1",
+      "nodes": [
+        "node_modules/uuid"
+      ],
+      "fixAvailable": {
+        "name": "@reclaimprotocol/js-sdk",
+        "version": "4.15.2",
+        "isSemVerMajor": true
+      }
+    }
+  },
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 1,
+      "high": 2,
+      "critical": 0,
+      "total": 3
+    },
+    "dependencies": {
+      "prod": 193,
+      "dev": 614,
+      "optional": 101,
+      "peer": 0,
+      "peerOptional": 0,
+      "total": 844
+    }
+  }
+}

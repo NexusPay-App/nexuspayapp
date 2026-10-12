@@ -25,9 +25,9 @@ export type ConversionRateType = {
 }
 
 export type BalanceData = {
-  balanceInUSDC: number;
-  balanceInKES: string;
-  rate: number;
+  balanceInUSDC: string;
+  balanceInKES: string | null;
+  rate: number | null;
 }
 
 // Define context type

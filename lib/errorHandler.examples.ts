@@ -47,7 +47,7 @@ export const testErrorHandling = async () => {
   console.log('🧪 Testing CryptoErrorHandler...\n');
 
   // Test 1: User insufficient balance
-  console.log('Test 1: User Insufficient Balance');
+  console.log("Test 1: User Insufficient Balance");
   try {
     const result = await CryptoErrorHandler.handleCryptoError(
       mockInsufficientBalanceError,
@@ -92,7 +92,7 @@ export const testErrorHandling = async () => {
   console.log('\n' + '='.repeat(50) + '\n');
 
   // Test 4: User rejected error
-  console.log('Test 4: User Rejected Error');
+  console.log("Test 4: User Rejected Error");
   try {
     const result = await CryptoErrorHandler.handleCryptoError(
       mockUserRejectedError,

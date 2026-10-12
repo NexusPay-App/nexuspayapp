@@ -83,9 +83,9 @@ export const businessPinAPI = {
   
   // Request OTP for PIN setup
   requestOtp: async (data: BusinessPinRequestOtpData): Promise<BusinessResponse<BusinessPinForgotRequestResponse>> => {
-    console.log('[business-pin] Requesting OTP with data:', data);
+    console.log("[business-pin] Requesting OTP with data:");
     const response = await apiClient.post('/business/pin/request-otp', data);
-    console.log('[business-pin] OTP request response:', response.data);
+    console.log("[business-pin] OTP request response:");
     return response.data;
   },
 
@@ -111,17 +111,17 @@ export const businessPinAPI = {
   
   // Set PIN with OTP verification
   setPin: async (data: BusinessPinSetData): Promise<BusinessResponse> => {
-    console.log('[business-pin] Making setPin request with data:', data);
-    console.log('[business-pin] Request URL: /business/pin/set');
+    console.log("[business-pin] Making setPin request with data:");
+    console.log("[business-pin] Request URL: /business/pin/set");
     
     try {
       const response = await apiClient.post('/business/pin/set', data);
-      console.log('[business-pin] setPin response:', response.data);
+      console.log("[business-pin] setPin response:");
       return response.data;
     } catch (error: any) {
       console.error('[business-pin] setPin error:', error);
-      console.error('[business-pin] setPin error response:', error?.response?.data);
-      console.error('[business-pin] setPin request config:', error?.config);
+      console.error("[business-pin] setPin error response:");
+      console.error("[business-pin] setPin request config:");
       throw error;
     }
   },

@@ -201,20 +201,14 @@ export class BusinessFinanceAPI {
       console.log('🔍 Full URL will be:', `${api.defaults.baseURL}/business/${businessId}/balance`);
       
       const response = await api.get(`/business/${businessId}/balance`);
-      console.log('✅ Business balance API response:', response.data);
-      console.log('✅ Response status:', response.status);
-      console.log('✅ Response headers:', response.headers);
+      console.log("✅ Business balance API response:");
+      console.log("✅ Response status:");
+      console.log("✅ Response headers:");
       
       return response.data;
     } catch (error: any) {
       console.error('❌ Failed to get business balance:', error);
-      console.error('❌ Error details:', {
-        message: error.message,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        url: error.config?.url
-      });
+      console.error("❌ Error details:");
       
       return {
         success: false,
@@ -237,20 +231,14 @@ export class BusinessFinanceAPI {
       console.log('🔍 Full URL will be:', `${api.defaults.baseURL}/business/${businessId}/balance/${chain}`);
       
       const response = await api.get(`/business/${businessId}/balance/${chain}`);
-      console.log('✅ Business balance for chain API response:', response.data);
-      console.log('✅ Response status:', response.status);
-      console.log('✅ Response headers:', response.headers);
+      console.log("✅ Business balance for chain API response:");
+      console.log("✅ Response status:");
+      console.log("✅ Response headers:");
       
       return response.data;
     } catch (error: any) {
       console.error('❌ Failed to get business balance for chain:', error);
-      console.error('❌ Error details:', {
-        message: error.message,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        url: error.config?.url
-      });
+      console.error("❌ Error details:");
       
       return {
         success: false,

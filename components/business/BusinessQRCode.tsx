@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import QRCode from 'qrcode.react';
+import { QRCodeSVG as QRCode } from 'qrcode.react';
 import { useBusiness } from '@/context/BusinessContext';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';

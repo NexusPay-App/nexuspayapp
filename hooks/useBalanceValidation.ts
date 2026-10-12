@@ -35,7 +35,7 @@ export const useBalanceValidation = () => {
     try {
       return await getAvailableTokens(chain);
     } catch (error) {
-      console.error('Error getting tokens for chain:', error);
+      console.error("Error getting tokens for chain:");
       return [];
     }
   }, []);
@@ -48,7 +48,7 @@ export const useBalanceValidation = () => {
     try {
       return await suggestAlternativeTokens(chain, requestedToken, requestedAmount);
     } catch (error) {
-      console.error('Error getting alternative tokens:', error);
+      console.error("Error getting alternative tokens:");
       return [];
     }
   }, []);

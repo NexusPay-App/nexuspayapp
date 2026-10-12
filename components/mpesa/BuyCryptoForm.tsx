@@ -154,7 +154,6 @@ export const BuyCryptoForm: React.FC = () => {
       try {
         const rates = await cryptoConverter.getConversionRates();
         amountInKes = parseFloat(formData.fiatAmount) / rates.kes; // Convert USD to KES
-        console.log(`Converting ${formData.fiatAmount} USD to ${amountInKes.toFixed(2)} KES`);
         console.log(`Conversion rate used: 1 USD = ${(1 / rates.kes).toFixed(2)} KES`);
       } catch (error) {
         console.error('Failed to get conversion rates:', error);
@@ -174,8 +173,6 @@ export const BuyCryptoForm: React.FC = () => {
       currency: formData.currency, // Send original currency for backend reference
     };
     
-    console.log('Sending data to API:', requestData);
-    console.log('Original amount:', formData.fiatAmount, formData.currency);
     console.log('Amount in KES:', amountInKes);
     console.log('Conversion details:', conversion);
     
@@ -348,11 +345,14 @@ export const BuyCryptoForm: React.FC = () => {
               onChange={handleInputChange}
               className="w-full px-3 py-3 bg-[#1A1E1E] border border-[#0795B0] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#0795B0] focus:border-transparent hover:border-[#0AA5C0] transition-colors duration-200"
             >
+              {/* Visible: Arbitrum, Base, Botchain only. Others commented, not removed. */}
               <option value="arbitrum">Arbitrum</option>
-              <option value="celo">Celo</option>
-              <option value="polygon">Polygon</option>
+              {/* <option value="celo">Celo</option> */}
+              {/* <option value="polygon">Polygon</option> */}
               <option value="base">Base</option>
-              <option value="stellar">🌟 Stellar</option>
+              {/* <option value="stellar">🌟 Stellar</option> */}
+              <option value="botchain-testnet">BOT Chain Testnet</option>
+              <option value="botchain">BOT Chain</option>
             </select>
           </div>
           

@@ -31,7 +31,7 @@ export const useTransactionHistory = () => {
     // Rate limiting: prevent requests more than once every 2 seconds
     const now = Date.now();
     if (now - lastRequestTime < 2000) {
-      console.warn('⏰ Rate limiting: Too many requests, please wait');
+      console.warn("⏰ Rate limiting: Too many requests, please wait");
       return { success: false, error: 'Rate limited' };
     }
     setLastRequestTime(now);
@@ -129,7 +129,7 @@ export const useTransactionHistory = () => {
       // Rate limiting: prevent requests more than once every 2 seconds
       const now = Date.now();
       if (now - lastRequestTime < 2000) {
-        console.warn('⏰ Rate limiting: Too many requests, please wait');
+        console.warn("⏰ Rate limiting: Too many requests, please wait");
         hasLoadedInitialData.current = false; // Reset so it can try again later
         return;
       }
@@ -152,14 +152,14 @@ export const useTransactionHistory = () => {
         );
         clearTimeout(timeoutId);
         
-        console.log('📊 useTransactionHistory: Initial data response:', response);
+        console.log("📊 useTransactionHistory: Initial data response:");
         
         if (response.success) {
-          console.log('✅ useTransactionHistory: Setting transactions:', response.data.transactions);
+          console.log("✅ useTransactionHistory: Setting transactions:");
           setAllTransactions(response.data.transactions);
           setHasMore(response.data.summary.hasNext);
         } else {
-          console.log('❌ useTransactionHistory: Response not successful:', response);
+          console.log("❌ useTransactionHistory: Response not successful:");
           hasLoadedInitialData.current = false; // Reset so it can try again later
         }
       } catch (error) {
@@ -171,6 +171,30 @@ export const useTransactionHistory = () => {
 
     loadInitialData();
   }, []); // Empty dependency array - runs only once
+
+  // After a successful send, home/history should refetch without a full remount.
+  // Bypasses the client rate limiter so a just-submitted BOT payment is not dropped.
+  useEffect(() => {
+    const onTransactionsUpdated = async () => {
+      hasLoadedInitialData.current = false;
+      setAllTransactions([]);
+      setHasMore(false);
+      try {
+        const response = await transactionHistoryApi.execute(
+          () => transactionAPI.getHistory({ page: 1, limit: filters.limit || 5 }),
+          { showSuccessToast: false, showErrorToast: false }
+        );
+        if (response?.success) {
+          setAllTransactions(response.data.transactions);
+          setHasMore(Boolean(response.data.summary?.hasNext));
+        }
+      } catch (error) {
+        console.error('Failed to refresh history after send:', error);
+      }
+    };
+    window.addEventListener('nexuspay:transactions-updated', onTransactionsUpdated);
+    return () => window.removeEventListener('nexuspay:transactions-updated', onTransactionsUpdated);
+  }, [transactionHistoryApi, filters.limit]);
 
   return {
     // Data

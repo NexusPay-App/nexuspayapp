@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { transactionAPI } from '../../lib/transactions';
 import { Transaction } from '../../types/transaction-types';
 import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
+import { getApiBaseUrl } from '@/lib/config';
 
 /*
  * 🔍 TRANSACTION API ENDPOINT GUIDE
@@ -99,8 +101,12 @@ interface RecentTransactionsProps {
   showDebug?: boolean;
 }
 
-export const RecentTransactions: React.FC<RecentTransactionsProps> = ({ className = "", showDebug = true }) => {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+export const RecentTransactions: React.FC<RecentTransactionsProps> = ({ className = "", showDebug = false }) => {
+  const { user, isAuthenticated } = useAuth();
+  const identity = `${getApiBaseUrl()}:${user?.walletAddress || user?.email || user?.phoneNumber || ''}`;
+  const [history, setHistory] = useState<{ owner: string; data: Transaction[] }>({ owner: '', data: [] });
+  const transactions = isAuthenticated && history.owner === identity ? history.data : [];
+  const generation = useRef(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
@@ -283,212 +289,24 @@ export const RecentTransactions: React.FC<RecentTransactionsProps> = ({ classNam
     );
   };
 
-  // Load transactions with caching
-  const loadTransactions = async (forceRefresh = false) => {
+  // Keep private history in memory, scoped to this signed-in owner.
+  const loadTransactions = async (_forceRefresh = false) => {
+    const requestGeneration = ++generation.current;
+    if (!isAuthenticated) { setHistory({ owner: '', data: [] }); setLoading(false); return; }
+    setLoading(true); setError(null);
     try {
-      setLoading(true);
-      setError(null);
-
-      // Check cache first (unless force refresh)
-      if (!forceRefresh) {
-        const cached = localStorage.getItem(CACHE_KEY);
-        if (cached) {
-          const { data, timestamp } = JSON.parse(cached);
-          const now = Date.now();
-          
-          // Use cache if less than 5 minutes old
-          if (now - timestamp < CACHE_DURATION) {
-            console.log('📦 Using cached transactions:', data.length);
-            console.log('🔍 Cached transaction statuses:', data.map((t: any) => ({ id: t.id, status: t.status, type: t.type })));
-            setTransactions(data.slice(0, 5)); // Only show first 5
-            setLoading(false);
-            return;
-          }
-        }
-      }
-
-      console.log('🔄 Fetching fresh transactions...');
-      console.log('🔍 Auth token check:', localStorage.getItem('nexuspay_token') ? '✅ Present' : '❌ Missing');
-      
-      // Fetch fresh data
-      const response = await transactionAPI.getHistory({ 
-        page: 1, 
-        limit: 10 // Fetch more to ensure we have enough
-      });
-      
-      console.log('📊 Full API Response:', response);
-      console.log('📊 Response success:', response.success);
-      console.log('📊 Response data:', response.data);
-      console.log('📊 Transactions array:', response.data?.transactions);
-      console.log('📊 Transactions length:', response.data?.transactions?.length);
-      
-      if (response.success && response.data?.transactions) {
-        const recentTransactions = response.data.transactions.slice(0, 5);
-        console.log('✅ Transactions loaded:', recentTransactions.length);
-        console.log('📋 First transaction sample:', JSON.stringify(recentTransactions[0], null, 2));
-        console.log('🔍 Status values found:', recentTransactions.map(t => ({ 
-          id: t.id, 
-          status: t.status, 
-          type: t.type,
-          timing: t.timing?.ageMinutes,
-          createdAt: t.timing?.createdAt,
-          token: t.token?.symbol,
-          amount: t.token?.amount
-        })));
-        
-        // Validate and normalize transaction data
-        const validatedTransactions = recentTransactions.map(transaction => {
-          console.log('🔍 Validating transaction:', transaction.id);
-          
-          // Check if we have the expected data structure
-          if (!transaction.status) {
-            console.warn('⚠️ Missing status for transaction:', transaction.id);
-            // Default to success if no status provided
-            transaction.status = 'completed';
-          }
-          
-          if (!transaction.timing?.ageMinutes && transaction.timing?.createdAt) {
-            // Calculate age from createdAt if ageMinutes is missing
-            const createdAt = new Date(transaction.timing.createdAt);
-            const now = new Date();
-            const ageMs = now.getTime() - createdAt.getTime();
-            const ageMinutes = ageMs / (1000 * 60);
-            transaction.timing.ageMinutes = ageMinutes;
-            console.log('🕐 Calculated ageMinutes:', ageMinutes, 'for transaction:', transaction.id);
-          }
-          
-          return transaction;
-        });
-        
-        setTransactions(validatedTransactions);
-        
-        // Cache the data
-        localStorage.setItem(CACHE_KEY, JSON.stringify({
-          data: validatedTransactions,
-          timestamp: Date.now()
-        }));
-        
-        console.log('✅ Transactions set successfully:', validatedTransactions.length);
-      } else {
-        console.error('❌ API response error:', response);
-        console.error('❌ Response structure:', {
-          success: response.success,
-          hasData: !!response.data,
-          hasTransactions: !!response.data?.transactions,
-          transactionsLength: response.data?.transactions?.length
-        });
-        
-        // Try to provide fallback data if possible
-        if (response.data?.transactions && response.data.transactions.length === 0) {
-          console.log('⚠️ No transactions found, showing empty state');
-          setTransactions([]);
-        } else {
-          setError('Failed to load transactions');
-        }
-      }
-    } catch (error: any) {
-      console.error('❌ Error loading transactions:', error);
-      console.error('❌ Error details:', {
-        message: error.message,
-        status: error.response?.status,
-        data: error.response?.data
-      });
-      
-      // Show fallback data for development/debugging
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🛠️ Development mode: Showing fallback data');
-        const fallbackTransactions: Transaction[] = [
-          {
-            id: 'fallback-1',
-            type: 'token_transfer' as const,
-            status: 'completed' as const,
-            amount: 1,
-            token: {
-              symbol: 'USDC',
-              name: 'USD Coin',
-              amount: 1,
-              decimals: 6
-            },
-            values: {
-              fiat: { amount: 129.13, currency: 'KES', formatted: 'KES 129' },
-              usd: { amount: 1, formatted: '$1.00' },
-              kes: { amount: 129.13, formatted: 'KES 129' }
-            },
-            blockchain: {
-              chain: 'arbitrum',
-              network: 'Arbitrum One',
-              txHash: '0xb1ba5980fc0f3fae2fbf3294a3363ddafc447096427734f3219d0a50aafa5cc8',
-              explorerUrl: 'https://arbiscan.io/tx/0xb1ba5980fc0f3fae2fbf3294a3363ddafc447096427734f3219d0a50aafa5cc8',
-              explorerName: 'Arbiscan'
-            },
-            timing: {
-              createdAt: new Date().toISOString(),
-              completedAt: new Date().toISOString(),
-              processingTimeSeconds: 15,
-              ageMinutes: 5,
-              formatted: {
-                created: new Date().toLocaleString(),
-                completed: new Date().toLocaleString()
-              }
-            },
-            dashboard: {
-              priority: 'normal',
-              category: 'transfer',
-              statusColor: 'green',
-              icon: 'send',
-              summary: 'Sent 1 USDC on Arbitrum - $1.00 (KES 129)'
-            }
-          },
-          {
-            id: 'fallback-2',
-            type: 'fiat_to_crypto' as const,
-            status: 'completed' as const,
-            amount: 5,
-            token: {
-              symbol: 'USDC',
-              name: 'USD Coin',
-              amount: 5,
-              decimals: 6
-            },
-            values: {
-              fiat: { amount: 645.65, currency: 'KES', formatted: 'KES 646' },
-              usd: { amount: 5, formatted: '$5.00' },
-              kes: { amount: 645.65, formatted: 'KES 646' }
-            },
-            blockchain: {
-              chain: 'arbitrum',
-              network: 'Arbitrum One',
-              txHash: '0xc6324aecf8828bc624b9f5f4269517a70b1f5badbb769b224b28e8ac4014a24f',
-              explorerUrl: 'https://arbiscan.io/tx/0xc6324aecf8828bc624b9f5f4269517a70b1f5badbb769b224b28e8ac4014a24f',
-              explorerName: 'Arbiscan'
-            },
-            timing: {
-              createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 minutes ago
-              completedAt: new Date(Date.now() - 29 * 60 * 1000).toISOString(),
-              processingTimeSeconds: 60,
-              ageMinutes: 30,
-              formatted: {
-                created: new Date(Date.now() - 30 * 60 * 1000).toLocaleString(),
-                completed: new Date(Date.now() - 29 * 60 * 1000).toLocaleString()
-              }
-            },
-            dashboard: {
-              priority: 'normal',
-              category: 'Buy Crypto',
-              statusColor: 'green',
-              icon: 'buy',
-              summary: 'Bought 5 USDC for KES 646 on Arbitrum'
-            }
-          }
-        ];
-        
-        setTransactions(fallbackTransactions);
-        console.log('🛠️ Fallback transactions set:', fallbackTransactions.length);
-      } else {
-        setError('Failed to load transactions');
-      }
+      const response = await transactionAPI.getHistory({ page: 1, limit: 10 });
+      if (requestGeneration !== generation.current) return;
+      if (!response.success || !response.data?.transactions) throw new Error('History unavailable');
+      const data = response.data.transactions.slice(0, 5).map(transaction => ({
+        ...transaction,
+        status: transaction.status || 'pending',
+      }));
+      setHistory({ owner: identity, data });
+    } catch {
+      if (requestGeneration === generation.current) setError('Unable to load transaction history. Please try again.');
     } finally {
-      setLoading(false);
+      if (requestGeneration === generation.current) setLoading(false);
     }
   };
 
@@ -693,10 +511,17 @@ export const RecentTransactions: React.FC<RecentTransactionsProps> = ({ classNam
     );
   };
 
-  // Load on mount
+  // Load on mount; also refetch after a successful send so new BOT rows appear immediately.
   useEffect(() => {
+    setHistory({ owner: identity, data: [] });
     loadTransactions();
-  }, []);
+    const onTransactionsUpdated = () => { loadTransactions(true); };
+    window.addEventListener('nexuspay:transactions-updated', onTransactionsUpdated);
+    return () => {
+      generation.current++;
+      window.removeEventListener('nexuspay:transactions-updated', onTransactionsUpdated);
+    };
+  }, [identity, isAuthenticated]);
 
   if (loading) {
     return (
@@ -863,7 +688,6 @@ export const RecentTransactions: React.FC<RecentTransactionsProps> = ({ classNam
               <button
                 onClick={() => {
                   console.log('🔍 Current transactions state:', transactions);
-                  console.log('🔍 Cache data:', localStorage.getItem(CACHE_KEY));
                   console.log('🔍 Status analysis:', transactions.map(tx => ({
                     id: tx.id,
                     type: tx.type,

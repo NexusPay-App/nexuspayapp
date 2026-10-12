@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useWallet } from "@/context/WalletContext";
 import { useStellar } from "@/hooks/useStellar";
+import { VISIBLE_CHAIN_IDS } from "@/lib/crypto";
 import { Copy } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -64,10 +65,10 @@ const WalletOverview: React.FC<WalletOverviewProps> = ({ className = "" }) => {
     }).format(amount);
   };
 
-  // Get available chains
+  // Get available chains (visible set only: Arbitrum, Base, Botchain)
   const getAvailableChains = (): string[] => {
     if (!balance) return [];
-    return Object.keys(balance.balances);
+    return Object.keys(balance.balances).filter(chain => VISIBLE_CHAIN_IDS.has(chain));
   };
 
   // Get tokens for selected chain
@@ -275,8 +276,8 @@ const WalletOverview: React.FC<WalletOverviewProps> = ({ className = "" }) => {
                     {chain}
                   </button>
                 ))}
-                {/* Stellar Chain */}
-                {stellarBalances.length > 0 && (
+                {/* Stellar hidden — visible chains: Arbitrum, Base, Botchain only */}
+                {false && stellarBalances.length > 0 && (
                   <button
                     onClick={() => setSelectedChain("stellar")}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -431,11 +432,13 @@ const WalletOverview: React.FC<WalletOverviewProps> = ({ className = "" }) => {
           )}
 
           {/* Supported Chains Info */}
-          {wallet?.supportedChains && wallet.supportedChains.length > 0 && (
+          {(() => {
+            const visibleSupported = (wallet?.supportedChains || []).filter(chain => VISIBLE_CHAIN_IDS.has(chain.id));
+            return visibleSupported.length > 0 ? (
             <div className="bg-blue-50 p-4 rounded-lg">
               <h4 className="font-medium mb-3 text-gray-700">Supported Networks</h4>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {wallet?.supportedChains?.map((chain) => (
+                {visibleSupported.map((chain) => (
                   <div key={chain.id} className="flex items-center space-x-2 p-2 bg-white rounded">
                     <div className="w-2 h-2 bg-green-400 rounded-full"></div>
                     <span className="text-sm text-gray-700">{chain.name}</span>
@@ -448,7 +451,8 @@ const WalletOverview: React.FC<WalletOverviewProps> = ({ className = "" }) => {
                 </div>
               )}
             </div>
-          )}
+            ) : null;
+          })()}
         </div>
       ) : null}
     </div>

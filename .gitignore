@@ -166,3 +166,8 @@ jspm_packages/
 
 # TernJS port file
 .tern-port
+# The hand-written worker is source, not a generated PWA artifact.
+!public/sw.js
+
+/test-results/
+/playwright-report/

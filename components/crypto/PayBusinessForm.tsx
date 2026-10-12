@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from 'react';
+import { usePaymentNetworks } from '@/hooks/usePaymentNetworks';
+import React, { useState, useEffect } from 'react';
 import { useCrypto } from '../../hooks/useCrypto';
-import { SUPPORTED_CHAINS, SUPPORTED_TOKENS } from '../../lib/crypto';
+
 import { useBusiness } from '@/context/BusinessContext';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
@@ -39,8 +40,14 @@ export const PayBusinessForm: React.FC<PayBusinessFormProps> = ({
   } = useCrypto();
 
   const { toast } = useToast();
+  const { networks, tokens, isBot } = usePaymentNetworks(payFormData.chainName);
+
+  // BOT merchant payments are USDT-only; never keep a legacy token selected.
+  useEffect(() => {
+    if (isBot && payFormData.tokenSymbol !== 'USDT') updatePayForm('tokenSymbol', 'USDT');
+  }, [isBot, payFormData.tokenSymbol, updatePayForm]);
+
   const [validationError, setValidationError] = useState<string>('');
-  const [googleAuthCode, setGoogleAuthCode] = useState<string>('');
   const [password, setPassword] = useState<string>('');
 
   // Get current user's wallet address
@@ -68,9 +75,9 @@ export const PayBusinessForm: React.FC<PayBusinessFormProps> = ({
       return;
     }
 
-    // Validate authentication (password or Google code)
-    if (!googleAuthCode.trim() && !password.trim()) {
-      setValidationError('Please enter your Password or Google Authenticator code');
+    // Require account-password authorization
+    if (!password.trim()) {
+      setValidationError('Please enter your account password');
       return;
     }
 
@@ -81,11 +88,10 @@ export const PayBusinessForm: React.FC<PayBusinessFormProps> = ({
       const response = await payMerchant({
         senderAddress: userAddress,
         merchantId: qrData.merchantId, // Use merchant ID from QR code
-        amount: parseFloat(payFormData.amount),
+        amount: payFormData.amount,
         confirm: payFormData.confirm,
         chainName: payFormData.chainName,
         tokenSymbol: payFormData.tokenSymbol,
-        ...(googleAuthCode ? { googleAuthCode } : {}),
         ...(password ? { password } : {}),
       });
 
@@ -97,7 +103,6 @@ export const PayBusinessForm: React.FC<PayBusinessFormProps> = ({
         
         // Reset form on success
         resetPayForm();
-        setGoogleAuthCode('');
         setPassword('');
         
         if (onSuccess) {
@@ -189,7 +194,7 @@ export const PayBusinessForm: React.FC<PayBusinessFormProps> = ({
               onChange={(e) => updatePayForm('tokenSymbol', e.target.value)}
               className="w-full px-3 py-3 bg-[#1A1E1E] border border-[#0795B0] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#0795B0] focus:border-transparent hover:border-[#0AA5C0] transition-colors duration-200"
             >
-              {SUPPORTED_TOKENS.map((token) => (
+              {tokens.map((token) => (
                 <option key={token.symbol} value={token.symbol}>
                   {token.symbol} - {token.name}
                 </option>
@@ -208,7 +213,7 @@ export const PayBusinessForm: React.FC<PayBusinessFormProps> = ({
               onChange={(e) => updatePayForm('chainName', e.target.value)}
               className="w-full px-3 py-3 bg-[#1A1E1E] border border-[#0795B0] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#0795B0] focus:border-transparent hover:border-[#0AA5C0] transition-colors duration-200"
             >
-              {SUPPORTED_CHAINS.map((chain) => (
+              {networks.map((chain) => (
                 <option key={chain.id} value={chain.id}>
                   {chain.name}
                 </option>
@@ -234,25 +239,16 @@ export const PayBusinessForm: React.FC<PayBusinessFormProps> = ({
           {/* Authentication */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Authentication</label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3">
               <input
                 type="password"
-                placeholder="Password (optional)"
+                placeholder="Account password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-3 py-3 bg-[#1A1E1E] border border-[#0795B0] rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0795B0] focus:border-transparent hover:border-[#0AA5C0] transition-colors duration-200"
               />
-              <input
-                type="text"
-                id="googleAuthCode"
-                value={googleAuthCode}
-                onChange={(e) => setGoogleAuthCode(e.target.value)}
-                placeholder="Google Auth Code (optional)"
-                maxLength={6}
-                className="w-full px-3 py-3 bg-[#1A1E1E] border border-[#0795B0] rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0795B0] focus:border-transparent hover:border-[#0AA5C0] transition-colors duration-200"
-              />
             </div>
-            <p className="text-xs text-gray-400 mt-1">Provide either password or Google Auth code.</p>
+            <p className="text-xs text-gray-400 mt-1">Enter your account password to authorize this payment.</p>
           </div>
 
           {/* Error Display */}
@@ -267,7 +263,7 @@ export const PayBusinessForm: React.FC<PayBusinessFormProps> = ({
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={payMerchantLoading || !payFormData.confirm || (!googleAuthCode.trim() && !password.trim())}
+            disabled={payMerchantLoading || !payFormData.confirm || !password.trim()}
             className="w-full flex justify-center py-4 px-6 border border-transparent rounded-md shadow-lg text-lg font-semibold text-white bg-[#0795B0] hover:bg-[#0684A0] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0795B0] disabled:opacity-50 transition-all duration-200 mt-8 transform hover:scale-[1.02] active:scale-[0.98]"
           >
             {payMerchantLoading ? 'Processing...' : `Pay ${qrData.businessName}`}
@@ -275,16 +271,21 @@ export const PayBusinessForm: React.FC<PayBusinessFormProps> = ({
         </form>
 
         {/* Success Display */}
-        {payMerchantData && (
+        {payMerchantData && (() => {
+          const botStatus = payMerchantData.data.botStatus;
+          const pending = botStatus !== undefined && botStatus !== 'confirmed';
+          return (
           <div className="mt-6 p-6 bg-[#1A1E1E] border border-[#0795B0] rounded-md">
-            <h3 className="text-lg font-semibold text-white mb-4">✅ Payment Successful!</h3>
+            <h3 className="text-lg font-semibold text-white mb-4">{pending ? '⏳ Payment Submitted' : '✅ Payment Successful!'}</h3>
             <div className="space-y-2 text-sm text-gray-300">
               <p><strong>Business Name:</strong> {payMerchantData.data.businessName}</p>
               <p><strong>Transaction Hash:</strong> {payMerchantData.data.transactionHash}</p>
               <p><strong>Authentication Method:</strong> {payMerchantData.data.authenticationMethod}</p>
+              {pending && <p className="text-yellow-400">Status: pending confirmation on BOT Chain. This is not confirmed yet.</p>}
             </div>
           </div>
-        )}
+          );
+        })()}
 
         {/* Info Box */}
         <div className="mt-6 p-4 bg-[#1A1E1E] border border-[#0795B0] rounded-md">

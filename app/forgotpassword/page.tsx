@@ -286,7 +286,6 @@ const ForgotPassword: React.FC = () => {
               };
 
               // Call the Initiate Forgot Password Mutation
-              console.log('Forgot password request data:', requestData);
               console.log('API Base URL:', process.env.NEXT_PUBLIC_API_BASE_URL || 'Using default');
               console.log('Environment:', process.env.NODE_ENV);
               console.log('Using endpoint: auth/password-reset/request');
@@ -363,7 +362,6 @@ const ForgotPassword: React.FC = () => {
                     };
 
                     // Call the Reset Password Mutation
-                    console.log('Reset password request data:', requestData);
                     console.log('API Base URL:', process.env.NEXT_PUBLIC_API_BASE_URL || 'Using default');
                     console.log('Environment:', process.env.NODE_ENV);
                     console.log('Using endpoint: auth/password-reset');

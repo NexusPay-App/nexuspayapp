@@ -113,27 +113,18 @@ export const mpesaAPI = {
   // Crypto to M-Pesa (Send crypto, recipient gets M-Pesa)
   cryptoToMpesa: async (data: CryptoToMpesaData): Promise<CryptoToMpesaResponse> => {
     try {
-      console.log('[mpesa] Initiating crypto-to-mpesa transfer:', {
-        amount: data.amount,
-        phone: data.phone?.substring(0, 6) + '****',
-        tokenType: data.tokenType || 'USDC'
-      });
+      console.log("[mpesa] Initiating crypto-to-mpesa transfer:");
 
       const response = await apiClient.post('/mpesa/crypto-to-mpesa', data);
 
       console.log('[mpesa] ✅ Crypto-to-mpesa transfer successful');
       return response.data;
     } catch (error: any) {
-      console.error('[mpesa] ❌ Crypto-to-mpesa transfer failed:', {
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        message: error.message
-      });
+      console.error("[mpesa] ❌ Crypto-to-mpesa transfer failed:");
 
       // If it's an auth error, provide more specific guidance
       if (error.response?.status === 401 || error.response?.status === 403) {
-        console.error('[mpesa] Authentication failed - user may need to re-login');
+        console.error("[mpesa] Authentication failed - user may need to re-login");
       }
 
       // If it's a 500 error, it might be a backend issue
@@ -185,14 +176,14 @@ export const mpesaAPI = {
       const response = await apiClient.post('/mpesa/pay-with-crypto', data, {
         headers: authHeader ? { Authorization: authHeader } : undefined,
       });
-      console.log('payWithCrypto API response:', response);
+      console.log("payWithCrypto API response:");
       return response.data;
     } catch (error: any) {
       console.error('payWithCrypto API error:', error);
-      console.error('Error response:', error.response);
-      console.error('Error status:', error.response?.status);
-      console.error('Error data:', error.response?.data);
-      console.error('Full error object:', JSON.stringify(error.response?.data, null, 2));
+      console.error("Error response:");
+      console.error("Error status:");
+      console.error("Error data:");
+      console.error("Full error object:");
       throw error;
     }
   },

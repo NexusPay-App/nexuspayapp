@@ -51,14 +51,14 @@ export const useBusinessFinance = () => {
     
     try {
       const response = await businessFinanceAPI.getBusinessBalance(businessId);
-      console.log('🔄 useBusinessFinance: API response:', response);
+      console.log("🔄 useBusinessFinance: API response:");
       
       if (response.success && response.data) {
-        console.log('✅ useBusinessFinance: Setting business balance:', response.data);
+        console.log("✅ useBusinessFinance: Setting business balance:");
         setBusinessBalance(response.data);
         return response.data;
       } else {
-        console.log('❌ useBusinessFinance: API returned error:', response.error);
+        console.log("❌ useBusinessFinance: API returned error:");
         setBalanceError(response.error || 'Failed to load business balance');
         return null;
       }
@@ -80,14 +80,14 @@ export const useBusinessFinance = () => {
     try {
       console.log('🔄 useBusinessFinance: Getting business balance for chain:', chain, 'businessId:', businessId);
       const response = await businessFinanceAPI.getBusinessBalanceByChain(businessId, chain);
-      console.log('🔄 useBusinessFinance: API response:', response);
+      console.log("🔄 useBusinessFinance: API response:");
       
       if (response.success && response.data) {
         console.log('✅ useBusinessFinance: Chain balance loaded successfully');
         setChainBalance(response.data);
         return response.data;
       } else {
-        console.log('❌ useBusinessFinance: API returned error:', response.error);
+        console.log("❌ useBusinessFinance: API returned error:");
         setChainBalanceError(response.error || 'Failed to load chain balance');
         return null;
       }

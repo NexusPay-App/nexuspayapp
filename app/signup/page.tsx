@@ -78,7 +78,7 @@ const Signup = () => {
     onError: (error: any, variables, context) => {
       // Handle errors, e.g., show a message to the user
       console.error("Failed to initiate sign-up:", error);
-      
+
       // Check for specific error types
       if (error?.response?.status === 409) {
         console.error("Phone number already exists. Please use a different phone number or try logging in.");
@@ -86,7 +86,7 @@ const Signup = () => {
       } else {
         setErrorMessage("Failed to Create Account");
       }
-      
+
       setOpenAccErr(true);
     },
     onSettled: (data, error, variables, context) => {
@@ -156,11 +156,11 @@ const Signup = () => {
   const verifyOTP = async (otpData: OTPFormData) => {
     if (!userDetails) return; // Ensure userDetails is not null
     // console.log(otpData.otp);
-    
+
     // Call the verify API with stored user details and provided OTP
     const promise = verifyUser.mutate();
     console.log("promise", promise);
-    
+
   };
 
   return (
@@ -187,7 +187,7 @@ const Signup = () => {
                       const newOtp = tillNumberParts.split("");
                       newOtp[index] = e.target.value;
                       setTillNumberParts(newOtp.join(""));
-                      
+
                       // Auto-focus next input
                       if (e.target.value && index < 5 && typeof document !== 'undefined') {
                         const nextInput = document.querySelector(`input[data-signup-index="${index + 1}"]`) as HTMLInputElement;
@@ -260,10 +260,10 @@ const Signup = () => {
           onSubmit={(values, { setSubmitting }) => {
             setTimeout(async () => {
               setOpenSigningUp(true);
-              
+
               // Format phone number to E.164 format using utility function
               const formattedPhoneNumber = formatPhoneNumberToE164(values.phoneNumber);
-              
+
               // Validate the formatted phone number
               if (!validateE164PhoneNumber(formattedPhoneNumber)) {
                 console.error('Invalid phone number format:', formattedPhoneNumber);
@@ -280,7 +280,6 @@ const Signup = () => {
               };
 
               // Call the Initiate Register User Mutation
-              console.log('Formatted request data:', requestData);
               initiateRegisterUser.mutate(requestData);
               setOpenSigningUp(false);
               setSubmitting(false);
@@ -335,7 +334,7 @@ const Signup = () => {
             <span className="px-4 text-white text-sm">or</span>
             <div className="border-t border-gray-300 flex-grow"></div>
           </div>
-          <GoogleSignIn 
+          <GoogleSignIn
             mode="signup"
             onSuccess={() => {
               setOpenSigningUp(true);

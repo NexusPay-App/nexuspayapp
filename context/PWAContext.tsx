@@ -78,7 +78,9 @@ export const PWAProvider: React.FC<PWAProviderProps> = ({ children }) => {
     // Listen for service worker updates
     const handleServiceWorkerUpdate = async () => {
       if ('serviceWorker' in navigator) {
-        const registration = await navigator.serviceWorker.getRegistration();
+        const registration = process.env.NODE_ENV === 'production'
+          ? await navigator.serviceWorker.register('/sw.js')
+          : await navigator.serviceWorker.getRegistration();
         
         if (registration) {
           registration.addEventListener('updatefound', () => {
@@ -100,7 +102,7 @@ export const PWAProvider: React.FC<PWAProviderProps> = ({ children }) => {
     // Initialize
     checkInstallation();
     updateOnlineStatus();
-    handleServiceWorkerUpdate();
+    handleServiceWorkerUpdate().catch(() => { /* App remains usable without offline support. */ });
 
     // Event listeners
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -153,7 +155,7 @@ export const PWAProvider: React.FC<PWAProviderProps> = ({ children }) => {
       
       if (registration && registration.waiting) {
         registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-        window.location.reload();
+        navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload(), { once: true });
       }
     }
   };

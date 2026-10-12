@@ -180,13 +180,16 @@ export const TransactionExport: React.FC<TransactionExportProps> = ({
               onChange={(e) => updateExportFilter('chain', e.target.value)}
               className="w-full px-3 py-2 bg-[#1A1E1E] border border-[#0795B0] rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#0795B0]"
             >
+              {/* Visible: Arbitrum, Base, Botchain only. Others commented, not removed. */}
               <option value="">All Chains</option>
               <option value="arbitrum">Arbitrum</option>
-              <option value="celo">Celo</option>
-              <option value="polygon">Polygon</option>
+              {/* <option value="celo">Celo</option> */}
+              {/* <option value="polygon">Polygon</option> */}
               <option value="base">Base</option>
-              <option value="optimism">Optimism</option>
-              <option value="ethereum">Ethereum</option>
+              {/* <option value="optimism">Optimism</option> */}
+              {/* <option value="ethereum">Ethereum</option> */}
+              <option value="botchain-testnet">BOT Chain Testnet</option>
+              <option value="botchain">BOT Chain</option>
             </select>
           </div>
 

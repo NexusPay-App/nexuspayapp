@@ -1,8 +1,9 @@
 "use client";
 
+import { usePaymentNetworks } from '@/hooks/usePaymentNetworks';
 import React, { useState, useEffect } from 'react';
 import { useCrypto } from '../../hooks/useCrypto';
-import { SUPPORTED_CHAINS, SUPPORTED_TOKENS, validateRecipientIdentifier } from '../../lib/crypto';
+import { validateRecipientIdentifier, normalizeRecipientPhone } from '../../lib/crypto';
 
 export const SendTokenForm: React.FC = () => {
   const {
@@ -16,9 +17,17 @@ export const SendTokenForm: React.FC = () => {
     getCurrentUserAddress,
   } = useCrypto();
 
+  const { networks, tokens, isBot } = usePaymentNetworks(sendFormData.chain);
+
+  // Selecting a BOT network must not keep a legacy token symbol selected.
+  useEffect(() => {
+    if (isBot && tokens.length && !tokens.some(t => t.symbol === sendFormData.tokenType)) {
+      updateSendForm('tokenType', 'USDT');
+    }
+  }, [isBot, tokens, sendFormData.tokenType, updateSendForm]);
+
   const [validationError, setValidationError] = useState<string>('');
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authMethod, setAuthMethod] = useState<'password' | 'googleAuth'>('password');
   const [authValue, setAuthValue] = useState<string>('');
   const [showSuccess, setShowSuccess] = useState(false);
   const [showError, setShowError] = useState(false);
@@ -61,10 +70,14 @@ export const SendTokenForm: React.FC = () => {
       return;
     }
 
-    // Validate recipient identifier
-    if (!validateRecipientIdentifier(sendFormData.recipientIdentifier)) {
+    // Validate recipient identifier (phone-like values are normalized to E.164)
+    const normalizedRecipient = normalizeRecipientPhone(sendFormData.recipientIdentifier);
+    if (!validateRecipientIdentifier(normalizedRecipient)) {
       setValidationError('Please enter a valid recipient identifier');
       return;
+    }
+    if (normalizedRecipient !== sendFormData.recipientIdentifier) {
+      updateSendForm('recipientIdentifier', normalizedRecipient);
     }
 
     // Show authentication modal
@@ -74,7 +87,7 @@ export const SendTokenForm: React.FC = () => {
   // Handle authentication and send
   const handleAuthenticateAndSend = async () => {
     if (!authValue.trim()) {
-      setValidationError('Please enter your password or Google Authenticator code');
+      setValidationError('Please enter your account password');
       return;
     }
 
@@ -82,24 +95,14 @@ export const SendTokenForm: React.FC = () => {
 
     const requestData = {
       recipientIdentifier: sendFormData.recipientIdentifier,
-      amount: parseFloat(sendFormData.amount),
+      amount: sendFormData.amount,
       senderAddress: currentUserAddress,
       chain: sendFormData.chain,
       tokenSymbol: sendFormData.tokenType, // API expects tokenSymbol, not tokenType
-      ...(authMethod === 'password' 
-        ? { password: authValue }
-        : { googleAuthCode: authValue }
-      ),
+      password: authValue,
     };
 
-    console.log('🚀 Attempting to send crypto with data:', {
-      ...requestData,
-      password: authMethod === 'password' ? '***HIDDEN***' : undefined,
-      googleAuthCode: authMethod === 'googleAuth' ? '***HIDDEN***' : undefined,
-    });
-    console.log('🔐 Auth method:', authMethod);
-    console.log('🎫 Current token:', localStorage.getItem('nexuspay_token') ? 'Present' : 'Missing');
-    console.log('👤 Current user:', localStorage.getItem('nexuspay_user') ? 'Present' : 'Missing');
+
 
     try {
       const response = await sendToken(requestData);
@@ -148,7 +151,7 @@ export const SendTokenForm: React.FC = () => {
               displayMessage = 'Invalid transaction amount. Please enter a valid amount.';
               break;
             case 'AUTHENTICATION_FAILED':
-              displayMessage = 'Authentication failed. Please check your password or Google Authenticator code.';
+              displayMessage = 'Authentication failed. Please check your account password.';
               break;
             case 'TRANSACTION_LIMIT_EXCEEDED':
               displayMessage = 'Transaction limit exceeded. Please try with a smaller amount.';
@@ -169,7 +172,7 @@ export const SendTokenForm: React.FC = () => {
           displayMessage = serverMessage;
         }
       } else if (error.response?.status === 401) {
-        displayMessage = 'Authentication failed. Please check your password or Google Authenticator code and ensure you are logged in.';
+        displayMessage = 'Authentication failed. Please check your account password and ensure you are logged in.';
         
         // Check if user is still authenticated
         const token = localStorage.getItem('nexuspay_token');
@@ -253,7 +256,7 @@ export const SendTokenForm: React.FC = () => {
                 onChange={(e) => updateSendForm('tokenType', e.target.value)}
                 className="w-full px-3 py-3 bg-[#1A1E1E] border border-[#0795B0] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#0795B0] focus:border-transparent hover:border-[#0AA5C0] transition-colors duration-200"
               >
-                {SUPPORTED_TOKENS.map((token) => (
+                {tokens.map((token) => (
                   <option key={token.symbol} value={token.symbol}>
                     {token.symbol}
                   </option>
@@ -271,7 +274,7 @@ export const SendTokenForm: React.FC = () => {
                 onChange={(e) => updateSendForm('chain', e.target.value)}
                 className="w-full px-3 py-3 bg-[#1A1E1E] border border-[#0795B0] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#0795B0] focus:border-transparent hover:border-[#0AA5C0] transition-colors duration-200"
               >
-                {SUPPORTED_CHAINS.map((chain) => (
+                {networks.map((chain) => (
                   <option key={chain.id} value={chain.id}>
                     {chain.id === 'stellar' ? '🌟 ' : ''}{chain.name}
                   </option>
@@ -307,38 +310,12 @@ export const SendTokenForm: React.FC = () => {
               <h3 className="text-xl font-bold text-white mb-4 text-center">🔐 Authentication Required</h3>
               
               <div className="space-y-4">
-                {/* Auth Method Selection */}
-                <div className="flex space-x-2">
-                  <button
-                    type="button"
-                    onClick={() => setAuthMethod('password')}
-                    className={`flex-1 py-2 px-3 rounded-md border transition-all duration-200 ${
-                      authMethod === 'password'
-                        ? 'bg-[#0795B0] text-white border-[#0795B0]'
-                        : 'bg-[#1A1E1E] text-gray-300 border-[#0795B0] hover:bg-[#0A0E0E]'
-                    }`}
-                  >
-                    🔐 Password
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAuthMethod('googleAuth')}
-                    className={`flex-1 py-2 px-3 rounded-md border transition-all duration-200 ${
-                      authMethod === 'googleAuth'
-                        ? 'bg-[#0795B0] text-white border-[#0795B0]'
-                        : 'bg-[#1A1E1E] text-gray-300 border-[#0795B0] hover:bg-[#0A0E0E]'
-                    }`}
-                  >
-                    📱 Google Auth
-                  </button>
-                </div>
-
-                {/* Auth Input */}
+                {/* Account password */}
                 <input
-                  type={authMethod === 'password' ? 'password' : 'text'}
+                  type="password" autoComplete="current-password"
                   value={authValue}
                   onChange={(e) => setAuthValue(e.target.value)}
-                  placeholder={authMethod === 'password' ? 'Enter your password' : 'Enter Google Auth code'}
+                  placeholder="Enter your account password"
                   className="w-full px-3 py-3 bg-[#1A1E1E] border border-[#0795B0] rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0795B0] focus:border-transparent"
                   autoFocus
                 />
@@ -375,8 +352,12 @@ export const SendTokenForm: React.FC = () => {
                 <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
                   <span className="text-2xl">✅</span>
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2">Transaction Successful!</h3>
-                <p className="text-gray-400">Your crypto has been sent successfully</p>
+                <h3 className="text-xl font-bold text-white mb-2">{sendTokenData.data.botStatus && sendTokenData.data.botStatus !== 'confirmed' ? 'Payment Submitted' : 'Transaction Successful!'}</h3>
+                <p className="text-gray-400">
+                  {sendTokenData.data.botStatus && sendTokenData.data.botStatus !== 'confirmed'
+                    ? 'Pending confirmation on BOT Chain. This is not confirmed yet.'
+                    : 'Your crypto has been sent successfully'}
+                </p>
               </div>
 
               <div className="space-y-3 text-sm">

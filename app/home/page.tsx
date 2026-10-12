@@ -293,6 +293,7 @@ import { useOptimizedBalance } from "@/hooks/useOptimizedBalance";
 import { BalanceSkeleton, BalanceErrorState, BalanceEmptyState } from "@/components/ui/balance-skeleton";
 import { RecentTransactions } from "@/components/transactions/RecentTransactions";
 import { cryptoConverter } from "@/lib/crypto-converter";
+import { getApiBaseUrl } from "@/lib/config";
 import { BusinessList } from "@/components/business/BusinessList";
 
 const Home = () => {
@@ -310,7 +311,25 @@ const Home = () => {
 
   const [openLogoutDialog, setOpenLogoutDialog] = useState(false); // Opens the Logout Loading Dialog
   const [selectedChain, setSelectedChain] = useState<string>('all');
+  const [botNetworks, setBotNetworks] = useState<{ id: string; name: string }[]>([]);
   const router = useRouter();
+
+  // Enabled BOT networks join the same chain selector as every other network.
+  useEffect(() => {
+    let active = true;
+    fetch(`${getApiBaseUrl()}/botchain/networks`)
+      .then((response) => response.json())
+      .then((json) => {
+        if (!active || !Array.isArray(json?.data)) return;
+        setBotNetworks(
+          json.data
+            .filter((network: any) => network.enabled)
+            .map((network: any) => ({ id: network.id, name: network.name }))
+        );
+      })
+      .catch(() => { /* Selection stays on legacy chains when capabilities are unavailable. */ });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     // Check if the user is authenticated using the auth context
@@ -318,7 +337,6 @@ const Home = () => {
       // If not logged in, redirect to the login page
       router.replace("/login");
     }
-    console.log("User:", user);
     console.log("Business accounts:", businessAccounts);
     console.log("Current business:", currentBusiness);
   }, [router, isAuthenticated, user, businessAccounts, currentBusiness]);
@@ -548,14 +566,18 @@ const Home = () => {
                 <SelectItem value="all">All Chains</SelectItem>
                 <SelectItem value="arbitrum">Arbitrum</SelectItem>
                 <SelectItem value="base">Base</SelectItem>
-                <SelectItem value="celo">Celo</SelectItem>
-                <SelectItem value="polygon">Polygon</SelectItem>
-                <SelectItem value="optimism">Optimism</SelectItem>
-                <SelectItem value="avalanche">Avalanche</SelectItem>
-                <SelectItem value="bnb">BNB Chain</SelectItem>
-                <SelectItem value="scroll">Scroll</SelectItem>
-                <SelectItem value="gnosis">Gnosis</SelectItem>
-                <SelectItem value="stellar">🌟 Stellar (NEW)</SelectItem>
+                {/* Visible: Arbitrum, Base, Botchain only. Others commented, not removed. */}
+                {/* <SelectItem value="celo">Celo</SelectItem> */}
+                {/* <SelectItem value="polygon">Polygon</SelectItem> */}
+                {/* <SelectItem value="optimism">Optimism</SelectItem> */}
+                {/* <SelectItem value="avalanche">Avalanche</SelectItem> */}
+                {/* <SelectItem value="bnb">BNB Chain</SelectItem> */}
+                {/* <SelectItem value="scroll">Scroll</SelectItem> */}
+                {/* <SelectItem value="gnosis">Gnosis</SelectItem> */}
+                {/* <SelectItem value="stellar">🌟 Stellar (NEW)</SelectItem> */}
+                {botNetworks.map((network) => (
+                  <SelectItem key={network.id} value={network.id}>{network.name}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

@@ -1,58 +1,15 @@
-/**
- * API Configuration
- * Centralized configuration for API endpoints
- */
-
+/** Configure this per deployment. Requests never retry against another backend. */
 export const getApiBaseUrl = (): string => {
-  // Prefer hostname-based auto-detection so local dev always points to localhost automatically
-  if (typeof window !== 'undefined') {
-    const host = window.location.hostname;
-    const protocol = window.location.protocol;
-    const isLocal = (
-      host === 'localhost' ||
-      host === '127.0.0.1' ||
-      /^192\.168\./.test(host) ||
-      /^10\./.test(host) ||
-      /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(host)
-    );
-    if (isLocal) return `${protocol}//${host}:8000/api`;
-    return 'https://api.nexuspaydefi.xyz/api';
-  }
-
-  // Server-side (build/runtime) fallback
-  const isProd = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
-  return isProd ? 'https://api.nexuspaydefi.xyz/api' : 'http://localhost:8000/api';
+  const configured = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (!configured) return process.env.NODE_ENV === 'development' ? 'http://localhost:8000/api' : '/api';
+  if (configured.startsWith('/') && !configured.startsWith('//')) return configured.replace(/\/$/, '');
+  const url = new URL(configured);
+  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) throw new Error('Invalid NEXT_PUBLIC_API_URL');
+  return configured.replace(/\/$/, '');
 };
-
-export const getApiBaseUrlWithoutPath = (): string => {
-  if (typeof window !== 'undefined') {
-    const host = window.location.hostname;
-    const protocol = window.location.protocol;
-    const isLocal = (
-      host === 'localhost' ||
-      host === '127.0.0.1' ||
-      /^192\.168\./.test(host) ||
-      /^10\./.test(host) ||
-      /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(host)
-    );
-    if (isLocal) return `${protocol}//${host}:8000`;
-    return 'https://api.nexuspaydefi.xyz';
-  }
-
-  const isProd = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
-  return isProd ? 'https://api.nexuspaydefi.xyz' : 'http://localhost:8000';
-};
-
-// Simple function for fetch calls
-export const getApiUrl = (endpoint: string): string => {
-  const baseUrl = getApiBaseUrlWithoutPath();
-  return `${baseUrl}${endpoint}`;
-};
-
-// Export constants for easy access
+export const getApiBaseUrlWithoutPath = () => getApiBaseUrl().replace(/\/api$/, '');
+export const getApiUrl = (endpoint: string) => `${getApiBaseUrlWithoutPath()}${endpoint}`;
 export const API_CONFIG = {
-  BASE_URL: getApiBaseUrl(),
-  BASE_URL_WITHOUT_PATH: getApiBaseUrlWithoutPath(),
-  PRODUCTION_URL: 'https://api.nexuspaydefi.xyz/api',
-  DEVELOPMENT_URL: 'http://localhost:8000/api',
+  get BASE_URL() { return getApiBaseUrl(); },
+  get BASE_URL_WITHOUT_PATH() { return getApiBaseUrlWithoutPath(); },
 } as const;

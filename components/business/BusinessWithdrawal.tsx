@@ -299,9 +299,12 @@ export const BusinessWithdrawal: React.FC<BusinessWithdrawalProps> = ({ onSucces
                   onChange={(e) => setChain(e.target.value)}
                   className="w-full px-3 py-2 bg-[#1A1E1E] border border-[#0795B0] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#0795B0] focus:border-transparent"
                 >
+                  {/* Visible: Arbitrum, Base, Botchain only. Others commented, not removed. */}
                   <option value="arbitrum">Arbitrum</option>
                   <option value="base">Base</option>
-                  <option value="celo">Celo</option>
+                  {/* <option value="celo">Celo</option> */}
+                  <option value="botchain-testnet">BOT Chain Testnet</option>
+                  <option value="botchain">BOT Chain</option>
                 </select>
               </div>
             </div>
@@ -394,9 +397,12 @@ export const BusinessWithdrawal: React.FC<BusinessWithdrawalProps> = ({ onSucces
                   onChange={(e) => setChain(e.target.value)}
                   className="w-full px-3 py-2 bg-[#1A1E1E] border border-[#0795B0] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#0795B0] focus:border-transparent"
                 >
+                  {/* Visible: Arbitrum, Base, Botchain only. Others commented, not removed. */}
                   <option value="arbitrum">Arbitrum</option>
                   <option value="base">Base</option>
-                  <option value="celo">Celo</option>
+                  {/* <option value="celo">Celo</option> */}
+                  <option value="botchain-testnet">BOT Chain Testnet</option>
+                  <option value="botchain">BOT Chain</option>
                 </select>
               </div>
             </div>

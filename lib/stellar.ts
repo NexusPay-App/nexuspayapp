@@ -366,7 +366,7 @@ export const stellarUtils = {
    */
   isValidStellarAddress: (address: string): boolean => {
     // Stellar addresses start with 'G' and are 56 characters long
-    return address && address.length === 56 && address.startsWith('G');
+    return typeof address === 'string' && /^G[A-Z2-7]{55}$/.test(address);
   },
 
   /**

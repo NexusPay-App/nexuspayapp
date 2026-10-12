@@ -65,7 +65,6 @@ export const PayWithCryptoForm: React.FC = () => {
       };
       
       console.log('Submitting payWithCrypto payload:', payload);
-      console.log('Form data:', formData);
       console.log('Currency:', currency);
       console.log('Rate:', rate);
       console.log('Fiat KES amount:', fiatKES);
@@ -84,7 +83,7 @@ export const PayWithCryptoForm: React.FC = () => {
           targetType: 'paybill',
           targetNumber: '',
           accountNumber: '',
-          chain: chain || 'polygon',
+    chain: chain || 'arbitrum',
           tokenType: 'USDC',
           description: '',
         });
@@ -315,10 +314,13 @@ export const PayWithCryptoForm: React.FC = () => {
               onChange={handleInputChange}
               className="mt-1 block w-full px-3 py-2 bg-[#1A1E1E] border border-[#0795B0] rounded-md focus:outline-none focus:ring-2 focus:ring-[#0795B0]"
             >
-              <option value="polygon">Polygon</option>
+              {/* Visible: Arbitrum, Base, Botchain only. Others commented, not removed. */}
+              {/* <option value="polygon">Polygon</option> */}
               <option value="arbitrum">Arbitrum</option>
-              <option value="ethereum">Ethereum</option>
+              {/* <option value="ethereum">Ethereum</option> */}
               <option value="base">Base</option>
+              <option value="botchain-testnet">BOT Chain Testnet</option>
+              <option value="botchain">BOT Chain</option>
             </select>
           </div>
         </div>

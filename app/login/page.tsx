@@ -55,13 +55,13 @@ const Login: React.FC = () => {
     mutationFn: async (initiateLoginUserPost: LoginFormFields) => {
       // Store credentials for OTP verification
       setUserCredentials(initiateLoginUserPost);
-      
+
       // First, initiate login
       const loginResponse = await login({
         phoneNumber: initiateLoginUserPost.phoneNumber,
         password: initiateLoginUserPost.password,
       });
-      
+
       return loginResponse;
     },
     onSuccess: (data, variables, context) => {
@@ -90,17 +90,17 @@ const Login: React.FC = () => {
   const verifyOTPMutation = useMutation({
     mutationFn: async (otp: string) => {
       if (!userCredentials) throw new Error("No user credentials found");
-      
+
       const verifyResponse = await verifyLogin({
         phoneNumber: userCredentials.phoneNumber,
         otp: otp,
       });
-      
+
       return verifyResponse;
     },
     onSuccess: (data, variables, context) => {
       console.log("OTP verification response:", data);
-      
+
       // The AuthContext handleAuthSuccess will handle token extraction and storage
       // If we get here, authentication was successful
       setOpenOTP(false);
@@ -160,10 +160,10 @@ const Login: React.FC = () => {
           onSubmit={(values, { setSubmitting }) => {
             setTimeout(async () => {
               setOpenLoading(true);
-              
+
               // Format phone number to E.164 format using utility function
               const formattedPhoneNumber = formatPhoneNumberToE164(values.phoneNumber);
-              
+
               // Validate the formatted phone number
               if (!validateE164PhoneNumber(formattedPhoneNumber)) {
                 console.error('Invalid phone number format:', formattedPhoneNumber);
@@ -180,7 +180,6 @@ const Login: React.FC = () => {
               };
 
               // Call the Initiate Login User Mutation
-              console.log('Formatted login request data:', requestData);
               initiateLoginUser.mutate(requestData);
               setOpenLoggin(false);
               setSubmitting(false);
@@ -233,7 +232,7 @@ const Login: React.FC = () => {
             <span className="px-4 text-white text-sm">or</span>
             <div className="border-t border-gray-300 flex-grow"></div>
           </div>
-          <GoogleSignIn 
+          <GoogleSignIn
             mode="login"
             onSuccess={() => {
               setOpenLoggin(true);
@@ -259,7 +258,7 @@ const Login: React.FC = () => {
               Please enter it below to complete your login.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="flex flex-col items-center space-y-6">
             <div className="flex justify-center space-x-2">
               {[0, 1, 2, 3, 4, 5].map((index) => (
@@ -272,7 +271,7 @@ const Login: React.FC = () => {
                     const newOtp = otpCode.split("");
                     newOtp[index] = e.target.value;
                     setOtpCode(newOtp.join(""));
-                    
+
                     // Auto-focus next input
                     if (e.target.value && index < 5 && typeof document !== 'undefined') {
                       const nextInput = document.querySelector(`input[data-index="${index + 1}"]`) as HTMLInputElement;
@@ -291,7 +290,7 @@ const Login: React.FC = () => {
                 />
               ))}
             </div>
-            
+
             <div className="flex space-x-3 w-full">
               <button
                 onClick={() => {

@@ -114,7 +114,7 @@ const fetchUserBalance = async (address: string, chain: string, tokenSymbol: str
     
     return null;
   } catch (error) {
-    console.error('Failed to fetch user balance:', error);
+    console.error("Failed to fetch user balance:");
     return null;
   }
 };

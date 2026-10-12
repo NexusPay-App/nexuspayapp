@@ -113,7 +113,7 @@ export const getAvailableTokens = async (chain: string) => {
 
     return availableTokens;
   } catch (error) {
-    console.error('Error getting available tokens:', error);
+    console.error("Error getting available tokens:");
     return [];
   }
 };
@@ -138,7 +138,7 @@ export const suggestAlternativeTokens = async (
       suggestion: `Use ${token.token} instead (you have ${token.balance} ${token.token})`
     }));
   } catch (error) {
-    console.error('Error suggesting alternative tokens:', error);
+    console.error("Error suggesting alternative tokens:");
     return [];
   }
 };

@@ -11,10 +11,12 @@ import toast from "react-hot-toast";
 import { stellarWalletAPI, StellarBalance } from "../lib/stellar";
 
 // Supported chains and tokens
+// Visible: Arbitrum, Base, Botchain. Others commented, not removed.
 export const SUPPORTED_CHAINS = [
-  'celo', 'polygon', 'arbitrum', 'base', 'optimism', 'ethereum', 
-  'bnb', 'avalanche', 'fantom', 'gnosis', 'scroll', 'moonbeam', 
-  'fuse', 'aurora', 'lisk', 'somnia', 'stellar'
+  'arbitrum', 'base', 'botchain-testnet', 'botchain',
+  // 'celo', 'polygon', 'optimism', 'ethereum',
+  // 'bnb', 'avalanche', 'fantom', 'gnosis', 'scroll', 'moonbeam',
+  // 'fuse', 'aurora', 'lisk', 'somnia', 'stellar'
 ];
 
 export const SUPPORTED_TOKENS = [
@@ -95,7 +97,6 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
     if (!isAuthenticated || !user) return;
     
     try {
-      console.log('🌟 [Stellar] Refreshing Stellar wallet for user:', user.email || user.phoneNumber);
       const response = await stellarWalletAPI.getWallet();
       
       if (response.success) {
@@ -104,41 +105,27 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
           balances: response.data.balances,
           isActive: response.data.isActive,
         });
-        console.log('🌟 [Stellar] Wallet loaded successfully:', {
-          accountId: response.data.accountId,
-          balances: response.data.balances.length,
-          isActive: response.data.isActive
-        });
-        toast.success('Stellar wallet loaded! 🌟');
       }
     } catch (error: any) {
-      console.error('🌟 [Stellar] Failed to load Stellar wallet:', error);
-      
-      // Don't show error for 404 (wallet doesn't exist yet)
-      if (error.response?.status === 404) {
-        console.log('🌟 [Stellar] Wallet not found (404) - User needs to create one');
-        console.log('🌟 [Stellar] Visit /wallet page to create your Stellar wallet');
-        // Optionally auto-create the wallet
-        // await initializeStellarWallet().catch(() => {});
-      } else if (error.response?.status !== 403 && error.response?.status !== 401) {
-        // Don't show error for auth issues, just log
-        console.error('🌟 [Stellar] Unexpected error:', error.response?.data || error.message);
+      // Stellar is optional/unprovisioned — never treat as a user-facing failure.
+      if (error.response?.status && error.response.status >= 400 && error.response.status < 500) {
+        setStellarWallet(null);
+        return;
       }
+      console.error('🌟 [Stellar] Failed to load Stellar wallet:', error);
     }
   };
 
   // Initialize wallet data when authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
-      console.log('User authenticated, attempting to refresh wallets');
-      console.log('User token:', user.token);
-      console.log('Token in localStorage:', localStorage.getItem('nexuspay_token'));
+      console.log("User authenticated, attempting to refresh wallets");
       refreshWallet();
       refreshStellarWallet();
     } else {
       setWallet(null);
       setStellarWallet(null);
-      console.log('User not authenticated or no user data');
+      console.log("User not authenticated or no user data");
     }
   }, [isAuthenticated, user]);
 
@@ -148,7 +135,6 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
     
     try {
       setRefreshing(true);
-      console.log('Refreshing wallet for user:', user);
       
       // Get both wallet info and balance data
       const [walletResponse, balanceResponse] = await Promise.allSettled([
@@ -173,30 +159,30 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
         setWallet(walletData);
         console.log('Wallet data loaded:', walletData);
       } else if (walletResponse.status === 'rejected') {
-        console.error('Failed to load wallet info:', walletResponse.reason);
+        console.error("Failed to load wallet info:");
         
         // Check if it's a 403 error - user might need wallet setup
         if (walletResponse.reason?.response?.status === 403) {
-          console.log('User needs wallet setup - 403 error on /token/receive');
+          console.log("User needs wallet setup - 403 error on /token/receive");
           // Don't show error toast, this is expected for new Google users
         } else {
-          console.error('Unexpected error loading wallet:', walletResponse.reason);
+          console.error("Unexpected error loading wallet:");
         }
       }
       
       // Handle balance data
       if (balanceResponse.status === 'fulfilled' && balanceResponse.value.success) {
         setBalance(balanceResponse.value.data);
-        console.log('Balance data loaded:', balanceResponse.value.data);
+        console.log("Balance data loaded:");
       } else if (balanceResponse.status === 'rejected') {
-        console.error('Failed to load balance data:', balanceResponse.reason);
+        console.error("Failed to load balance data:");
         
         // Check if it's a 403 error - user might need wallet setup
         if (balanceResponse.reason?.response?.status === 403) {
-          console.log('User needs wallet setup - 403 error on /token/balance');
+          console.log("User needs wallet setup - 403 error on /token/balance");
           // Don't show error toast, this is expected for new Google users
         } else {
-          console.error('Unexpected error loading balance:', balanceResponse.reason);
+          console.error("Unexpected error loading balance:");
         }
       }
       
@@ -205,7 +191,7 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
       
       // Check if it's an authentication error
       if (error.response?.status === 400 || error.response?.status === 401) {
-        console.log('Authentication issue - user may not have wallet yet');
+        console.log("Authentication issue - user may not have wallet yet");
         // Don't show error toast for auth issues, just log it
       } else {
         toast.error(error.message || 'Failed to load wallet data');
@@ -223,7 +209,7 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
     
     try {
       setLoading(true);
-      console.log('Initializing wallet for user:', user);
+      console.log("Initializing wallet for user:");
       
       // Try to call the receive endpoint to initialize/create wallet
       const response = await walletAPI.getReceiveInfo();
@@ -279,7 +265,7 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
     
     try {
       setLoading(true);
-      console.log('Initializing Stellar wallet for user:', user);
+      console.log("Initializing Stellar wallet for user:");
       
       const response = await stellarWalletAPI.createWallet();
       

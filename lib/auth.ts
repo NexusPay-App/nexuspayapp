@@ -196,15 +196,15 @@ export const authAPI = {
 // Token management utilities
 export const tokenUtils = {
     setToken: (token: string) => {
-        localStorage.setItem('nexuspay_token', token);
+        if (typeof window !== 'undefined') localStorage.setItem('nexuspay_token', token);
     },
 
     getToken: (): string | null => {
-        return localStorage.getItem('nexuspay_token');
+        return typeof window === 'undefined' ? null : localStorage.getItem('nexuspay_token');
     },
 
     removeToken: () => {
-        localStorage.removeItem('nexuspay_token');
+        if (typeof window !== 'undefined') localStorage.removeItem('nexuspay_token');
     },
 
     isTokenValid: (): boolean => {
@@ -225,16 +225,17 @@ export const tokenUtils = {
 // User data management
 export const userUtils = {
     setUser: (user: User) => {
-        localStorage.setItem('nexuspay_user', JSON.stringify(user));
+        if (typeof window !== 'undefined') localStorage.setItem('nexuspay_user', JSON.stringify(user));
     },
 
     getUser: (): User | null => {
+        if (typeof window === 'undefined') return null;
         const userData = localStorage.getItem('nexuspay_user');
         return userData ? JSON.parse(userData) : null;
     },
 
     removeUser: () => {
-        localStorage.removeItem('nexuspay_user');
+        if (typeof window !== 'undefined') localStorage.removeItem('nexuspay_user');
     },
 
     isAuthenticated: (): boolean => {

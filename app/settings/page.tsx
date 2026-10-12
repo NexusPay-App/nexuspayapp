@@ -20,6 +20,7 @@ import * as Yup from "yup";
 import TextInput from "../../components/inputs/TextInput";
 import PasswordInput from "../../components/inputs/PasswordInput";
 import { formatPhoneNumberToE164, validateE164PhoneNumber } from "../../lib/phone-utils";
+import { filterVisibleChains } from "../../lib/crypto";
 import { BusinessSettings } from "../../components/business/BusinessSettings";
 
 const SettingsPage = () => {
@@ -479,12 +480,12 @@ const SettingsPage = () => {
                 </div>
               </div>
 
-              {/* Supported Chains */}
-              {supportedChains.length > 0 && (
+              {/* Supported Chains — Arbitrum, Base, Botchain only (others filtered, not removed) */}
+              {filterVisibleChains(supportedChains).length > 0 && (
                 <div className="mt-6 p-4 bg-black/40 border border-[#0795B0]/40 rounded-lg">
                   <h4 className="font-semibold mb-3">Supported Networks:</h4>
                   <div className="grid grid-cols-2 gap-2">
-                    {supportedChains.map((chain: any) => (
+                    {filterVisibleChains(supportedChains).map((chain: any) => (
                       <div key={chain.id} className="flex items-center space-x-2 p-2 bg-black/40 rounded">
                         <div className="w-2 h-2 bg-green-400 rounded-full"></div>
                         <span className="text-sm text-gray-300">{chain.name}</span>

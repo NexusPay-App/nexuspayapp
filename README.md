@@ -1,36 +1,21 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# NexusPay frontend
 
-## Getting Started
+This execution branch upgrades the app to Next.js 16.4, React 19.3 and Tailwind 4.3, with a capability-driven BOT Chain workspace at `/botchain`.
 
-First, run the development server:
+## Local development
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Use Node 24.21.0 and npm 12.2.0 (`.nvmrc` / `packageManager`). Run `npm ci`, copy `.env.example` to `.env.local`, set `NEXT_PUBLIC_API_URL` to the intended backend and run `npm run dev`. Production can use `/api` only when a same-origin reverse proxy exists. Requests never fall through to another deployment.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Checks: `npm run build`, `npm run typecheck`, `npm run lint`, `npm test`. Browser tests: `npx playwright install chromium` then `npx playwright test`; the config starts the production app on port 3100. Browser API/payment fixtures are mocked and do not send money.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## BOT Chain
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+The backend owns Thirdweb signing, chain-specific account resolution and operation reconciliation. This frontend contains no wallet private keys or provider application secrets. The network list and payment flags come from `/api/botchain/networks`. BOT/USDT/WBOT balances, chain-specific receive QR, sends, USDT merchant payments and operation history live at `/botchain`.
 
-## Learn More
+A pending hash is not shown as paid. Retry keys survive an ambiguous response in session storage. A confirmed/failed result releases that request identity so a later intentional payment gets a new key. A network/account change resets addresses and balances. Offline mode shows a public fallback page; it does not cache private API responses or initiate payments.
 
-To learn more about Next.js, take a look at the following resources:
+Mainnet payments, paymaster sponsorship and BOT M-Pesa settlement are not enabled by this change. Funded testnet validation is still required. The backend repository's `docs/BOTCHAIN_RUNBOOK.md` contains integration parameters, staging steps and recovery requirements.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Release status
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+Both application builds and the documented local tests pass. Ten existing frontend lint warnings remain. See [dependency security review](docs/DEPENDENCY_SECURITY_REVIEW.md) for unpatched advisories. Reclaim now requests a backend-created session; rotate the old exposed Reclaim application secret and complete backend verification validation before enabling the feature.

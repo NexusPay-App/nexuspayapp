@@ -59,7 +59,7 @@
 
 "use client";
 
-import QRCode from "qrcode.react"; // Import the QRCode component as a default import
+import { QRCodeSVG as QRCode } from 'qrcode.react'; // Import the QRCode component as a default import
 import { ArrowLeft, Copy } from "@phosphor-icons/react";
 import router from "next/router";
 import React, { useEffect, useState } from "react";

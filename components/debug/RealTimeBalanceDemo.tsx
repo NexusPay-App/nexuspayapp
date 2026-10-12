@@ -140,11 +140,14 @@ export const RealTimeBalanceDemo: React.FC = () => {
                 onChange={(e) => handleChainChange(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
+                {/* Visible: Arbitrum, Base, Botchain only. Others commented, not removed. */}
                 <option value="arbitrum">Arbitrum</option>
-                <option value="polygon">Polygon</option>
-                <option value="ethereum">Ethereum</option>
+                {/* <option value="polygon">Polygon</option> */}
+                {/* <option value="ethereum">Ethereum</option> */}
                 <option value="base">Base</option>
-                <option value="celo">Celo</option>
+                {/* <option value="celo">Celo</option> */}
+                <option value="botchain-testnet">BOT Chain Testnet</option>
+                <option value="botchain">BOT Chain</option>
               </select>
             </div>
 

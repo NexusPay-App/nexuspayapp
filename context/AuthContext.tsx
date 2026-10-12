@@ -3,6 +3,9 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { authAPI, tokenUtils, userUtils, User } from "../lib/auth";
 import toast from "react-hot-toast";
+import { useQueryClient } from "@tanstack/react-query";
+import { clearLegacyBalanceStorage } from "@/lib/balanceCache";
+import { authUtils } from "@/lib/api";
 import { preloadBalanceAfterLogin } from '@/lib/balance-preloader';
 
 // Types
@@ -41,6 +44,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 // Provider component
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -53,7 +57,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setUser(userData);
         }
       } catch (error) {
-        console.error('Auth initialization error:', error);
+        console.error("Auth initialization error:");
         // Clear invalid data
         tokenUtils.removeToken();
         userUtils.removeUser();
@@ -67,7 +71,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Helper function to handle successful authentication
   const handleAuthSuccess = (response: any) => {
-    console.log("Processing auth success with response:", response);
+    console.log("Processing auth success with response:");
     
     // Extract token from multiple possible locations
     const token = (response as any)?.data?.token || 
@@ -91,8 +95,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         token,
       };
       
-      console.log("Storing user data:", userData);
       
+      queryClient.clear();
+      clearLegacyBalanceStorage();
       tokenUtils.setToken(token);
       userUtils.setUser(userData);
       setUser(userData);
@@ -105,7 +110,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       toast.success((response as any).message || 'Authentication successful');
       return userData;
     } else {
-      console.error("No token found in response:", response);
+      console.error("No token found in response:");
       throw new Error("Authentication failed - no token received");
     }
   };
@@ -197,7 +202,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(true);
       const response = await authAPI.verifyLogin(data);
       
-      console.log("Full OTP verification response:", response);
+      console.log("Full OTP verification response:");
       
       // Check multiple possible response structures for token
       const token = (response as any)?.data?.token || 
@@ -209,7 +214,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if ((response as any).success && token) {
         return handleAuthSuccess(response);
       } else {
-        console.error("No token found in response. Response structure:", response);
+        console.error("No token found in response. Response structure:");
         throw new Error("Authentication failed - no token received");
       }
       
@@ -337,7 +342,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         message: 'Profile loaded successfully'
       };
     } catch (error: any) {
-      console.error("Failed to get user profile:", error);
+      console.error("Failed to get user profile:");
       throw error;
     }
   };
@@ -351,8 +356,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Continue with local logout even if server call fails
       console.error('Server logout failed:', error);
     } finally {
-      tokenUtils.removeToken();
-      userUtils.removeUser();
+      authUtils.clearAuth();
+      clearLegacyBalanceStorage();
+      queryClient.clear();
       setUser(null);
       toast.success('Logged out successfully');
     }

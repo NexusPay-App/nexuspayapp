@@ -16,6 +16,18 @@ class CryptoConverter {
   private rates: ConversionRate | null = null;
   private lastUpdate: number = 0;
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+  private readonly FETCH_TIMEOUT_MS = 5000;
+
+  private async fetchJson(url: string, timeoutMs = this.FETCH_TIMEOUT_MS): Promise<any> {
+    const response = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+    if (!response.ok) throw new Error(`HTTP ${response.status} for ${url}`);
+    return response.json();
+  }
+
+  private fallbackRates(): ConversionRate {
+    const fallbackUsdToKes = 155;
+    return { usd: 1, kes: 1 / fallbackUsdToKes };
+  }
 
   // Get current conversion rates
   async getConversionRates(): Promise<ConversionRate> {
@@ -26,59 +38,32 @@ class CryptoConverter {
       return this.rates;
     }
 
-    try {
-      // Get real-time KES to USD rate from Exchange Rate API
-      const kesResponse = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
-      const kesData = await kesResponse.json();
-      
-      // Fix: Ensure we get the correct KES rate
-      // The API returns rates where 1 USD = X KES
-      // So if 1 USD = 155 KES, then 1 KES = 1/155 USD
-      const usdToKes = kesData.rates?.KES;
-      if (!usdToKes || usdToKes <= 0) {
-        throw new Error('Invalid KES rate received');
+    // FX only — stablecoin USD prices are ~1; CoinGecko is not required here.
+    const fxSources = [
+      'https://api.exchangerate-api.com/v4/latest/USD',
+      'https://open.er-api.com/v6/latest/USD',
+      'https://api.frankfurter.app/latest?from=USD&to=KES',
+    ];
+
+    for (const url of fxSources) {
+      try {
+        const data = await this.fetchJson(url);
+        const usdToKes = Number(data?.rates?.KES);
+        if (Number.isFinite(usdToKes) && usdToKes > 0) {
+          this.rates = { usd: 1, kes: 1 / usdToKes };
+          this.lastUpdate = now;
+          return this.rates;
+        }
+      } catch {
+        // try next source
       }
-      
-      const kesToUsd = 1 / usdToKes; // Convert to 1 KES = X USD
-      
-      // Get USD rates from CoinGecko
-      const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=usd-coin&vs_currencies=usd');
-      const data = await response.json();
-      
-      this.rates = {
-        usd: data['usd-coin']?.usd || 1,
-        kes: kesToUsd
-      };
-      
-      console.log('Updated conversion rates:', {
-        usd: this.rates.usd,
-        kes: this.rates.kes,
-        '1 USD': `${usdToKes.toFixed(2)} KES`,
-        '1 KES': `${kesToUsd.toFixed(6)} USD`,
-        'Validation': `${(1 / kesToUsd).toFixed(2)} KES = 1 USD`
-      });
-      
-      this.lastUpdate = now;
-      return this.rates;
-    } catch (error) {
-      console.error('Failed to fetch conversion rates:', error);
-      
-      // Fallback rates (realistic values)
-      const fallbackUsdToKes = 155; // 1 USD = 155 KES (realistic)
-      const fallbackKesToUsd = 1 / fallbackUsdToKes; // 1 KES = 0.00645 USD
-      
-      this.rates = {
-        usd: 1,
-        kes: fallbackKesToUsd
-      };
-      
-      console.log('Using fallback rates:', {
-        '1 USD': `${fallbackUsdToKes} KES`,
-        '1 KES': `${fallbackKesToUsd.toFixed(6)} USD`
-      });
-      
-      return this.rates;
     }
+
+    // All sources failed — cache fallback so we don't hammer the network every mount.
+    console.warn('FX rate sources unavailable; using cached fallback (1 USD ≈ 155 KES)');
+    this.rates = this.fallbackRates();
+    this.lastUpdate = now;
+    return this.rates;
   }
 
   // Convert fiat amount to crypto amount
@@ -126,28 +111,24 @@ class CryptoConverter {
         conversionRate = 1;
         break;
       case 'ETH':
-        // Get ETH price from CoinGecko
         try {
-          const ethResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
-          const ethData = await ethResponse.json();
-          const ethPrice = ethData.ethereum?.usd || 3000; // Fallback price
+          const ethData = await this.fetchJson('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
+          const ethPrice = ethData.ethereum?.usd || 3000;
           cryptoAmount = usdAmount / ethPrice;
           conversionRate = ethPrice;
         } catch {
-          cryptoAmount = usdAmount / 3000; // Fallback
+          cryptoAmount = usdAmount / 3000;
           conversionRate = 3000;
         }
         break;
       case 'BTC':
-        // Get BTC price from CoinGecko
         try {
-          const btcResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');
-          const btcData = await btcResponse.json();
-          const btcPrice = btcData.bitcoin?.usd || 50000; // Fallback price
+          const btcData = await this.fetchJson('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');
+          const btcPrice = btcData.bitcoin?.usd || 50000;
           cryptoAmount = usdAmount / btcPrice;
           conversionRate = btcPrice;
         } catch {
-          cryptoAmount = usdAmount / 50000; // Fallback
+          cryptoAmount = usdAmount / 50000;
           conversionRate = 50000;
         }
         break;
@@ -195,8 +176,7 @@ class CryptoConverter {
         break;
       case 'ETH':
         try {
-          const ethResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
-          const ethData = await ethResponse.json();
+          const ethData = await this.fetchJson('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
           const ethPrice = ethData.ethereum?.usd || 3000;
           usdAmount = cryptoAmount * ethPrice;
           conversionRate = ethPrice;
@@ -207,8 +187,7 @@ class CryptoConverter {
         break;
       case 'BTC':
         try {
-          const btcResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');
-          const btcData = await btcResponse.json();
+          const btcData = await this.fetchJson('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');
           const btcPrice = btcData.bitcoin?.usd || 50000;
           usdAmount = cryptoAmount * btcPrice;
           conversionRate = btcPrice;
@@ -240,8 +219,7 @@ class CryptoConverter {
     const rates = await this.getConversionRates();
     
     try {
-      const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=usd-coin,tether,ethereum,bitcoin&vs_currencies=usd');
-      const data = await response.json();
+      const data = await this.fetchJson('https://api.coingecko.com/api/v3/simple/price?ids=usd-coin,tether,ethereum,bitcoin&vs_currencies=usd');
       
       return {
         'USDC': { usd: data['usd-coin']?.usd || 1, kes: (data['usd-coin']?.usd || 1) / rates.kes },
@@ -249,10 +227,8 @@ class CryptoConverter {
         'ETH': { usd: data.ethereum?.usd || 3000, kes: (data.ethereum?.usd || 3000) / rates.kes },
         'BTC': { usd: data.bitcoin?.usd || 50000, kes: (data.bitcoin?.usd || 50000) / rates.kes }
       };
-    } catch (error) {
-      console.error('Failed to fetch market prices:', error);
-      
-      // Fallback prices
+    } catch {
+      // Offline/CORS — stablecoin prices are $1; keep conversions usable.
       return {
         'USDC': { usd: 1, kes: 1 / rates.kes },
         'USDT': { usd: 1, kes: 1 / rates.kes },

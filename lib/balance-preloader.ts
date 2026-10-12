@@ -28,7 +28,7 @@ export class BalancePreloader {
               config.headers.Authorization = `Bearer ${parsedToken}`;
             }
           } catch (error) {
-            console.error('Error parsing token:', error);
+            console.error("Error parsing token:");
           }
         }
         return config;
@@ -87,7 +87,7 @@ export class BalancePreloader {
         
         return balanceData;
       } else {
-        console.error('❌ Balance preload failed:', response.data.message);
+        console.error("❌ Balance preload failed:");
         return null;
       }
     } catch (error: any) {

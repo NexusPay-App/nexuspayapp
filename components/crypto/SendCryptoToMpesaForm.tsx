@@ -11,7 +11,7 @@ export const SendCryptoToMpesaForm: React.FC = () => {
   const [formData, setFormData] = useState({
     amount: '', // Amount in KES or USD
     recipientPhone: '',
-    chain: 'celo', // Default to celo as per backend
+    chain: 'arbitrum', // Visible chains only: Arbitrum, Base, Botchain
     tokenType: 'USDC',
   });
   const [currency, setCurrency] = useState<'KES' | 'USD'>('KES');
@@ -175,15 +175,18 @@ export const SendCryptoToMpesaForm: React.FC = () => {
               onChange={handleInputChange}
               className="w-full px-3 py-3 bg-[#1A1E1E] border border-[#0795B0] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#0795B0] focus:border-transparent"
             >
-              <option value="celo">Celo</option>
+              {/* Visible: Arbitrum, Base, Botchain only. Others commented, not removed. */}
+              {/* <option value="celo">Celo</option> */}
               <option value="arbitrum">Arbitrum</option>
-              <option value="polygon">Polygon</option>
+              {/* <option value="polygon">Polygon</option> */}
               <option value="base">Base</option>
-              <option value="optimism">Optimism</option>
-              <option value="scroll">Scroll</option>
-              <option value="fuse">Fuse</option>
-              <option value="gnosis">Gnosis</option>
-              <option value="aurora">Aurora</option>
+              {/* <option value="optimism">Optimism</option> */}
+              {/* <option value="scroll">Scroll</option> */}
+              {/* <option value="fuse">Fuse</option> */}
+              {/* <option value="gnosis">Gnosis</option> */}
+              {/* <option value="aurora">Aurora</option> */}
+              <option value="botchain-testnet">BOT Chain Testnet</option>
+              <option value="botchain">BOT Chain</option>
             </select>
           </div>
 

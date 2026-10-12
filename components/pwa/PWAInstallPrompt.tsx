@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Download, X, Smartphone, Monitor, Tablet } from 'lucide-react';
@@ -20,6 +21,8 @@ interface PWAInstallPromptProps {
 }
 
 const PWAInstallPrompt: React.FC<PWAInstallPromptProps> = ({ onInstall, onDismiss }) => {
+  const pathname = usePathname();
+  const allowInstallPrompt = pathname === '/' || pathname === '/home';
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
@@ -165,7 +168,7 @@ const PWAInstallPrompt: React.FC<PWAInstallPromptProps> = ({ onInstall, onDismis
     }
   };
 
-  if (isInstalled || !showInstallPrompt) {
+  if (!allowInstallPrompt || isInstalled || !showInstallPrompt) {
     return null;
   }
 
@@ -201,8 +204,8 @@ const PWAInstallPrompt: React.FC<PWAInstallPromptProps> = ({ onInstall, onDismis
             <h3 className="font-semibold text-[#0795B0] mb-2">Why install NexusPay?</h3>
             <ul className="text-sm text-gray-700 space-y-1">
               <li>• Lightning-fast stablecoin transactions</li>
-              <li>• Secure offline wallet access</li>
-              <li>• Instant transaction notifications</li>
+              <li>• Quick access to your wallet</li>
+              <li>• Clear connection and payment status</li>
               <li>• Native app performance</li>
               <li>• One-tap access from home screen</li>
             </ul>

@@ -1,13 +1,15 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Copy } from "@phosphor-icons/react";
-import QRCode from "qrcode.react";
+import { QRCodeSVG as QRCode } from 'qrcode.react';
 import { useAuth } from "@/context/AuthContext";
 import { useWallet } from "@/context/WalletContext";
 import { useChain } from "@/context/ChainContext";
 import AuthGuard from "@/components/auth/AuthGuard";
+import { botAPI, type BotBalance, type BotCapability } from "@/lib/botchain";
+import { filterVisibleChains } from "@/lib/crypto";
 import toast from "react-hot-toast";
 
 const Receive: React.FC = () => {
@@ -17,6 +19,39 @@ const Receive: React.FC = () => {
   const { chain } = useChain();
   const [initializing, setInitializing] = useState(false);
   const [selectedWalletType, setSelectedWalletType] = useState<'evm' | 'stellar'>('evm');
+
+  // Inline BOT Chain receive information for every enabled network.
+  const [botNetworks, setBotNetworks] = useState<BotCapability[]>([]);
+  const [botBalances, setBotBalances] = useState<Record<string, BotBalance>>({});
+  const [botFailed, setBotFailed] = useState<Record<string, boolean>>({});
+  const [botAttempt, setBotAttempt] = useState(0);
+  useEffect(() => {
+    const abort = new AbortController();
+    let active = true;
+    const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+    botAPI.networks().then(async list => {
+      const enabled = list.filter(n => n.enabled);
+      if (!active) return;
+      setBotNetworks(enabled);
+      for (const network of enabled) {
+        // The public testnet RPC times out occasionally; retry before giving up so
+        // one flaky response never leaves the receive address stuck as unavailable.
+        for (let attempt = 1; attempt <= 3 && active; attempt++) {
+          try {
+            const balance = await botAPI.balance(network.id, abort.signal);
+            if (!active) return;
+            setBotBalances(prev => ({ ...prev, [network.id]: balance }));
+            setBotFailed(prev => ({ ...prev, [network.id]: false }));
+            break;
+          } catch {
+            if (attempt < 3) await sleep(1200 * attempt);
+            else if (active) setBotFailed(prev => ({ ...prev, [network.id]: true }));
+          }
+        }
+      }
+    }).catch(() => { /* BOT disabled: receive screen stays legacy-only. */ });
+    return () => { active = false; abort.abort(); };
+  }, [botAttempt]);
 
   // Get wallet address and user info from the new API response
   const walletAddress = wallet?.walletAddress || wallet?.address || user?.walletAddress || "";
@@ -75,8 +110,8 @@ const Receive: React.FC = () => {
             Share this QR code or wallet address to receive payments
           </p>
           
-          {/* Wallet Type Selector */}
-          {walletAddress && stellarAddress && (
+          {/* Wallet Type Selector — Stellar hidden (visible chains: Arbitrum, Base, Botchain) */}
+          {false && walletAddress && stellarAddress && (
             <div className="flex gap-2 mb-4">
               <button
                 onClick={() => setSelectedWalletType('evm')}
@@ -180,7 +215,41 @@ const Receive: React.FC = () => {
             </div>
           )}
 
-          {/* Phone Number */}
+          {/* BOT Chain receive addresses */}
+        {botNetworks.length > 0 && (
+          <div className="mt-6 space-y-4">
+            {botNetworks.map(network => {
+              const account = botBalances[network.id];
+              return (
+                <div key={network.id} className="flex flex-col">
+                  <label className="text-[#909090] p-1 text-sm flex items-center gap-2">
+                    ⛓️ {network.name} Address {network.testnet && <span className="text-yellow-400 text-xs">Testnet</span>}
+                  </label>
+                  <div className="flex justify-between items-center border border-cyan-700 rounded-lg p-3 bg-[#0A0E0E] text-white">
+                    <span className="flex-1 mr-2 text-sm font-mono break-all">
+                      {account ? `${account.address.substring(0, 10)}...${account.address.slice(-8)}` : botFailed[network.id] ? 'Address unavailable' : 'Loading…'}
+                    </span>
+                    {account ? (
+                      <Copy
+                        size={20}
+                        color="#ffffff"
+                        onClick={() => copyToClipboard(account.address, `${network.name} address copied!`)}
+                        className="cursor-pointer hover:text-cyan-400"
+                      />
+                    ) : botFailed[network.id] ? (
+                      <button type="button" onClick={() => setBotAttempt(x => x + 1)} className="ml-2 text-sm text-cyan-400 underline">Retry</button>
+                    ) : null}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Send only {network.name} assets to this address. {network.transfers ? 'Transfers are enabled.' : 'Receiving only; transfers are not enabled yet.'}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Phone Number */}
           {phoneNumber && (
             <div className="flex flex-col">
               <label className="text-[#909090] p-1 text-sm">
@@ -217,12 +286,12 @@ const Receive: React.FC = () => {
           )}
         </div>
 
-        {/* Supported Chains */}
-        {supportedChains.length > 0 && (
+        {/* Supported Chains — Arbitrum, Base, Botchain only (others filtered, not removed) */}
+        {filterVisibleChains(supportedChains).length > 0 && (
           <div className="mt-6 p-4 bg-gray-800 rounded-lg">
             <h4 className="text-white font-semibold mb-3">Supported Networks:</h4>
             <div className="grid grid-cols-2 gap-2">
-              {supportedChains.map((chain) => (
+              {filterVisibleChains(supportedChains).map((chain) => (
                 <div key={chain.id} className="flex items-center space-x-2 p-2 bg-gray-700 rounded">
                   <div className="w-2 h-2 bg-green-400 rounded-full"></div>
                   <span className="text-sm text-gray-300">{chain.name}</span>

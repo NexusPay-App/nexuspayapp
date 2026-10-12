@@ -547,7 +547,6 @@ const SignupBusiness = () => {
               };
 
               // Call the Initiate Register User Mutation
-              // console.log(requestData);
               initiateRegisterUser.mutate(requestData);
               setOpenSigningUp(false);
               setSubmitting(false);

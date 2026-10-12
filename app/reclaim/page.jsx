@@ -1,8 +1,9 @@
 "use client";
+import apiClient from "@/lib/api";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation"; // Corrected import for router
 import { ArrowLeft } from "@phosphor-icons/react";
-import { Reclaim } from "@reclaimprotocol/js-sdk";
+import { ReclaimProofRequest } from "@reclaimprotocol/js-sdk";
 import QRCode from "react-qr-code";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheckCircle, faSpinner } from "@fortawesome/free-solid-svg-icons";
@@ -84,43 +85,12 @@ const ReclaimPage = () => {
   const [verifications, setVerifications] = useState([]);
   const [isMobile, setIsMobile] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [verificationError, setVerificationError] = useState('');
 
   useEffect(() => {
     const userAgent = window.navigator.userAgent;
     setIsMobile(/iPhone|iPad|iPod|Android/i.test(userAgent));
   }, []);
-
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const phoneNumber = user.phoneNumber;
-
-  const storeVerification = async (
-    providerId,
-    providerName,
-    proof,
-    verified
-  ) => {
-    setIsLoading(true);
-    const response = await fetch(
-      "https://afpaybackend.vercel.app/api/verifications",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          providerId,
-          providerName,
-          proof,
-          verified,
-          phoneNumber,
-        }),
-      }
-    );
-    setIsLoading(false);
-    if (!response.ok) {
-      console.error("Failed to store verification details");
-    }
-  };
 
   const providerIds = [
     { id: "2b22db5c-78d9-4d82-84f0-a9e0a4ed0470", name: "Binance KYC" },
@@ -133,49 +103,26 @@ const ReclaimPage = () => {
 
   const initiateVerification = async (providerId, providerName) => {
     setIsLoading(true);
-    const APP_ID = "0xDc791663472B5facC8c5Fc17976fc0Edf21b9A7a";
-    const APP_SECRET =
-      "0xcb2693d9012df5d62e15c84328b8a81d4ebca5c9fcca070689abacb912cd510e";
-    const reclaimClient = new Reclaim.ProofRequest(APP_ID);
-
-    await reclaimClient.buildProofRequest(providerId);
-    reclaimClient.setSignature(
-      await reclaimClient.generateSignature(APP_SECRET)
-    );
-    const { requestUrl, statusUrl } =
-      await reclaimClient.createVerificationRequest();
-    setIsLoading(false);
-
-    setVerifications((prev) => {
-      const existing = prev.find((v) => v.providerId === providerId);
-      if (existing) {
-        return prev.map((v) =>
-          v.providerId === providerId ? { ...v, requestUrl, statusUrl } : v
-        );
-      }
-      return [
-        ...prev,
-        { providerId, providerName, requestUrl, statusUrl, verified: false },
-      ];
-    });
-
-    reclaimClient.startSession({
-      onSuccessCallback: (proof) => {
-        setVerifications((prev) =>
-          prev.map((v) =>
-            v.providerId === providerId ? { ...v, verified: true, proof } : v
-          )
-        );
-        storeVerification(providerId, providerName, proof, true);
-      },
-      onFailureCallback: (error) => {
-        console.error("Verification failed", error);
-      },
-    });
+    try {
+      const { data: response } = await apiClient.post('/verifications/request', { providerId });
+      const reclaimClient = await ReclaimProofRequest.fromJsonString(response.data.requestConfig);
+      const requestUrl = await reclaimClient.getRequestUrl();
+      setVerifications(prev => [...prev.filter(v => v.providerId !== providerId), { providerId, providerName, requestUrl, verified: false }]);
+      await reclaimClient.startSession({
+        onSuccess: async proof => {
+          const { data } = await apiClient.post('/verifications', { sessionId: response.data.sessionId, proof });
+          if (data.success) setVerifications(prev => prev.map(v => v.providerId === providerId ? { ...v, verified: true } : v));
+        },
+        onError: () => { setVerificationError('Verification could not be completed. Please try again.'); },
+      });
+    } catch (error) {
+      setVerificationError(error.response?.data?.message || 'Unable to start verification');
+    } finally { setIsLoading(false); }
   };
 
   return (
     <PageContainer>
+      {verificationError && <p role="alert">{verificationError}</p>}
       <Header>
         <ArrowLeft
           size={24}

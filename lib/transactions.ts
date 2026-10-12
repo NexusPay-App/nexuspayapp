@@ -31,18 +31,17 @@ export const transactionAPI = {
       console.log('🔍 Fetching transaction history:', url);
       console.log('🔍 Full URL:', `${process.env.NODE_ENV === 'production' ? 'https://api.nexuspaydefi.xyz' : 'http://localhost:8000'}/api${url}`);
       console.log('🔍 Filters:', filters);
-      console.log('🔍 Auth token:', localStorage.getItem('nexuspay_token') ? 'Present' : 'Missing');
       
       const response = await apiClient.get(url);
-      console.log('✅ Transaction history response:', response);
-      console.log('✅ Response data:', response.data);
+      console.log("✅ Transaction history response:");
+      console.log("✅ Response data:");
       
       return response.data;
     } catch (error: any) {
       console.error('❌ Transaction history API error:', error);
-      console.error('❌ Error response:', error.response);
-      console.error('❌ Error status:', error.response?.status);
-      console.error('❌ Error data:', error.response?.data);
+      console.error("❌ Error response:");
+      console.error("❌ Error status:");
+      console.error("❌ Error data:");
       throw error;
     }
   },
@@ -202,7 +201,7 @@ export const transactionAPI = {
     try {
       console.log('🔧 Triggering transaction status correction...');
       const response = await apiClient.post('/admin/transactions/fix-statuses');
-      console.log('✅ Status correction response:', response.data);
+      console.log("✅ Status correction response:");
       return response.data;
     } catch (error: any) {
       console.error('❌ Status correction API error:', error);

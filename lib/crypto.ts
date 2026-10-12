@@ -3,7 +3,7 @@ import apiClient from './api';
 // Types for crypto operations
 export interface SendTokenData {
   recipientIdentifier: string; // Email, phone, or wallet address
-  amount: number;
+  amount: string | number;
   senderAddress: string;
   chain: string;
   tokenSymbol?: string; // Optional, defaults to USDC (matches API spec)
@@ -14,11 +14,12 @@ export interface SendTokenData {
 export interface PayMerchantData {
   senderAddress: string;
   merchantId: string;
-  amount: number;
+  amount: string | number;
   confirm: boolean;
   chainName: string;
   tokenSymbol: string;
-  googleAuthCode?: string; // Required for security verification
+  password?: string;
+  googleAuthCode?: string; // Deprecated: authenticator codes are not configured
 }
 
 export interface SendTokenResponse {
@@ -52,7 +53,7 @@ export interface SendTokenResponse {
       explorerUrl: string;
       chain: string;
       token: string;
-      amount: number;
+      amount: string | number;
       amountDisplay: string;
       status: string;
       confirmations: string;
@@ -66,6 +67,8 @@ export interface SendTokenResponse {
       transactionType: string;
     };
     notifications: string[];
+    /** Present only for BOT Chain payments routed through this legacy response shape. */
+    botStatus?: 'preparing' | 'submitted' | 'pending' | 'confirmed' | 'failed' | 'review';
   };
 }
 
@@ -112,6 +115,8 @@ export interface PayMerchantResponse {
     businessName: string;
     transactionHash: string;
     authenticationMethod: string;
+    /** Present only for BOT Chain payments routed through this legacy response shape. */
+    botStatus?: 'preparing' | 'submitted' | 'pending' | 'confirmed' | 'failed' | 'review';
   };
 }
 
@@ -147,26 +152,8 @@ export interface BalanceResponse {
 export const cryptoAPI = {
   // Send crypto to any user
   sendToken: async (data: SendTokenData): Promise<SendTokenResponse> => {
-    console.log('cryptoAPI.sendToken called with data:', data);
-    console.log('Current auth token:', localStorage.getItem('nexuspay_token'));
-    
-    try {
-      const response = await apiClient.post('/token/sendToken', data);
-      console.log('cryptoAPI.sendToken response:', response);
-      return response.data;
-    } catch (error: any) {
-      console.error('cryptoAPI.sendToken error:', error);
-      console.error('Error response:', error.response);
-      console.error('Error status:', error.response?.status);
-      console.error('Error data:', error.response?.data);
-      
-      // Log the specific validation error details
-      if (error.response?.data?.error?.details) {
-        console.error('Validation error details:', error.response.data.error.details);
-      }
-      
-      throw error;
-    }
+    const response = await apiClient.post('/token/sendToken', data);
+    return response.data;
   },
 
   // Pay merchant with crypto
@@ -189,25 +176,40 @@ export const cryptoAPI = {
 };
 
 // Supported chains and tokens
+// Visible selection is limited to Arbitrum, Base, and Botchain.
+// Other entries are commented out (not removed) for easy re-enable.
 export const SUPPORTED_CHAINS = [
   { name: 'Arbitrum', id: 'arbitrum', chainId: 42161 },
-  { name: 'Polygon', id: 'polygon', chainId: 137 },
+  // { name: 'Polygon', id: 'polygon', chainId: 137 },
   { name: 'Base', id: 'base', chainId: 8453 },
-  { name: 'Optimism', id: 'optimism', chainId: 10 },
-  { name: 'Celo', id: 'celo', chainId: 42220 },
-  { name: 'Avalanche', id: 'avalanche', chainId: 43114 },
-  { name: 'BNB Chain', id: 'bnb', chainId: 56 },
-  { name: 'Scroll', id: 'scroll', chainId: 534352 },
-  { name: 'Gnosis', id: 'gnosis', chainId: 100 },
-  { name: 'Ethereum', id: 'ethereum', chainId: 1 },
-  { name: 'Fantom', id: 'fantom', chainId: 250 },
-  { name: 'Moonbeam', id: 'moonbeam', chainId: 1284 },
-  { name: 'Fuse', id: 'fuse', chainId: 122 },
-  { name: 'Aurora', id: 'aurora', chainId: 1313161554 },
-  { name: 'Lisk', id: 'lisk', chainId: 1890 },
-  { name: 'Somnia', id: 'somnia', chainId: 1919 },
-  { name: 'Stellar', id: 'stellar', chainId: 0 }, // Stellar doesn't use EVM chainId
+  // { name: 'Optimism', id: 'optimism', chainId: 10 },
+  // { name: 'Celo', id: 'celo', chainId: 42220 },
+  // { name: 'Avalanche', id: 'avalanche', chainId: 43114 },
+  // { name: 'BNB Chain', id: 'bnb', chainId: 56 },
+  // { name: 'Scroll', id: 'scroll', chainId: 534352 },
+  // { name: 'Gnosis', id: 'gnosis', chainId: 100 },
+  // { name: 'Ethereum', id: 'ethereum', chainId: 1 },
+  // { name: 'Fantom', id: 'fantom', chainId: 250 },
+  // { name: 'Moonbeam', id: 'moonbeam', chainId: 1284 },
+  // { name: 'Fuse', id: 'fuse', chainId: 122 },
+  // { name: 'Aurora', id: 'aurora', chainId: 1313161554 },
+  // { name: 'Lisk', id: 'lisk', chainId: 1135 },
+  // { name: 'Somnia', id: 'somnia', chainId: 5031 },
+  // { name: 'Stellar', id: 'stellar', chainId: 0 }, // Stellar doesn't use EVM chainId
+  { name: 'BOT Chain Testnet', id: 'botchain-testnet', chainId: 968 },
+  { name: 'BOT Chain', id: 'botchain', chainId: 677 },
 ];
+
+/** Chain ids users can select anywhere in the app. Others stay commented in lists. */
+export const VISIBLE_CHAIN_IDS = new Set(['arbitrum', 'base', 'botchain', 'botchain-testnet']);
+
+/** Keep only Arbitrum / Base / Botchain entries from an API chain list. */
+export function filterVisibleChains<T extends { id?: string; chain?: string }>(chains: T[]): T[] {
+  return (chains || []).filter(chain => {
+    const id = chain?.id || chain?.chain || '';
+    return VISIBLE_CHAIN_IDS.has(id);
+  });
+}
 
 export const SUPPORTED_TOKENS = [
   { symbol: 'USDC', name: 'USD Coin', decimals: 6 },
@@ -226,23 +228,41 @@ export const formatAmount = (amount: number, decimals: number = 6): string => {
   return amount.toFixed(decimals);
 };
 
+/** Normalize a phone-like recipient to E.164 when possible. */
+export const normalizeRecipientPhone = (raw: string): string => {
+  const trimmed = raw.trim().replace(/[\s\-().]/g, '');
+  if (!trimmed) return raw.trim();
+  if (/^\+\d{8,15}$/.test(trimmed)) return trimmed;
+  // Kenyan local formats → +254…
+  if (/^0[17]\d{8}$/.test(trimmed)) return `+254${trimmed.slice(1)}`;
+  if (/^[17]\d{8}$/.test(trimmed)) return `+254${trimmed}`;
+  if (/^254[17]\d{8}$/.test(trimmed)) return `+${trimmed}`;
+  return trimmed;
+};
+
 export const validateRecipientIdentifier = (identifier: string): boolean => {
-  // Check if it's an email
+  const value = identifier.trim();
+  if (!value) return false;
+
+  // Email
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (emailRegex.test(identifier)) return true;
-  
-  // Check if it's a phone number
-  const phoneRegex = /^\+?[1-9]\d{1,14}$/;
-  if (phoneRegex.test(identifier)) return true;
-  
-  // Check if it's an EVM wallet address
+  if (emailRegex.test(value)) return true;
+
+  // EVM wallet address
   const evmWalletRegex = /^0x[a-fA-F0-9]{40}$/;
-  if (evmWalletRegex.test(identifier)) return true;
-  
-  // Check if it's a Stellar address (starts with G and is 56 characters)
+  if (evmWalletRegex.test(value)) return true;
+
+  // Stellar address (starts with G and is 56 characters)
   const stellarRegex = /^G[A-Z0-9]{55}$/;
-  if (stellarRegex.test(identifier)) return true;
-  
+  if (stellarRegex.test(value)) return true;
+
+  // Phone: E.164, or common local forms (spaces/dashes, Kenyan 07/01…, bare national)
+  const phone = normalizeRecipientPhone(value);
+  const phoneRegex = /^\+[1-9]\d{7,14}$/;
+  if (phoneRegex.test(phone)) return true;
+  const nationalRegex = /^[1-9]\d{7,14}$/;
+  if (nationalRegex.test(phone)) return true;
+
   return false;
 };
 

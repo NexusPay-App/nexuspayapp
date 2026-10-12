@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useCrypto } from '../../hooks/useCrypto';
 import { Copy, Check } from '@phosphor-icons/react';
 import { useWallet } from '../../context/WalletContext';
+import { filterVisibleChains } from '../../lib/crypto';
 
 export const ReceiveInfo: React.FC = () => {
   const { getReceiveInfo, receiveInfoData, receiveInfoLoading, receiveInfoError } = useCrypto();
@@ -120,11 +121,11 @@ export const ReceiveInfo: React.FC = () => {
           />
         </div>
 
-        {/* Supported Chains */}
+        {/* Supported Chains — Arbitrum, Base, Botchain only (others filtered, not removed) */}
         <div className="mb-6">
           <h3 className="text-lg font-semibold text-white mb-4">🌐 Supported Blockchains</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {data.supportedChains.map((chain) => (
+            {filterVisibleChains(data.supportedChains).map((chain) => (
               <div
                 key={chain.id}
                 className="p-3 bg-[#1A1E1E] border border-[#0795B0] rounded-md text-center"

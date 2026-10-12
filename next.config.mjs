@@ -9,7 +9,7 @@ const nextConfig = {
   async rewrites() {
     // Keep browser API calls same-origin so the Vercel app can reach the live API
     // without requiring the API host to whitelist each frontend deployment URL.
-    return [{ source: '/api/:path*', destination: 'https://api.nexuspaydefi.xyz/api/:path*' }];
+    return [{ source: '/api/:path*', destination: 'https://nexuspay-backend-test.vercel.app/api/:path*' }];
   },
   async redirects() {
     // BOT Chain is served through the shared multi-chain screens; keep old links working.

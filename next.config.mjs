@@ -6,6 +6,11 @@ const nextConfig = {
   async headers() {
     return [{ source: '/sw.js', headers: [{ key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' }] }];
   },
+  async rewrites() {
+    // Keep browser API calls same-origin so the Vercel app can reach the live API
+    // without requiring the API host to whitelist each frontend deployment URL.
+    return [{ source: '/api/:path*', destination: 'https://api.nexuspaydefi.xyz/api/:path*' }];
+  },
   async redirects() {
     // BOT Chain is served through the shared multi-chain screens; keep old links working.
     return [{ source: '/botchain', destination: '/home', permanent: false }];

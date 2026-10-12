@@ -7,7 +7,7 @@ import GoogleButton from "react-google-button";
 import GoogleConfigGuide from "./GoogleConfigGuide";
 
 interface GoogleSignInProps {
-  mode: "login" | "signup";
+  mode: "login" | "signup" | "continue";
   onSuccess?: () => void;
   onError?: (error: string) => void;
 }
@@ -89,11 +89,12 @@ const GoogleSignIn: React.FC<GoogleSignInProps> = ({ mode, onSuccess, onError })
                 try {
                   const buttonElement = document.getElementById('google-signin-button');
                   if (buttonElement && window.google) {
-                    window.google.accounts.id.renderButton(buttonElement, { 
-                      theme: 'outline', 
+                    window.google.accounts.id.renderButton(buttonElement, {
+                      theme: mode === 'continue' ? 'filled_blue' : 'outline',
                       size: 'large',
-                      width: 240,
-                      text: mode === 'login' ? 'signin_with' : 'signup_with'
+                      shape: 'pill',
+                      width: Math.min(400, Math.floor(buttonElement.clientWidth)),
+                      text: mode === 'continue' ? 'continue_with' : mode === 'login' ? 'signin_with' : 'signup_with'
                     });
                     console.log("Google button rendered successfully");
                   }
@@ -192,7 +193,7 @@ const GoogleSignIn: React.FC<GoogleSignInProps> = ({ mode, onSuccess, onError })
     <>
       <div className="w-full flex flex-col items-center">
         {/* Native Google Sign-In Button */}
-        <div id="google-signin-button" className="flex justify-center w-full"></div>
+        <div id="google-signin-button" className="flex justify-center w-full min-h-11"></div>
         
         {isLoading && (
           <p className="text-center text-sm text-gray-300 mt-2">

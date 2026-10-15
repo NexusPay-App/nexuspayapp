@@ -4,7 +4,7 @@ export type BotNetwork = 'botchain' | 'botchain-testnet';
 export type BotToken = 'BOT' | 'WBOT' | 'USDT';
 export interface BotCapability { id: BotNetwork; name: string; chainId: number; enabled: boolean; transfers: boolean; merchantPayments: boolean; deposits?: boolean; explorer: string; testnet: boolean; tokens?: { symbol: BotToken; decimals: number; address: string | null }[]; }
 export interface BotBalance { network: BotNetwork; address: string; gasMode: string; balances: { symbol: BotToken; decimals: number; balance: string; balanceUnits: string }[]; }
-export interface BotPayment { id: string; network: BotNetwork; sender: string; recipient: string; amount: string; tokenSymbol: BotToken; status: 'preparing' | 'submitted' | 'pending' | 'confirmed' | 'failed' | 'review'; userOpHash?: string; transactionHash?: string; explorerUrl?: string; failureReason?: string; createdAt: string; merchantId?: string; direction?: 'outgoing' | 'incoming'; }
+export interface BotPayment { id: string; network: BotNetwork; sender: string; recipient: string; amount: string; tokenSymbol: BotToken; status: 'preparing' | 'submitted' | 'pending' | 'confirmed' | 'failed' | 'review'; userOpHash?: string; transactionHash?: string; explorerUrl?: string; failureReason?: string; failureCode?: string; createdAt: string; merchantId?: string; direction?: 'outgoing' | 'incoming'; }
 export const BOT_NETWORK_IDS: BotNetwork[] = ['botchain', 'botchain-testnet'];
 export function isBotNetwork(value: string): value is BotNetwork {
   return (BOT_NETWORK_IDS as string[]).includes(value);
@@ -57,8 +57,8 @@ export function botPaymentLabel(payment: BotPayment): string {
 export function botPaymentToSendResponse(payment: BotPayment, recipientIdentifier: string): SendTokenResponse {
   const createdAt = new Date(payment.createdAt);
   return {
-    success: true,
-    message: botPaymentLabel(payment),
+    success: payment.status !== 'failed',
+    message: payment.status === 'failed' ? payment.failureReason || 'Payment failed' : botPaymentLabel(payment),
     data: {
       transactionCode: payment.id,
       transactionHash: payment.transactionHash || '',
@@ -90,9 +90,10 @@ export function botPaymentToSendResponse(payment: BotPayment, recipientIdentifie
 /** Map a BOT merchant payment onto the legacy merchant-response shape. */
 export function botPaymentToMerchantResponse(payment: BotPayment, merchantId: string): PayMerchantResponse {
   return {
-    success: true,
-    message: botPaymentLabel(payment),
+    success: payment.status !== 'failed',
+    message: payment.status === 'failed' ? payment.failureReason || 'Payment failed' : botPaymentLabel(payment),
     data: {
+      botPayment: payment,
       businessName: payment.merchantId || merchantId,
       transactionHash: payment.transactionHash || payment.userOpHash || '',
       authenticationMethod: 'account password',

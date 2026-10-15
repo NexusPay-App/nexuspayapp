@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react';
+import { useChain } from '../context/ChainContext';
+import { useState, useCallback, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useApi } from './useApi';import {
   cryptoAPI,
@@ -18,6 +19,7 @@ const BOT_TOKENS: BotToken[] = ['BOT', 'WBOT', 'USDT'];
 
 export const useCrypto = () => {
   const queryClient = useQueryClient();
+  const { chain: selectedChain, setChain } = useChain();
   const refreshConfirmedBalances = useCallback(async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['wallet-balance'] }),
@@ -31,19 +33,60 @@ export const useCrypto = () => {
   const receiveInfoApi = useApi<ReceiveInfoResponse>();
   const balanceApi = useApi<BalanceResponse>();
 
+  const { data: latestSend, setData: setSendData } = sendTokenApi;
+  const { data: latestMerchant, setData: setMerchantData } = payMerchantApi;
+  useEffect(() => {
+    if (!latestSend?.data.botStatus || ['confirmed', 'failed'].includes(latestSend.data.botStatus) || !isBotNetwork(latestSend.data.chain)) return;
+    let stopped = false;
+    const timer = setTimeout(async () => {
+      try {
+        const payment = await botAPI.status(latestSend.data.chain as 'botchain' | 'botchain-testnet', latestSend.data.transactionCode);
+        if (stopped) return;
+        setSendData(botPaymentToSendResponse(payment, latestSend.data.recipient.identifier));
+        if (['confirmed', 'failed'].includes(payment.status)) {
+          clearBotRequest('send');
+          await refreshConfirmedBalances();
+          window.dispatchEvent(new Event('nexuspay:transactions-updated'));
+        }
+      } catch {
+        // Keep the pending state and schedule another read; never retry a debit.
+        if (!stopped) setSendData({ ...latestSend });
+      }
+    }, 4000);
+    return () => { stopped = true; clearTimeout(timer); };
+  }, [latestSend, setSendData, refreshConfirmedBalances]);
+  useEffect(() => {
+    const tracked = latestMerchant?.data.botPayment;
+    if (!tracked || ['confirmed', 'failed'].includes(tracked.status)) return;
+    let stopped = false;
+    const timer = setTimeout(async () => {
+      try {
+        const payment = await botAPI.status(tracked.network, tracked.id);
+        if (stopped) return;
+        setMerchantData(botPaymentToMerchantResponse(payment, latestMerchant.data.businessName));
+        if (['confirmed', 'failed'].includes(payment.status)) {
+          clearBotRequest('merchant');
+          await refreshConfirmedBalances();
+          window.dispatchEvent(new Event('nexuspay:transactions-updated'));
+        }
+      } catch { if (!stopped) setMerchantData({ ...latestMerchant }); }
+    }, 4000);
+    return () => { stopped = true; clearTimeout(timer); };
+  }, [latestMerchant, setMerchantData, refreshConfirmedBalances]);
+
   // State for form data
   const [sendFormData, setSendFormData] = useState({
     recipientIdentifier: '',
     amount: '',
-    chain: 'arbitrum',
-    tokenType: 'USDC',
+    chain: selectedChain,
+    tokenType: isBotNetwork(selectedChain) ? 'USDT' : 'USDC',
   });
 
   const [payFormData, setPayFormData] = useState({
     merchantId: '',
     amount: '',
-    chainName: 'arbitrum',
-    tokenSymbol: 'USDC',
+    chainName: selectedChain,
+    tokenSymbol: isBotNetwork(selectedChain) ? 'USDT' : 'USDC',
     confirm: false,
   });
 
@@ -65,12 +108,15 @@ export const useCrypto = () => {
         throw new Error('Select a BOT Chain asset (USDT, BOT, or WBOT) for this payment.');
       }
       const amount = String(data.amount);
-      const key = botRequestKey('send', [network, recipientIdentifier.trim(), amount, tokenSymbol]);
+      const key = botRequestKey('send', [data.senderAddress.toLowerCase(), network, recipientIdentifier.trim(), amount, tokenSymbol]);
       try {
         const response = await sendTokenApi.execute(
           async () => {
             const payment = await botAPI.send(network, { amount, tokenSymbol, password: data.password || '', recipientIdentifier: recipientIdentifier.trim() }, key);
-            if (payment.status === 'failed') throw new Error(payment.failureReason || 'Payment failed');
+            if (payment.status === 'failed') {
+              clearBotRequest('send');
+              throw new Error(payment.failureReason || 'Payment failed');
+            }
             if (payment.status === 'confirmed') clearBotRequest('send');
             return botPaymentToSendResponse(payment, recipientIdentifier.trim());
           },
@@ -136,12 +182,15 @@ export const useCrypto = () => {
     if (isBotNetwork(data.chainName)) {
       const network = data.chainName;
       const amount = String(data.amount);
-      const key = botRequestKey('merchant', [network, data.merchantId.trim(), amount]);
+      const key = botRequestKey('merchant', [data.senderAddress.toLowerCase(), network, data.merchantId.trim(), amount]);
       try {
         const response = await payMerchantApi.execute(
           async () => {
             const payment = await botAPI.send(network, { amount, tokenSymbol: 'USDT', password: data.password || '', merchantId: data.merchantId.trim() }, key);
-            if (payment.status === 'failed') throw new Error(payment.failureReason || 'Payment failed');
+            if (payment.status === 'failed') {
+              clearBotRequest('merchant');
+              throw new Error(payment.failureReason || 'Payment failed');
+            }
             if (payment.status === 'confirmed') clearBotRequest('merchant');
             return botPaymentToMerchantResponse(payment, data.merchantId.trim());
           },
@@ -196,39 +245,41 @@ export const useCrypto = () => {
 
   // Update send form data
   const updateSendForm = useCallback((field: string, value: string) => {
+    if (field === 'chain') setChain(value);
     setSendFormData(prev => ({
       ...prev,
       [field]: value,
     }));
-  }, []);
+  }, [setChain]);
 
   // Update pay form data
   const updatePayForm = useCallback((field: string, value: string | boolean) => {
+    if (field === 'chainName') setChain(String(value));
     setPayFormData(prev => ({
       ...prev,
       [field]: value,
     }));
-  }, []);
+  }, [setChain]);
 
   // Reset forms
   const resetSendForm = useCallback(() => {
     setSendFormData({
       recipientIdentifier: '',
       amount: '',
-      chain: 'arbitrum',
-      tokenType: 'USDC', // Keep as tokenType for UI consistency
+      chain: selectedChain,
+      tokenType: isBotNetwork(selectedChain) ? 'USDT' : 'USDC', // Keep as tokenType for UI consistency
     });
-  }, []);
+  }, [selectedChain]);
 
   const resetPayForm = useCallback(() => {
     setPayFormData({
       merchantId: '',
       amount: '',
-      chainName: 'arbitrum',
-      tokenSymbol: 'USDC',
+      chainName: selectedChain,
+      tokenSymbol: isBotNetwork(selectedChain) ? 'USDT' : 'USDC',
       confirm: false,
     });
-  }, []);
+  }, [selectedChain]);
 
   // Get current user's wallet address from API (same as receive page)
   const getCurrentUserAddress = useCallback(async () => {

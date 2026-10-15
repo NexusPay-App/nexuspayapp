@@ -51,7 +51,7 @@ export const PayBusinessForm: React.FC<PayBusinessFormProps> = ({
   const [password, setPassword] = useState<string>('');
 
   // Get current user's wallet address
-  const currentUserAddress = getCurrentUserAddress();
+
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -83,7 +83,7 @@ export const PayBusinessForm: React.FC<PayBusinessFormProps> = ({
 
     try {
       // Await the current user address
-      const userAddress = await currentUserAddress;
+      const userAddress = await getCurrentUserAddress();
       
       const response = await payMerchant({
         senderAddress: userAddress,
@@ -273,14 +273,15 @@ export const PayBusinessForm: React.FC<PayBusinessFormProps> = ({
         {/* Success Display */}
         {payMerchantData && (() => {
           const botStatus = payMerchantData.data.botStatus;
-          const pending = botStatus !== undefined && botStatus !== 'confirmed';
+          const pending = botStatus !== undefined && botStatus !== 'confirmed' && botStatus !== 'failed';
           return (
           <div className="mt-6 p-6 bg-[#1A1E1E] border border-[#0795B0] rounded-md">
-            <h3 className="text-lg font-semibold text-white mb-4">{pending ? '⏳ Payment Submitted' : '✅ Payment Successful!'}</h3>
+            <h3 className="text-lg font-semibold text-white mb-4">{botStatus === 'failed' ? 'Payment Failed' : pending ? '⏳ Payment Submitted' : '✅ Payment Successful!'}</h3>
             <div className="space-y-2 text-sm text-gray-300">
               <p><strong>Business Name:</strong> {payMerchantData.data.businessName}</p>
               <p><strong>Transaction Hash:</strong> {payMerchantData.data.transactionHash}</p>
               <p><strong>Authentication Method:</strong> {payMerchantData.data.authenticationMethod}</p>
+              {botStatus === 'failed' && <p className="text-red-300">{payMerchantData.message}</p>}
               {pending && <p className="text-yellow-400">Status: pending confirmation on BOT Chain. This is not confirmed yet.</p>}
             </div>
           </div>

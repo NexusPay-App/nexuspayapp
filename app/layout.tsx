@@ -13,6 +13,7 @@ import { ReactQueryClientProvider } from "@/providers/ReactQueryClientProvider";
 import { Toaster } from "react-hot-toast";
 import PWAInstallPrompt from "@/components/pwa/PWAInstallPrompt";
 import PWAUpdateNotification from "@/components/pwa/PWAUpdateNotification";
+import BotChainFooter from '@/components/BotChainFooter';
 
 
 const inter = Inter({ subsets: ["latin"] });
@@ -173,6 +174,7 @@ export default function RootLayout({
             </AuthProvider>
           </PWAProvider>
         </ReactQueryClientProvider>
+        <BotChainFooter />
       </body>
     </html>
   );

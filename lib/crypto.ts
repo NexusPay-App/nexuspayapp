@@ -1,4 +1,5 @@
 import apiClient from './api';
+import type { BotPayment } from './botchain';
 
 // Types for crypto operations
 export interface SendTokenData {
@@ -116,6 +117,7 @@ export interface PayMerchantResponse {
     transactionHash: string;
     authenticationMethod: string;
     /** Present only for BOT Chain payments routed through this legacy response shape. */
+    botPayment?: BotPayment;
     botStatus?: 'preparing' | 'submitted' | 'pending' | 'confirmed' | 'failed' | 'review';
   };
 }
@@ -230,6 +232,7 @@ export const formatAmount = (amount: number, decimals: number = 6): string => {
 
 /** Normalize a phone-like recipient to E.164 when possible. */
 export const normalizeRecipientPhone = (raw: string): string => {
+  if (!/^[+\d\s().-]+$/.test(raw)) return raw.trim();
   const trimmed = raw.trim().replace(/[\s\-().]/g, '');
   if (!trimmed) return raw.trim();
   if (/^\+\d{8,15}$/.test(trimmed)) return trimmed;

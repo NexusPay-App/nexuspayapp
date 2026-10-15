@@ -16,6 +16,7 @@ export interface AuthContextType {
   
   // Registration flow
   register: (data: any) => Promise<any>;
+  completeRegistration: (data: any) => Promise<any>;
   verifyEmail: (data: any) => Promise<any>;
   verifyPhone: (data: any) => Promise<any>;
   
@@ -134,6 +135,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const completeRegistration = async (data: any) => {
+    const response = await authAPI.register(data);
+    if (!response.success || !response.data?.token) throw new Error(response.message || 'Registration did not complete');
+    return handleAuthSuccess(response);
   };
 
   // Verify email
@@ -369,6 +376,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     loading,
     isAuthenticated: !!user && userUtils.isAuthenticated(),
     register,
+    completeRegistration,
     verifyEmail,
     verifyPhone,
     login,

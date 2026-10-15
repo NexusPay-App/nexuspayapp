@@ -42,7 +42,7 @@ export const useApi = <T = any>() => {
 
       return response;
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'An error occurred';
+      const errorMessage = err.response?.data?.error?.message || err.response?.data?.message || err.message || 'An error occurred';
       setError(errorMessage);
 
       if (showErrorToast) {
@@ -69,6 +69,7 @@ export const useApi = <T = any>() => {
     loading,
     error,
     data,
+    setData,
     execute,
     reset,
   };

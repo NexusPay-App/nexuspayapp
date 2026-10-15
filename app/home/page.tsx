@@ -238,6 +238,7 @@
 
 // Home.tsx
 "use client";
+import { useChain } from '@/context/ChainContext';
 
 import { UserIcon } from "@/constants/svg";
 import {
@@ -310,6 +311,7 @@ const Home = () => {
   const { balance, chainBalance, loading, error, fetchAllBalances, fetchChainBalance } = useOptimizedBalance();
 
   const [openLogoutDialog, setOpenLogoutDialog] = useState(false); // Opens the Logout Loading Dialog
+  const { setChain: setPaymentChain } = useChain();
   const [selectedChain, setSelectedChain] = useState<string>('all');
   const [botNetworks, setBotNetworks] = useState<{ id: string; name: string }[]>([]);
   const router = useRouter();
@@ -380,6 +382,7 @@ const Home = () => {
   // Handle chain selection
   const handleChainChange = (chain: string) => {
     setSelectedChain(chain);
+    if (chain !== 'all') setPaymentChain(chain);
     if (chain === 'all') {
       fetchAllBalances();
     } else {

@@ -56,5 +56,14 @@ test('merchant adapter surfaces the merchant id and operation hash while pending
 test('failed payment adapter reports failure, not success text', () => {
   const mapped = botPaymentToSendResponse(payment({ status: 'failed', failureReason: 'insufficient gas' }), 'recipient@example.test');
   expect(mapped.data.botStatus).toBe('failed');
-  expect(mapped.message).toBe('Payment failed');
+  expect(mapped.success).toBe(false);
+  expect(mapped.message).toBe('insufficient gas');
+});
+
+import { normalizeRecipientPhone, validateRecipientIdentifier } from '../lib/crypto';
+test('phone normalization preserves emails and wallet addresses', () => {
+  expect(normalizeRecipientPhone(' fixture.name@example.test ')).toBe('fixture.name@example.test');
+  expect(validateRecipientIdentifier(normalizeRecipientPhone('fixture@example.test'))).toBe(true);
+  expect(normalizeRecipientPhone('0712 345 678')).toBe('+254712345678');
+  expect(normalizeRecipientPhone('0x1111111111111111111111111111111111111111')).toBe('0x1111111111111111111111111111111111111111');
 });

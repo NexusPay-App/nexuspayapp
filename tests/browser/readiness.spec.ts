@@ -1,0 +1,72 @@
+import { test, expect, type Page } from '@playwright/test';
+const address = '0x1111111111111111111111111111111111111111';
+const capabilities = [{ id: 'botchain-testnet', name: 'BOT Chain Testnet', chainId: 968, enabled: true, transfers: true, merchantPayments: true, testnet: true, tokens: [{ symbol: 'USDT', decimals: 6 }, { symbol: 'BOT', decimals: 18 }] }, { id: 'botchain', name: 'BOT Chain', chainId: 677, enabled: false, transfers: false }];
+async function setup(page: Page, rejectPassword = false) {
+  let posts = 0;
+  let legacy = 0;
+  await page.addInitScript(() => {
+    localStorage.setItem("pwa-install-dismissed", String(Date.now()));
+    const token = `e30.${btoa(JSON.stringify({ exp: 4102444800 }))}.fixture`;
+    localStorage.setItem('nexuspay_token', token);
+    localStorage.setItem('nexuspay_user', JSON.stringify({ walletAddress: '0x1111111111111111111111111111111111111111', email: 'fixture@example.test', token }));
+  });
+  const payment = { id: 'test-payment', network: 'botchain-testnet', sender: address, recipient: address, amount: '0.01', tokenSymbol: 'USDT', status: 'pending', createdAt: new Date().toISOString() };
+  await page.route('**/api/**', async route => {
+    const path = new URL(route.request().url()).pathname;
+    let data: unknown = {};
+    if (path.endsWith('/botchain/networks')) data = capabilities;
+    else if (path.endsWith('/token/networks')) data = [{ id: 'arbitrum', name: 'Arbitrum', chainId: 42161, tokens: [{ symbol: 'USDC', decimals: 6 }] }];
+    else if (path.endsWith('/token/receive')) data = { walletAddress: address };
+    else if (path.endsWith('/token/sendToken')) legacy++;
+    else if (path.includes('/token/balance')) data = { walletAddress: address, balances: {}, totalUSDValue: 0, supportedChains: ['arbitrum'], lastUpdated: new Date().toISOString() };
+    else if (path.endsWith('/transactions/history')) data = { transactions: [], pagination: { total: 0 } };
+    else if (path.endsWith('/botchain/botchain-testnet/transfers') && route.request().method() === 'POST') {
+      posts++;
+      expect(route.request().postDataJSON().recipientIdentifier).toBe('+254712345678');
+      expect(route.request().postDataJSON().senderAddress).toBeUndefined();
+      if (rejectPassword) return route.fulfill({ status: 401, json: { success: false, error: { code: 'PAYMENT_AUTH_REQUIRED', message: 'Enter your NexusPay account password.' } } });
+      data = payment;
+    } else if (path.endsWith('/transfers/test-payment')) data = { ...payment, status: 'confirmed', transactionHash: '0xabc', explorerUrl: 'https://scan.bohr.life/tx/0xabc' };
+    await route.fulfill({ json: { success: true, data } });
+  });
+  return () => ({ posts, legacy });
+}
+async function send(page: Page) {
+  await page.getByLabel('Recipient', { exact: true }).fill('0712345678');
+  await page.getByLabel('Amount', { exact: true }).fill('0.01');
+  await page.getByRole('button', { name: 'Send Crypto', exact: true }).click();
+  await page.getByPlaceholder('Enter your account password').fill('fixture-password');
+  await page.getByRole('button', { name: 'Send', exact: true }).click();
+}
+test('home network selection reaches the send form; one POST is followed by confirmation reads', async ({ page }) => {
+  const calls = await setup(page);
+  await page.goto('/home');
+  await page.getByRole('combobox').first().click();
+  await page.getByRole('option', { name: 'BOT Chain Testnet', exact: true }).click();
+  await page.getByRole('heading', { name: 'Send', exact: true }).click();
+  await expect(page.getByLabel('Chain', { exact: true })).toHaveValue('botchain-testnet');
+  await send(page);
+  await expect(page.getByText('Payment Submitted', { exact: true })).toBeVisible();
+  await expect(page.getByText('Transaction Successful!', { exact: true })).toBeVisible({ timeout: 15000 });
+  await expect(page.getByRole('link', { name: 'View on Explorer' })).toHaveAttribute('href', 'https://scan.bohr.life/tx/0xabc');
+  expect(calls()).toEqual({ posts: 1, legacy: 0 });
+});
+test('password rejection preserves the selected network and explains the failure', async ({ page }) => {
+  const calls = await setup(page, true);
+  await page.goto('/crypto');
+  await page.getByLabel('Chain', { exact: true }).selectOption('botchain-testnet');
+  await send(page);
+  await expect(page.getByText('Enter your NexusPay account password.', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await expect(page.getByLabel('Chain', { exact: true })).toHaveValue('botchain-testnet');
+  expect(calls()).toEqual({ posts: 1, legacy: 0 });
+});
+test('public ecosystem page shows both required links and honest network status', async ({ page }) => {
+  await setup(page);
+  await page.goto('/ecosystem');
+  const footer = page.getByRole('contentinfo', { name: 'NexusPay ecosystem' });
+  await expect(footer.getByRole('link', { name: 'BOT Chain website' })).toHaveAttribute('href', 'https://botchain.ai');
+  await expect(footer.getByRole('link', { name: 'BOT Chain explorer' })).toHaveAttribute('href', 'https://scan.botchain.ai');
+  await expect(page.getByText('Payments not enabled', { exact: false })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'BOT network availability' }).getByText('Test assets only', { exact: false })).toBeVisible();
+});

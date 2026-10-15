@@ -64,6 +64,11 @@ export const SendTokenForm: React.FC = () => {
       return;
     }
 
+    if (!networks.some(n => n.id === sendFormData.chain && n.transfers !== false)) {
+      setValidationError('Select an available payment network.');
+      return;
+    }
+
     // Validate sender address
     if (!currentUserAddress || currentUserAddress.trim() === '') {
       setValidationError('Wallet address not found. Please ensure you are logged in.');
@@ -72,7 +77,7 @@ export const SendTokenForm: React.FC = () => {
 
     // Validate recipient identifier (phone-like values are normalized to E.164)
     const normalizedRecipient = normalizeRecipientPhone(sendFormData.recipientIdentifier);
-    if (!validateRecipientIdentifier(normalizedRecipient)) {
+    if (!validateRecipientIdentifier(normalizedRecipient) || /^G[A-Z2-7]{55}$/.test(normalizedRecipient)) {
       setValidationError('Please enter a valid recipient identifier');
       return;
     }
@@ -117,77 +122,11 @@ export const SendTokenForm: React.FC = () => {
         console.log('🎉 Transaction successful!');
       }
     } catch (error: any) {
-      console.error('❌ Send crypto failed:', error);
-      console.error('Error details:', {
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        message: error.message,
-        config: error.config?.url
-      });
-      
       setShowAuthModal(false);
       setAuthValue('');
       
-      let displayMessage = 'Failed to send crypto';
-      
-      if (error.response?.status === 400) {
-        const serverMessage = error.response?.data?.message || 'Validation failed';
-        const errorDetails = error.response?.data?.error?.details;
-        const errorCode = error.response?.data?.error?.code;
-        
-        if (errorCode) {
-          // Handle specific error codes from API
-          const errorMessage = error.response?.data?.error?.message || serverMessage;
-          
-          switch (errorCode) {
-            case 'INSUFFICIENT_FUNDS':
-              displayMessage = 'Insufficient balance to complete this transaction. Please check your wallet balance.';
-              break;
-            case 'INVALID_RECIPIENT':
-              displayMessage = 'Invalid recipient address, email, or phone number. Please check and try again.';
-              break;
-            case 'INVALID_AMOUNT':
-              displayMessage = 'Invalid transaction amount. Please enter a valid amount.';
-              break;
-            case 'AUTHENTICATION_FAILED':
-              displayMessage = 'Authentication failed. Please check your account password.';
-              break;
-            case 'TRANSACTION_LIMIT_EXCEEDED':
-              displayMessage = 'Transaction limit exceeded. Please try with a smaller amount.';
-              break;
-            case 'NETWORK_ERROR':
-              displayMessage = 'Network error occurred. Please check your connection and try again.';
-              break;
-            default:
-              displayMessage = `${errorCode}: ${errorMessage}`;
-          }
-        } else if (errorDetails && Array.isArray(errorDetails)) {
-          // Show specific validation errors
-          const specificErrors = errorDetails.map((detail: any) => 
-            `${detail.field}: ${detail.message}`
-          ).join(', ');
-          displayMessage = `Validation Error: ${specificErrors}`;
-        } else {
-          displayMessage = serverMessage;
-        }
-      } else if (error.response?.status === 401) {
-        displayMessage = 'Authentication failed. Please check your account password and ensure you are logged in.';
-        
-        // Check if user is still authenticated
-        const token = localStorage.getItem('nexuspay_token');
-        const user = localStorage.getItem('nexuspay_user');
-        if (!token || !user) {
-          displayMessage += ' Your session may have expired. Please login again.';
-        }
-      } else if (error.response?.status === 403) {
-        displayMessage = 'Insufficient balance or unauthorized transaction.';
-      } else if (error.response?.status === 500) {
-        displayMessage = 'Server error occurred. Please try again later.';
-      } else {
-        displayMessage = error.message || 'Failed to send crypto';
-      }
-      
+      const displayMessage = error.response?.data?.error?.message || error.response?.data?.message || error.message || 'Unable to send this payment. Check transaction history before retrying.';
+
       setErrorMessage(displayMessage);
       setShowError(true);
     }
@@ -195,12 +134,12 @@ export const SendTokenForm: React.FC = () => {
 
   // Get placeholder text showing all options
   const getPlaceholder = () => {
-    return 'email, phone, EVM/Stellar address';
+    return 'Phone number, email, or 0x wallet address';
   };
 
   // Get validation message
   const getValidationMessage = () => {
-    return 'Enter a valid email address, phone number, EVM wallet address (0x...), or Stellar address (G...). The system will automatically detect the type.';
+    return 'Use a registered phone number (for example +254…), email, or a wallet address on the selected network.';
   };
 
   return (
@@ -209,6 +148,7 @@ export const SendTokenForm: React.FC = () => {
         <h2 className="text-2xl font-bold mb-6 text-center text-white">Send Crypto</h2>
         
         <form onSubmit={handleSubmit} className="space-y-6">
+          {isBot && <p className="rounded-lg border border-cyan-800 bg-cyan-950/30 p-3 text-sm text-cyan-100">{sendFormData.chain === 'botchain-testnet' ? 'Testnet: use test assets only. ' : ''}Payments use your BOT wallet. Keep native BOT in it for network fees. <a href="/receive" className="underline">Get your BOT address</a>.</p>}
           {/* Recipient */}
           <div>
             <label htmlFor="recipientIdentifier" className="block text-sm font-medium text-gray-300 mb-2">
@@ -350,11 +290,11 @@ export const SendTokenForm: React.FC = () => {
             <div className="bg-[#0A0E0E] border border-[#0795B0] rounded-xl p-6 w-full max-w-md mx-4">
               <div className="text-center mb-6">
                 <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl">✅</span>
+                  <span className="text-2xl">{sendTokenData.data.botStatus === 'failed' ? '×' : sendTokenData.data.botStatus && sendTokenData.data.botStatus !== 'confirmed' ? '…' : '✓'}</span>
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2">{sendTokenData.data.botStatus && sendTokenData.data.botStatus !== 'confirmed' ? 'Payment Submitted' : 'Transaction Successful!'}</h3>
+                <h3 className="text-xl font-bold text-white mb-2">{sendTokenData.data.botStatus === 'failed' ? 'Payment Failed' : sendTokenData.data.botStatus && sendTokenData.data.botStatus !== 'confirmed' ? 'Payment Submitted' : 'Transaction Successful!'}</h3>
                 <p className="text-gray-400">
-                  {sendTokenData.data.botStatus && sendTokenData.data.botStatus !== 'confirmed'
+                  {sendTokenData.data.botStatus === 'failed' ? sendTokenData.message : sendTokenData.data.botStatus && sendTokenData.data.botStatus !== 'confirmed'
                     ? 'Pending confirmation on BOT Chain. This is not confirmed yet.'
                     : 'Your crypto has been sent successfully'}
                 </p>
@@ -439,6 +379,7 @@ export const SendTokenForm: React.FC = () => {
 
               <div className="bg-red-900/20 border border-red-500 rounded-md p-4 mb-6">
                 <p className="text-red-300 text-sm">{errorMessage}</p>
+                <a href="/settings" className="mt-3 inline-block text-sm text-white underline">Account and password settings</a>
               </div>
 
               <div className="flex space-x-3">

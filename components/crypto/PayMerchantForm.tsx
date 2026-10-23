@@ -1,4 +1,5 @@
 import { usePaymentNetworks } from '@/hooks/usePaymentNetworks';
+import NetworkFeeNotice from "./NetworkFeeNotice";
 import React, { useState, useEffect } from 'react';
 import { useCrypto } from '../../hooks/useCrypto';
 
@@ -88,6 +89,7 @@ export const PayMerchantForm: React.FC = () => {
         <p className="text-center text-gray-400 mb-6">Direct on-chain crypto payment to a registered merchant</p>
         
         <form onSubmit={handleSubmit} className="space-y-6">
+          <NetworkFeeNotice network={payFormData.chainName} />
           {/* Merchant ID */}
           <div>
             <label htmlFor="merchantId" className="block text-sm font-medium text-gray-300 mb-2">

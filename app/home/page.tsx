@@ -1,249 +1,11 @@
-
-
-
-// // Home.tsx
-// "use client";
-
-// // import {
-//   Select,
-//   SelectContent,
-//   SelectItem,
-//   SelectTrigger,
-//   SelectValue,
-// } from "@/components/ui/select";
-// import { ARB, UserIcon } from "@/constants/svg";
-// import {
-//   ArrowCircleDown,
-//   BellSimple,
-//   CreditCard,
-//   List,
-//   PaperPlaneTilt,
-//   UserCircle,
-// } from "@phosphor-icons/react";
-// import { useRouter } from "next/navigation";
-// import React, { useEffect, useState } from "react";
-// // import {
-//   DropdownMenu,
-//   DropdownMenuContent,
-//   DropdownMenuGroup,
-//   DropdownMenuItem,
-//   DropdownMenuLabel,
-//   DropdownMenuSeparator,
-//   DropdownMenuTrigger,
-// } from "@/components/ui/dropdown-menu";
-// import { LifeBuoy, LogOut, Settings, User, UserPlus } from "lucide-react";
-// import Image from "next/image";
-// import Link from "next/link";
-// import {
-//   Sheet,
-//   SheetContent,
-//   SheetHeader,
-//   SheetTrigger,
-// } from "@/components/ui/sheet";
-// import {
-//   Dialog,
-//   DialogContent,
-//   DialogHeader,
-//   DialogTitle,
-// } from "@/components/ui/dialog";
-// import { Player } from "@lottiefiles/react-lottie-player";
-// import loadingJson from "@/public/json/loading.json";
-// import { useBalance } from "@/context/BalanceContext";
-// 
-// const Home = () => {
-// //   const { data, isLoading, error } = useBalance();
-
-//   const [openLogoutDialog, setOpenLogoutDialog] = useState(false); // Opens the Logout Loading Dialog
-//   const router = useRouter();
-//   const {
-//     register,
-//     handleSubmit,
-//     control,
-//     formState: { errors },
-//   } = useForm();
-
-//   useEffect(() => {
-//     // Check if the user is logged in
-//     const user = localStorage.getItem("user"); // Assuming 'user' is saved in localStorage on login
-//     if (!user) {
-//       // If not logged in, redirect to the login page
-//       router.replace("/login"); // Adjust the path as needed
-//     }
-//     console.log(chain)
-//   }, [router]);
-
-//   const handleSend = () => {
-//     router.replace("/send");
-//   };
-
-//   const handleReceive = () => {
-//     router.replace("/receive");
-//   };
-
-//   const handlePay = () => {
-//     router.replace("/pay");
-//   };
-
-//   // Logs out the User
-//   const handleLogout = () => {
-//     setOpenLogoutDialog(true);
-//     localStorage.clear();
-//     setTimeout(() => {
-//       router.replace("/");
-//     }, 1000);
-//   };
-
-//   return (
-//     <section className="home-background">
-//       <article className="bg-[#0A0E0E] flex flex-col p-5 xl:px-[200px] border-0 border-b border-[#0795B0]">
-//         <div className="flex justify-between">
-//           <Sheet>
-//             <SheetTrigger>
-//               <List size={24} color="#ffffff" />
-//             </SheetTrigger>
-//             <SheetContent side="left">
-//               <SheetHeader>
-//                 <ul className="flex flex-col justify-around items-start text-base font-DM text-black w-auto">
-//                   <a
-//                     href="/reclaim"
-//                     className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer "
-//                   >
-//                     Home
-//                   </a>
-//                   <Link href="/reclaim" className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer ">
-//                     Reclaim
-//                   </Link>
-                  
-//                 </ul>
-//               </SheetHeader>
-//             </SheetContent>
-//           </Sheet>
-
-//           <DropdownMenu>
-//             <DropdownMenuTrigger asChild>
-//               <Image src={UserIcon} alt="tree" />
-//             </DropdownMenuTrigger>
-//             <DropdownMenuContent className="w-56">
-//               <DropdownMenuLabel>My Account</DropdownMenuLabel>
-//               <DropdownMenuSeparator />
-//               <DropdownMenuItem>
-//                 <LogOut className="mr-2 h-4 w-4" />
-//                 <span onClick={handleLogout}>Log out</span>
-//               </DropdownMenuItem>
-//             </DropdownMenuContent>
-//           </DropdownMenu>
-
-//           {/* Dialog to LogOut the User */}
-//           <Dialog open={openLogoutDialog} onOpenChange={setOpenLogoutDialog}>
-//             <DialogContent className="max-w-lg">
-//               <DialogHeader>
-//                 <DialogTitle className="mb-[5px]">Logging you out</DialogTitle>
-//                 <Player
-//                   keepLastFrame
-//                   autoplay
-//                   loop={true}
-//                   src={loadingJson}
-//                   style={{ height: "200px", width: "200px" }}
-//                 ></Player>
-//               </DialogHeader>
-//             </DialogContent>
-//           </Dialog>
-//         </div>
-//         <div className="flex flex-col items-center my-[20px]">
-//           <Controller
-//             name="region"
-//             control={control}
-//             render={({ field }) => (
-//               <Select
-//                 defaultValue="ARB"
-//                 onValueChange={(value: string) => {
-//                   field.onChange(value);
-//                   setChain(value); // Update the chain state
-//                 }}
-//                 value={chain} // Use the chain state
-//               >
-//                 <SelectTrigger className="w-full my-[20px] p-3">
-//                   <SelectValue
-//                     defaultValue="Arbitrum One"
-//                     placeholder="Select Chain"
-//                   />
-//                 </SelectTrigger>
-//                 <SelectContent>
-//                   <SelectItem value="arbitrum">Arbitrum</SelectItem>
-//                   <SelectItem value="celo">Celo</SelectItem>
-//                 </SelectContent>
-//               </Select>
-//             )}
-//           />
-
-//           <h3 className="text-white my-2">Wallet Balance</h3>
-//           <h1 className="text-4xl text-white font-bold mb-3 text-center">
-//             {isLoading
-//               ? "0"
-//               : parseFloat(data!.balanceInKES.toString()).toFixed(2)}{" "}
-//             KES
-//           </h1>
-//           <h1 className="text-xl text-white font-bold mb-3 text-center">
-//             {isLoading
-//               ? 0
-//               : parseFloat(data!.balanceInUSDC.toString()).toFixed(2)}{" "}
-//             USDC
-//           </h1>
-//           <p className="text-sm mt-2 text-white">
-//             {/* Current Rate: 1 USDC = {balance.rate} KES */}
-//             Current Rate: 1 USDC ={" "}
-//             {isLoading ? 0 : parseFloat(data!.rate.toString()).toFixed(2)} KES
-//           </p>
-//         </div>
-//         <div className="flex justify-around relative top-20 ">
-//           <div className="flex flex-col items-center" onClick={handleSend}>
-//             <span className="border border-[#0795B0] rounded-full p-4 bg-[#0A0E0E] hover:bg-white text-white hover:text-[#0795B0] hover:cursor-pointer hover:border-white">
-//               <PaperPlaneTilt size={24} weight="fill" />
-//             </span>
-//             <h4 className="text-white my-1">Send</h4>
-//           </div>
-//           <div className="flex flex-col items-center" onClick={handleReceive}>
-//             <span className="border border-[#0795B0] rounded-full p-4 bg-[#0A0E0E] hover:bg-white text-white hover:text-[#0795B0] hover:cursor-pointer hover:border-white">
-//               <ArrowCircleDown size={24} weight="fill" />
-//             </span>
-//             <h4 className="text-white my-1">Receive</h4>
-//           </div>
-//           <div className="flex flex-col items-center" onClick={handlePay}>
-//             <span className="border border-[#0795B0] rounded-full p-4 bg-[#0A0E0E] hover:bg-white text-white hover:text-[#0795B0] hover:cursor-pointer hover:border-white">
-//               <CreditCard size={24} weight="fill" />
-//             </span>
-//             <h4 className="text-white my-1">Pay</h4>
-//           </div>
-//         </div>
-//       </article>
-//       <article className="mt-20 flex flex-col items-center p-5  xl:px-[200px]">
-//         <div className="flex flex-col justify-around rounded-xl w-full overflow-hidden bg-wallet-bg bg-cover p-5 h-[180px]">
-//           <h3 className="text-white text-xl my-1 font-semibold">
-//             Buy Crypto Assets, Tokens Securely.
-//           </h3>
-//           <button className="bg-white font-bold text-lg p-3 rounded-xl w-[150px]">
-//             Buy Crypto
-//           </button>
-//         </div>
-//       </article>
-//       <Transactions />
-//     </section>
-//   );
-// };
-
-// export default Home;
-
-
-
-
-// Home.tsx
 "use client";
 import { useChain } from '@/context/ChainContext';
 
-import { UserIcon } from "@/constants/svg";
+import PWAInstallButton from "@/components/pwa/PWAInstallButton";
+
+import { NexusLogo, UserIcon } from "@/constants/svg";
 import {
   ArrowCircleDown,
-  BellSimple,
   CreditCard,
   List,
   PaperPlaneTilt,
@@ -265,7 +27,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, Settings, User, UserPlus, Copy, Eye, EyeOff, Smartphone, Mail } from "lucide-react";
+import { LogOut, Settings, User, UserPlus, Plus, RefreshCw, Wallet } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -295,16 +57,12 @@ import { BalanceSkeleton, BalanceErrorState, BalanceEmptyState } from "@/compone
 import { RecentTransactions } from "@/components/transactions/RecentTransactions";
 import { cryptoConverter } from "@/lib/crypto-converter";
 import { getApiBaseUrl } from "@/lib/config";
-import { BusinessList } from "@/components/business/BusinessList";
 
 const Home = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const { 
     currentBusiness, 
     isPinVerified, 
-    switchToBusiness, 
-    verifyBusinessPin,
-    setBusinessPin,
     businessAccounts,
     loadBusinessAccounts
   } = useBusiness();
@@ -339,8 +97,6 @@ const Home = () => {
       // If not logged in, redirect to the login page
       router.replace("/login");
     }
-    console.log("Business accounts:", businessAccounts);
-    console.log("Current business:", currentBusiness);
   }, [router, isAuthenticated, user, businessAccounts, currentBusiness]);
 
   const handleSend = () => {
@@ -371,12 +127,6 @@ const Home = () => {
   // Handle settings click
   const handleSettings = () => {
     router.push("/settings");
-  };
-
-  // Handle business account selection
-  const handleBusinessSelect = (businessId: string) => {
-    console.log('Business selected:', businessId);
-    // The BusinessList component handles PIN verification internally
   };
 
   // Handle chain selection
@@ -448,11 +198,12 @@ const Home = () => {
 
 
   return (
-    <section className="home-background">
-      <article className="bg-[#0A0E0E] flex flex-col p-5 xl:px-[200px] border-0 border-b border-[#0795B0]">
-        <div className="flex justify-between">
+    <main className="min-h-screen bg-[#0A0E0E] text-white">
+      <header className="border-b border-white/10">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
+          <div className="flex items-center gap-3">
           <Sheet>
-            <SheetTrigger>
+            <SheetTrigger aria-label="Open navigation" className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-white/5">
               <List size={24} color="#ffffff" />
             </SheetTrigger>
             <SheetContent side="left">
@@ -480,67 +231,77 @@ const Home = () => {
               </SheetHeader>
             </SheetContent>
           </Sheet>
+          <Link href="/home" aria-label="NexusPay home">
+            <Image src={NexusLogo} alt="NexusPay" className="h-8 w-auto" priority />
+          </Link>
+          </div>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Image 
-                src={UserIcon} 
-                alt="tree" 
-                onClick={() => {
-                  // Load business accounts when user opens dropdown
-                  if (user?.id && businessAccounts.length === 0) {
-                    loadBusinessAccounts();
-                  }
-                }}
-              />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56">
-              <DropdownMenuLabel className="flex items-center gap-2">
-                <User className="h-4 w-4" />
-                My Account
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              
-              {/* Settings */}
-              <DropdownMenuItem onClick={handleSettings}>
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Settings</span>
-              </DropdownMenuItem>
-              
-              {/* Business Account Switcher */}
-              {currentBusiness ? (
-                <DropdownMenuItem 
+          <div className="flex items-center gap-2">
+            <PWAInstallButton />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="My Account"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0795B0]"
                   onClick={() => {
-                    console.log('Switch to Business clicked');
-                    router.push('/business/home');
+                    // Load business accounts when user opens dropdown
+                    if (user?.id && businessAccounts.length === 0) {
+                      loadBusinessAccounts();
+                    }
                   }}
-                  className="hover:bg-blue-50"
                 >
-                  <UserPlus className="mr-2 h-4 w-4 text-blue-600" />
-                  <span className="text-blue-600 font-medium">Switch to {currentBusiness.businessName}</span>
+                  <Image src={UserIcon} alt="" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56">
+                <DropdownMenuLabel className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  My Account
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+
+                {/* Settings */}
+                <DropdownMenuItem onClick={handleSettings}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
                 </DropdownMenuItem>
-              ) : (
-                <DropdownMenuItem 
-                  onClick={() => {
-                    console.log('Browse Business Accounts clicked');
-                    router.push('/business');
-                  }}
-                  className="hover:bg-blue-50"
-                >
-                  <UserPlus className="mr-2 h-4 w-4 text-blue-600" />
-                  <span className="text-blue-600 font-medium">Business Accounts</span>
+
+                {/* Business Account Switcher */}
+                {currentBusiness ? (
+                  <DropdownMenuItem
+                    onClick={() => {
+                      console.log('Switch to Business clicked');
+                      router.push('/business/home');
+                    }}
+                    className="hover:bg-blue-50"
+                  >
+                    <UserPlus className="mr-2 h-4 w-4 text-blue-600" />
+                    <span className="text-blue-600 font-medium">Switch to {currentBusiness.businessName}</span>
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem
+                    onClick={() => {
+                      console.log('Browse Business Accounts clicked');
+                      router.push('/business');
+                    }}
+                    className="hover:bg-blue-50"
+                  >
+                    <UserPlus className="mr-2 h-4 w-4 text-blue-600" />
+                    <span className="text-blue-600 font-medium">Business Accounts</span>
+                  </DropdownMenuItem>
+                )}
+
+                <DropdownMenuSeparator />
+
+                {/* Logout */}
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
                 </DropdownMenuItem>
-              )}
-              
-              <DropdownMenuSeparator />
-              
-              {/* Logout */}
-              <DropdownMenuItem onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Log out</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
 
           {/* Dialog to LogOut the User */}
           <Dialog open={openLogoutDialog} onOpenChange={setOpenLogoutDialog}>
@@ -558,164 +319,100 @@ const Home = () => {
             </DialogContent>
           </Dialog>
         </div>
-        <div className="flex flex-col items-center my-[20px]">
-          {/* Chain Selector */}
-          <div className="w-full max-w-md mb-4">
-            <Select value={selectedChain} onValueChange={handleChainChange}>
-              <SelectTrigger className="w-full my-[20px] p-3">
-                <SelectValue placeholder="Select Chain" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Chains</SelectItem>
-                <SelectItem value="arbitrum">Arbitrum</SelectItem>
-                <SelectItem value="base">Base</SelectItem>
-                {/* Visible: Arbitrum, Base, Botchain only. Others commented, not removed. */}
-                {/* <SelectItem value="celo">Celo</SelectItem> */}
-                {/* <SelectItem value="polygon">Polygon</SelectItem> */}
-                {/* <SelectItem value="optimism">Optimism</SelectItem> */}
-                {/* <SelectItem value="avalanche">Avalanche</SelectItem> */}
-                {/* <SelectItem value="bnb">BNB Chain</SelectItem> */}
-                {/* <SelectItem value="scroll">Scroll</SelectItem> */}
-                {/* <SelectItem value="gnosis">Gnosis</SelectItem> */}
-                {/* <SelectItem value="stellar">🌟 Stellar (NEW)</SelectItem> */}
-                {botNetworks.map((network) => (
-                  <SelectItem key={network.id} value={network.id}>{network.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+      </header>
 
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <h3 className="text-white">
-              {currentBusiness ? `${currentBusiness.businessName} Balance` : 'Wallet Balance'}
-            </h3>
-            <button
-              onClick={handleRefresh}
-              disabled={loading}
-              className="text-gray-400 hover:text-white transition-colors duration-200 disabled:opacity-50"
-              title="Refresh balance"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-            </button>
+      <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 sm:py-6">
+        <div className="mb-5 flex items-center justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Your wallet</h1>
+            <p className="mt-1 hidden text-sm text-white/50 sm:block">Your money, assets and activity in one place.</p>
           </div>
-          
-          {/* Current Account Indicator */}
-          {currentBusiness && (
-            <div className="mb-4 p-2 bg-[#0795B0]/20 border border-[#0795B0] rounded-lg">
-              <p className="text-sm text-[#0795B0] text-center">
-                🏢 Business Account: {currentBusiness.businessName} ({currentBusiness.merchantId})
-                {!isPinVerified && <span className="ml-2 text-yellow-400">⚠️ PIN Required</span>}
-              </p>
+          <Select value={selectedChain} onValueChange={handleChainChange}>
+            <SelectTrigger aria-label="Select network" className="h-10 w-[170px] border border-[#0795B0]/40 bg-[#101919] text-sm sm:w-[200px]">
+              <SelectValue placeholder="Select network" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Chains</SelectItem>
+              <SelectItem value="arbitrum">Arbitrum</SelectItem>
+              <SelectItem value="base">Base</SelectItem>
+              {botNetworks.map(network => <SelectItem key={network.id} value={network.id}>{network.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+          <section aria-label="Wallet balance and actions" className="min-w-0 rounded-2xl border border-[#0795B0]/30 bg-gradient-to-br from-[#102729] to-[#0D1718] p-5 sm:p-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-medium text-white/65">{currentBusiness ? `${currentBusiness.businessName} Balance` : 'Wallet Balance'}</h2>
+              <button type="button" onClick={handleRefresh} disabled={loading} aria-label="Refresh balance" className="flex h-8 w-8 items-center justify-center rounded-lg text-white/50 hover:bg-white/10 hover:text-white disabled:opacity-40">
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              </button>
             </div>
-          )}
-          
-          {loading && !getCurrentBalance() ? (
-            <BalanceSkeleton />
-          ) : error && !getCurrentBalance() ? (
-            <BalanceErrorState 
-              error={error} 
-              onRetry={() => selectedChain === 'all' ? fetchAllBalances(true) : fetchChainBalance(selectedChain, true)} 
-            />
-          ) : getCurrentBalance() ? (
-            <>
-              {/* KES Equivalent (Primary Display) */}
-              <h1 className="text-4xl text-white font-bold mb-3 text-center">
-                {getKESEquivalent().toFixed(2)} KES
-              </h1>
-              
-              {/* USD Value */}
-              <h1 className="text-xl text-white font-bold mb-3 text-center">
-                ${getTotalUSDValue().toFixed(2)} USD
-              </h1>
-              
-              {/* Exchange Rate */}
-              <p className="text-sm mt-2 text-white">
-                Current Rate: 1 USD = {usdToKesRate.toFixed(2)} KES
-              </p>
-              
-              {/* Chain-specific balances */}
-              <div className="text-center w-full max-w-md">
-                {Object.entries(getChainBalances()).map(([chain, tokens]) => (
-                  <div key={chain} className="mb-4">
-                    <h2 className="text-lg text-gray-300 mb-2 capitalize">
-                      {chain === 'all' ? 'All Chains' : chain}
-                    </h2>
-                    {Object.entries(tokens).length > 0 ? (
-                      <div className="space-y-1">
-                        {Object.entries(tokens).map(([token, amount]) => (
-                          <p key={token} className="text-sm text-gray-300">
-                            {Number(amount).toFixed(6)} {token}
-                          </p>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-gray-400">No tokens found</p>
-                    )}
+            {currentBusiness && (
+              <p className="mb-2 text-xs text-[#39BED3]">Business account · {currentBusiness.merchantId}{!isPinVerified && ' · PIN required'}</p>
+            )}
+            <div className="mt-2">
+              {loading && !getCurrentBalance() ? <BalanceSkeleton /> : error && !getCurrentBalance() ? (
+                <BalanceErrorState error={error} onRetry={handleRefresh} />
+              ) : getCurrentBalance() ? (
+                <>
+                  <p className="text-4xl font-semibold tracking-tight tabular-nums sm:text-5xl">
+                    {getKESEquivalent().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    <span className="ml-2 text-lg font-medium text-white/60">KES</span>
+                  </p>
+                  <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+                    <p className="text-sm font-medium text-white/80">${getTotalUSDValue().toFixed(2)} USD</p>
+                    <p className="text-xs text-white/45">1 USD ≈ {usdToKesRate.toFixed(2)} KES</p>
                   </div>
-                ))}
-              </div>
-            </>
-          ) : (
-            <BalanceEmptyState />
-          )}
-        </div>
-        <div className="flex justify-around relative top-20 ">
-          <div className="flex flex-col items-center" onClick={handleSend}>
-            <span className="border border-[#0795B0] rounded-full p-4 bg-[#0A0E0E] hover:bg-white text-white hover:text-[#0795B0] hover:cursor-pointer hover:border-white">
-              <PaperPlaneTilt size={24} weight="fill" />
-            </span>
-            <h4 className="text-white my-1">Send</h4>
-          </div>
-          <div className="flex flex-col items-center" onClick={handleReceive}>
-            <span className="border border-[#0795B0] rounded-full p-4 bg-[#0A0E0E] hover:bg-white text-white hover:text-[#0795B0] hover:cursor-pointer hover:border-white">
-              <ArrowCircleDown size={24} weight="fill" />
-            </span>
-            <h4 className="text-white my-1">Receive</h4>
-          </div>
-          <div className="flex flex-col items-center" onClick={handlePay}>
-            <span className="border border-[#0795B0] rounded-full p-4 bg-[#0A0E0E] hover:bg-white text-white hover:text-[#0795B0] hover:cursor-pointer hover:border-white">
-              <CreditCard size={24} weight="fill" />
-            </span>
-            <h4 className="text-white my-1">Pay</h4>
-          </div>
-        </div>
-      </article>
-      <article className="mt-20 flex flex-col items-center p-5  xl:px-[200px]">
-        <div className="flex flex-col justify-around rounded-xl w-full overflow-hidden bg-wallet-bg bg-cover p-5 h-[180px]">
-          <h3 className="text-white text-xl my-1 font-semibold">
-            Buy Crypto Assets, Tokens Securely.
-          </h3>
-          <button 
-            className="bg-white font-bold text-lg p-3 rounded-xl w-[150px] hover:bg-gray-100 hover:shadow-lg transition-all duration-200 cursor-pointer" 
-            onClick={handleBuy}
-          >
-            Buy Crypto
-          </button>
-        </div>
-      </article>
+                </>
+              ) : <BalanceEmptyState />}
+            </div>
+            <div className="mt-5 grid grid-cols-4 gap-2 border-t border-white/10 pt-4 sm:mt-6">
+              {[
+                { label: 'Send', icon: PaperPlaneTilt, action: handleSend },
+                { label: 'Receive', icon: ArrowCircleDown, action: handleReceive },
+                { label: 'Pay', icon: CreditCard, action: handlePay },
+                { label: 'Buy', icon: Plus, action: handleBuy },
+              ].map(({ label, icon: Icon, action }) => (
+                <button key={label} type="button" onClick={action} className={`flex min-h-14 flex-col items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#39BED3] sm:flex-row sm:gap-2 sm:text-sm ${label === 'Send' ? 'bg-[#0795B0] text-white hover:bg-[#06849C]' : 'bg-white/5 text-white/85 hover:bg-white/10'}`}>
+                  <Icon size={19} aria-hidden="true" />
+                  {label}
+                </button>
+              ))}
+            </div>
+          </section>
 
-      {/* Recent Transactions Section */}
-      <article className="mt-8 flex flex-col items-center p-5 xl:px-[200px]">
-        <div className="w-full max-w-4xl">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-white">Recent Transactions</h2>
-            <Link 
-              href="/transactions"
-              className="text-[#0795B0] hover:text-[#0AA5C0] text-sm font-medium transition-colors duration-200"
-            >
-              View All →
-            </Link>
-          </div>
-          
-          <div className="bg-[#0A0E0E] rounded-xl border border-[#0795B0] p-6">
-            <RecentTransactions showDebug={false} />
-          </div>
-        </div>
-      </article>
+          <section aria-labelledby="assets-title" className="order-3 min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-[#0E1617] lg:order-2">
+            <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
+              <h2 id="assets-title" className="text-base font-semibold">Your assets</h2>
+              <Wallet className="h-4 w-4 text-[#39BED3]" aria-hidden="true" />
+            </div>
+            <div className="max-h-[220px] overflow-y-auto px-5">
+              {loading && !getCurrentBalance() ? <p className="py-6 text-sm text-white/50">Loading assets…</p> : error && !getCurrentBalance() ? (
+                <p className="py-6 text-sm text-white/50">Assets are unavailable. Refresh your balance to try again.</p>
+              ) : Object.values(getChainBalances()).every(tokens => Object.keys(tokens).length === 0) ? (
+                <div className="py-6 text-sm text-white/50">No assets yet. Receive crypto to get started.</div>
+              ) : Object.entries(getChainBalances()).flatMap(([chain, tokens]) => Object.entries(tokens).map(([token, amount]) => (
+                <div key={`${chain}-${token}`} className="flex items-center justify-between gap-4 border-b border-white/5 py-3.5 last:border-0">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0795B0]/10 text-sm font-semibold text-[#39BED3]">{token.slice(0, 1)}</span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">{token}</p>
+                      <p className="truncate text-xs text-white/45">{botNetworks.find(network => network.id === chain)?.name || chain.charAt(0).toUpperCase() + chain.slice(1)}</p>
+                    </div>
+                  </div>
+                  <p className="text-right text-sm font-medium tabular-nums">{Number(amount).toLocaleString('en-US', { maximumFractionDigits: 8 })}</p>
+                </div>
+              )))}
+            </div>
+          </section>
 
-    </section>
+          <section aria-label="Recent transactions" className="order-2 min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-[#0E1617] lg:order-3 lg:col-span-2">
+            <RecentTransactions />
+          </section>
+        </div>
+      </div>
+    </main>
   );
 };
 

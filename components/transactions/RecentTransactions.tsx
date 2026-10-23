@@ -1,107 +1,45 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { transactionAPI } from '../../lib/transactions';
-import { Transaction } from '../../types/transaction-types';
 import Link from 'next/link';
+import { ArrowUpRight, ArrowDownLeft, ArrowLeftRight, CreditCard, Plus, ChevronRight, RefreshCw, Receipt } from 'lucide-react';
+import { transactionAPI } from '@/lib/transactions';
+import { Transaction } from '@/types/transaction-types';
 import { useAuth } from '@/context/AuthContext';
 import { getApiBaseUrl } from '@/lib/config';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 
-/*
- * 🔍 TRANSACTION API ENDPOINT GUIDE
- * 
- * Expected API Response Structure for /transactions/history:
- * 
- * {
- *   "success": true,
- *   "message": "Enhanced transaction history retrieved successfully",
- *   "data": {
- *     "transactions": [
- *       {
- *         "id": "TXN_123456",
- *         "type": "token_transfer",
- *         "status": "completed",           // ✅ REQUIRED: completed, pending, failed
- *         "token": {
- *           "symbol": "USDC",
- *           "name": "USD Coin",
- *           "amount": 0.1,
- *           "decimals": 6
- *         },
- *         "values": {
- *           "fiat": { "amount": 13.35, "currency": "KES", "formatted": "KES 13" },
- *           "usd": { "amount": 0.1, "formatted": "$0.10", "rate": 1.0 },
- *           "kes": { "amount": 13.35, "formatted": "KES 13", "rate": 133.5 }
- *         },
- *         "blockchain": {
- *           "chain": "arbitrum",
- *           "network": "Arbitrum One",
- *           "txHash": "0xcf008ad6ee461cac18c6518c78e7a5ca900534c8d6392d3c7c5cf136b109f1b3",
- *           "explorerUrl": "https://arbiscan.io/tx/0xcf008ad6ee461cac18c6518c78e7a5ca900534c8d6392d3c7c5cf136b109f1b3",
- *           "explorerName": "Arbiscan"
- *         },
- *         "portfolio": {
- *           "impact": "negative",
- *           "direction": "-",
- *           "description": "Outgoing transfer"
- *         },
- *         "timing": {
- *           "createdAt": "2025-09-01T11:33:14.743Z",  // ✅ REQUIRED
- *           "completedAt": "2025-09-01T11:33:14.743Z",
- *           "processingTimeSeconds": 19,
- *           "ageMinutes": 45,                           // ✅ REQUIRED for time display
- *           "formatted": {
- *             "created": "9/1/2025, 2:33:14 PM",
- *             "completed": "9/1/2025, 2:33:14 PM"
- *           }
- *         },
- *         "references": {
- *           "transactionId": "TXN_123456",
- *           "mpesaTransactionId": null,
- *           "retryCount": 0
- *         },
- *         "dashboard": {
- *           "priority": "normal",
- *           "category": "transfer",
- *           "statusColor": "green",
- *           "icon": "send",
- *           "summary": "Sent 0.1 USDC on Arbitrum - $0.10 (KES 13)"
- *         }
- *       }
- *     ],
- *     "summary": { "total": 25, "page": 1, "limit": 10, "pages": 3, "hasNext": true, "hasPrev": false },
- *     "filters": { "applied": ["status=completed"], "available": { "statuses": ["pending", "completed", "failed"] } }
- *   }
- * }
- * 
- * 🚨 CRITICAL FIELDS:
- * - status: Must be "completed", "processing", "pending", "failed", "error", or "reserved"
- * - timing.ageMinutes: Must be a number for proper time display
- * - timing.createdAt: Must be ISO8601 date string
- * - blockchain.txHash: Must be present for transaction hash display
- * - amount: Total transaction amount
- * - user: Optional user info (for admin endpoints)
- * - mpesa: Optional M-Pesa transaction details
- * - conversion: Optional conversion details for fiat-crypto transactions
- * - statusValidation: Optional status correction metadata
- * 
- * 🔧 CURRENT FIXES APPLIED:
- * - Automatic status validation by API (no more manual detection needed)
- * - Status corrections are automatically applied and logged
- * - Enhanced status display with correction notices
- * - Fallback status to "completed" if missing
- * - Calculated ageMinutes from createdAt if missing
- * - Comprehensive logging for debugging
- * - Data validation before display
- * - Support for new API structure with enhanced fields
- * - Status correction tracking and display
- */
-
-interface RecentTransactionsProps {
-  className?: string;
-  showDebug?: boolean;
+function networkName(chain: string) {
+  return ({ 'botchain-testnet': 'BOT Chain Testnet', botchain: 'BOT Chain', arbitrum: 'Arbitrum', base: 'Base', stellar: 'Stellar' } as Record<string, string>)[chain] || chain;
 }
 
-export const RecentTransactions: React.FC<RecentTransactionsProps> = ({ className = "", showDebug = false }) => {
+function transactionLabel(transaction: Transaction) {
+  if (transaction.type === 'fiat_to_crypto') return { label: 'Crypto purchase', Icon: Plus };
+  if (transaction.type === 'crypto_to_fiat') return { label: 'Withdrawal', Icon: ArrowUpRight };
+  if (transaction.type === 'crypto_to_paybill' || transaction.type === 'crypto_to_till') return { label: 'Payment', Icon: CreditCard };
+  if (transaction.transactionSubType === 'received') return { label: 'Received', Icon: ArrowDownLeft };
+  if (transaction.transactionSubType === 'sent') return { label: 'Sent', Icon: ArrowUpRight };
+  return { label: 'Transfer', Icon: ArrowLeftRight };
+}
+
+function statusDisplay(status: string) {
+  const statuses: Record<string, { label: string; style: string }> = {
+    completed: { label: 'Success', style: 'text-emerald-300 bg-emerald-400/10' },
+    pending: { label: 'Pending', style: 'text-amber-300 bg-amber-400/10' },
+    processing: { label: 'Processing', style: 'text-[#39BED3] bg-[#0795B0]/10' },
+    failed: { label: 'Failed', style: 'text-red-300 bg-red-400/10' },
+    error: { label: 'Error', style: 'text-red-300 bg-red-400/10' },
+    reserved: { label: 'Reserved', style: 'text-amber-300 bg-amber-400/10' },
+  };
+  return statuses[status] || { label: 'Unknown', style: 'text-white/60 bg-white/5' };
+}
+
+function dateLabel(transaction: Transaction) {
+  const date = new Date(transaction.timing.createdAt);
+  return Number.isNaN(date.getTime()) ? 'Date unavailable' : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+export const RecentTransactions = () => {
   const { user, isAuthenticated } = useAuth();
   const identity = `${getApiBaseUrl()}:${user?.walletAddress || user?.email || user?.phoneNumber || ''}`;
   const [history, setHistory] = useState<{ owner: string; data: Transaction[] }>({ owner: '', data: [] });
@@ -110,187 +48,8 @@ export const RecentTransactions: React.FC<RecentTransactionsProps> = ({ classNam
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
-  const [showDetails, setShowDetails] = useState(false);
 
-  // Cache key for localStorage
-  const CACHE_KEY = 'nexuspay_recent_transactions';
-  const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
-  // Lightweight transaction item component
-  const TransactionItem: React.FC<{ transaction: Transaction }> = ({ transaction }) => {
-    const { type, status, token, values, blockchain, timing, statusValidation, transactionCategory, transactionSubType } = transaction;
-    
-    // Get category label
-    const getCategoryLabel = (category?: string) => {
-      switch (category) {
-        case 'onchain':
-          return 'On-chain TX';
-        case 'onramp':
-          return 'Onramp';
-        case 'offramp':
-          return 'Offramp';
-        case 'cardpayment':
-          return 'Card Payment';
-        default:
-          return category || '';
-      }
-    };
-    
-    // Enhanced status detection with automatic validation support
-    const getStatusColor = (status: string, transaction: Transaction) => {
-      console.log('🎨 Status color check for:', status, 'Type:', transaction.type);
-      
-      // Use the API's validated status (the API now handles automatic correction)
-      const finalStatus = status;
-      
-      // Status color mapping based on validated status
-      const statusColors: Record<string, string> = {
-        completed: 'text-green-400',
-        processing: 'text-blue-400',
-        pending: 'text-yellow-400',
-        failed: 'text-red-400',
-        error: 'text-red-500',
-        reserved: 'text-orange-400',
-      };
-      
-      const color = statusColors[finalStatus] || 'text-green-400';
-      console.log(`✅ Status "${finalStatus}" → Color: ${color}`);
-      
-      // Log if status was corrected
-      if (statusValidation?.wasCorrected) {
-        console.log(`🔄 Status was corrected from "${statusValidation.originalStatus}" to "${finalStatus}"`);
-        console.log(`📝 Reason: ${statusValidation.correctionReason}`);
-      }
-      
-      return color;
-    };
-
-    // Enhanced type icon
-    const getTypeIcon = (type: string) => {
-      switch (type) {
-        case 'token_transfer': return '↗️';
-        case 'fiat_to_crypto': return '💰';
-        case 'crypto_to_fiat': return '💸';
-        case 'crypto_to_paybill': return '📱';
-        case 'crypto_to_till': return '🏪';
-        default: return '💳';
-      }
-    };
-
-    // Enhanced time format
-    const formatTime = (ageMinutes: number) => {
-      console.log('⏰ Time formatting for ageMinutes:', ageMinutes);
-      
-      // Handle invalid or missing ageMinutes
-      if (!ageMinutes || isNaN(ageMinutes) || ageMinutes < 0) {
-        console.log('⚠️ Invalid ageMinutes, using fallback');
-        return 'Recently';
-      }
-      
-      if (ageMinutes < 1) {
-        console.log('⏰ Time: Just now');
-        return 'Just now';
-      }
-      if (ageMinutes < 60) {
-        const minutes = Math.floor(ageMinutes);
-        console.log('⏰ Time:', `${minutes}m ago`);
-        return `${minutes}m ago`;
-      }
-      if (ageMinutes < 1440) {
-        const hours = Math.floor(ageMinutes / 60);
-        console.log('⏰ Time:', `${hours}h ago`);
-        return `${hours}h ago`;
-      }
-      
-      const days = Math.floor(ageMinutes / 1440);
-      console.log('⏰ Time:', `${days}d ago`);
-      return `${days}d ago`;
-    };
-
-    // Get status display text with automatic validation support
-    const getStatusText = (status: string, transaction: Transaction) => {
-      console.log('📝 Status text check for:', status, 'Type:', transaction.type);
-      
-      // Use the API's validated status
-      const finalStatus = status;
-      
-      // Status text mapping based on validated status
-      const statusTexts: Record<string, string> = {
-        completed: 'Success',
-        processing: 'Processing',
-        pending: 'Pending',
-        failed: 'Failed',
-        error: 'Error',
-        reserved: 'Reserved',
-      };
-      
-      const text = statusTexts[finalStatus] || 'Success';
-      console.log(`✅ Status "${finalStatus}" → Text: ${text}`);
-      
-      // Log if status was corrected
-      if (statusValidation?.wasCorrected) {
-        console.log(`🔄 Status was corrected from "${statusValidation.originalStatus}" to "${finalStatus}"`);
-      }
-      
-      return text;
-    };
-
-    return (
-      <div className="flex items-center justify-between p-3 bg-[#1A1E1E] rounded-lg border border-[#0795B0] hover:border-[#0AA5C0] transition-colors duration-200">
-        <div className="flex items-center space-x-3">
-          <div className="text-lg">{getTypeIcon(type)}</div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <p className="text-white font-medium text-sm">
-                {token.amount} {token.symbol}
-              </p>
-              {(transactionCategory || transactionSubType) && (
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {transactionCategory && (
-                    <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
-                      {getCategoryLabel(transactionCategory)}
-                    </span>
-                  )}
-                  {transactionSubType && (
-                    <span className="inline-flex items-center rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-medium text-blue-400 capitalize">
-                      {transactionSubType}
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-            <p className="text-gray-400 text-xs">
-              {values.usd.formatted} • {formatTime(timing.ageMinutes)}
-            </p>
-          </div>
-        </div>
-        
-        <div className="flex items-center space-x-3 shrink-0">
-          <div className="text-right">
-            <div className={`text-xs font-medium ${getStatusColor(status, transaction)}`}>
-              {getStatusText(status, transaction)}
-            </div>
-            <div className="text-xs text-gray-400">
-              {blockchain.chain}
-            </div>
-          </div>
-          
-          <button
-            onClick={() => {
-              setSelectedTransaction(transaction);
-              setShowDetails(true);
-            }}
-            className="px-3 py-1 bg-[#0795B0] text-white text-xs rounded hover:bg-[#0684A0] transition-colors duration-200"
-          >
-            Details
-          </button>
-        </div>
-      </div>
-    );
-  };
-
-  // Keep private history in memory, scoped to this signed-in owner.
-  const loadTransactions = async (_forceRefresh = false) => {
+  const loadTransactions = async () => {
     const requestGeneration = ++generation.current;
     if (!isAuthenticated) { setHistory({ owner: '', data: [] }); setLoading(false); return; }
     setLoading(true); setError(null);
@@ -298,23 +57,26 @@ export const RecentTransactions: React.FC<RecentTransactionsProps> = ({ classNam
       const response = await transactionAPI.getHistory({ page: 1, limit: 10 });
       if (requestGeneration !== generation.current) return;
       if (!response.success || !response.data?.transactions) throw new Error('History unavailable');
-      const data = response.data.transactions.slice(0, 5).map(transaction => ({
-        ...transaction,
-        status: transaction.status || 'pending',
-      }));
+      const data = response.data.transactions.slice(0, 5).map(transaction => ({ ...transaction, status: transaction.status || 'pending' }));
       setHistory({ owner: identity, data });
     } catch {
-      if (requestGeneration === generation.current) setError('Unable to load transaction history. Please try again.');
+      if (requestGeneration === generation.current) setError('Unable to load your recent transactions. Please try again.');
     } finally {
       if (requestGeneration === generation.current) setLoading(false);
     }
   };
 
-  // Clear cache function
-  const clearCache = () => {
-    localStorage.removeItem(CACHE_KEY);
-    loadTransactions(true);
-  };
+  useEffect(() => {
+    setHistory({ owner: identity, data: [] });
+    setSelectedTransaction(null);
+    loadTransactions();
+    const onTransactionsUpdated = () => { loadTransactions(); };
+    window.addEventListener('nexuspay:transactions-updated', onTransactionsUpdated);
+    return () => {
+      generation.current++;
+      window.removeEventListener('nexuspay:transactions-updated', onTransactionsUpdated);
+    };
+  }, [identity, isAuthenticated]);
 
   // Transaction Details Modal
   const TransactionDetailsModal: React.FC<{ 
@@ -335,7 +97,7 @@ export const RecentTransactions: React.FC<RecentTransactionsProps> = ({ classNam
         error: 'text-red-500',
         reserved: 'text-orange-400',
       };
-      return statusColors[status] || 'text-green-400';
+      return statusColors[status] || 'text-gray-400';
     };
 
     const getStatusText = (status: string, transaction: Transaction) => {
@@ -348,7 +110,7 @@ export const RecentTransactions: React.FC<RecentTransactionsProps> = ({ classNam
         error: 'Error',
         reserved: 'Reserved',
       };
-      return statusTexts[status] || 'Success';
+      return statusTexts[status] || 'Unknown';
     };
 
     const formatDateTime = (isoString: string) => {
@@ -364,18 +126,9 @@ export const RecentTransactions: React.FC<RecentTransactionsProps> = ({ classNam
     };
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-[#0A0E0E] border border-[#0795B0] rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-white">Transaction Details</h3>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-white transition-colors duration-200"
-            >
-              ✕
-            </button>
-          </div>
+      <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+        <DialogContent aria-describedby={undefined} className="bg-[#0A0E0E] text-white border-[#0795B0]/40 rounded-2xl p-6 max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogTitle className="mb-2 text-xl font-semibold">Transaction details</DialogTitle>
 
           {/* Status Banner */}
           <div className={`p-4 rounded-lg mb-6 ${
@@ -395,7 +148,7 @@ export const RecentTransactions: React.FC<RecentTransactionsProps> = ({ classNam
                   {getStatusText(status, transaction)}
                 </h4>
                 <p className="text-gray-300 text-sm">
-                  {dashboard?.summary || 'Transaction processed'}
+                  {dashboard?.summary || `Transaction status: ${getStatusText(status, transaction)}`}
                 </p>
                 {statusValidation?.wasCorrected && (
                   <p className="text-blue-300 text-xs mt-1">
@@ -506,244 +259,65 @@ export const RecentTransactions: React.FC<RecentTransactionsProps> = ({ classNam
               Close
             </button>
           </div>
-        </div>
-      </div>
+        </DialogContent>
+      </Dialog>
     );
   };
 
-  // Load on mount; also refetch after a successful send so new BOT rows appear immediately.
-  useEffect(() => {
-    setHistory({ owner: identity, data: [] });
-    loadTransactions();
-    const onTransactionsUpdated = () => { loadTransactions(true); };
-    window.addEventListener('nexuspay:transactions-updated', onTransactionsUpdated);
-    return () => {
-      generation.current++;
-      window.removeEventListener('nexuspay:transactions-updated', onTransactionsUpdated);
-    };
-  }, [identity, isAuthenticated]);
-
-  if (loading) {
-    return (
-      <div className={`space-y-3 ${className}`}>
-        {Array.from({ length: 3 }).map((_, index) => (
-          <div key={index} className="p-3 bg-[#1A1E1E] rounded-lg border border-[#0795B0] animate-pulse">
-            <div className="flex items-center space-x-3">
-              <div className="w-6 h-6 bg-gray-600 rounded"></div>
-              <div className="flex-1">
-                <div className="h-4 bg-gray-600 rounded w-3/4 mb-2"></div>
-                <div className="h-3 bg-gray-600 rounded w-1/2"></div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className={`p-4 bg-red-500/20 border border-red-500 rounded-lg ${className}`}>
-        <div className="text-center">
-          <p className="text-red-300 text-sm mb-2">{error}</p>
-          <button
-            onClick={() => loadTransactions()}
-            className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors duration-200"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (transactions.length === 0) {
-    return (
-      <div className={`p-4 bg-[#1A1E1E] border border-[#0795B0] rounded-lg ${className}`}>
-        <div className="text-center">
-          <div className="text-gray-400 text-2xl mb-2">📋</div>
-          <p className="text-gray-400 text-sm">No recent transactions</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <>
-      <div className={`space-y-3 ${className}`}>
-        {/* API Status Indicator */}
-        <div className="flex items-center justify-between p-2 bg-[#1A1E1E] border border-[#0795B0] rounded-lg">
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-            <span className="text-xs text-gray-300">
-              API Status: {transactions.length > 0 ? 'Connected' : 'Loading...'}
-            </span>
-          </div>
-          <div className="text-xs text-gray-400">
-            {transactions.length} transactions loaded
-          </div>
+      <div className="flex items-center justify-between gap-2 border-b border-white/5 px-4 py-4 sm:px-5">
+        <h2 className="text-base font-semibold text-white">Recent transactions</h2>
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={loadTransactions} disabled={loading} aria-label="Refresh transactions" className="flex h-8 w-8 items-center justify-center rounded-lg text-white/45 hover:bg-white/5 hover:text-white disabled:opacity-40">
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+          <Link href="/transactions" className="inline-flex items-center gap-1 text-xs font-medium text-[#39BED3] hover:text-white sm:text-sm">View all <ChevronRight className="h-3.5 w-3.5" /></Link>
         </div>
-        
-        {transactions.map((transaction) => (
-          <TransactionItem key={transaction.id} transaction={transaction} />
-        ))}
-        
-        <div className="flex justify-between items-center pt-2">
-          <div className="flex space-x-2">
-            <button
-              onClick={() => loadTransactions(true)}
-              className="text-gray-400 hover:text-white text-xs transition-colors duration-200"
-            >
-              Refresh
-            </button>
-            <button
-              onClick={() => {
-                localStorage.removeItem(CACHE_KEY);
-                loadTransactions(true);
-              }}
-              className="text-red-400 hover:text-red-300 text-xs transition-colors duration-200"
-            >
-              Clear Cache
-            </button>
-          </div>
-          <Link
-            href="/transactions"
-            className="text-[#0795B0] hover:text-[#0AA5C0] text-sm transition-colors duration-200"
-          >
-            View all transactions →
-          </Link>
-        </div>
-        
-        {/* Enhanced Debug Panel */}
-        {showDebug && (
-        <details className="mt-4 p-3 bg-[#1A1E1E] border border-[#0795B0] rounded-lg">
-          <summary className="text-[#0795B0] text-xs cursor-pointer hover:text-[#0AA5C0]">
-            🔍 Debug Info - API Data Analysis
-          </summary>
-          <div className="mt-2 space-y-3 text-xs text-gray-300">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <strong>Transactions loaded:</strong> {transactions.length}
-              </div>
-              <div>
-                <strong>Cache status:</strong> {localStorage.getItem(CACHE_KEY) ? 'Active' : 'None'}
-              </div>
-            </div>
-            
-            {transactions.length > 0 && (
-              <div>
-                <strong>Status Analysis:</strong>
-                <div className="mt-1 space-y-1">
-                  {transactions.map((tx, index) => (
-                    <div key={tx.id} className="p-2 bg-[#0A0E0E] rounded text-xs">
-                      <div className="flex justify-between items-center">
-                        <span className="text-white">#{index + 1}</span>
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          tx.status === 'failed' ? 'bg-red-500/20 text-red-300' : 
-                          tx.status === 'completed' ? 'bg-green-500/20 text-green-300' :
-                          'bg-yellow-500/20 text-yellow-300'
-                        }`}>
-                          {tx.status}
-                        </span>
-                      </div>
-                      <div className="mt-1 text-gray-400">
-                        <div>Type: {tx.type}</div>
-                        <div>Hash: {tx.blockchain?.txHash ? '✅ Present' : '❌ Missing'}</div>
-                        <div>Amount: {tx.token?.amount} {tx.token?.symbol}</div>
-                        <div>Chain: {tx.blockchain?.chain}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            <div>
-              <strong>Status Validation System:</strong>
-              <div className="mt-1 p-2 bg-[#0A0E0E] rounded text-xs">
-                <div>• API automatically validates and corrects statuses</div>
-                <div>• Transactions with valid hashes → Marked as completed</div>
-                <div>• Old transactions without hashes → Marked as failed</div>
-                <div>• Status corrections are logged and preserved</div>
-              </div>
-            </div>
-            
-            {transactions.some(t => t.statusValidation?.wasCorrected) && (
-              <div>
-                <strong>Status Corrections:</strong>
-                <div className="mt-1 p-2 bg-[#0A0E0E] rounded text-xs">
-                  {transactions.filter(t => t.statusValidation?.wasCorrected).map((tx, index) => (
-                    <div key={tx.id} className="mb-1">
-                      <span className="text-blue-300">#{index + 1}:</span> {tx.statusValidation?.originalStatus} → {tx.status}
-                      <div className="text-gray-400 text-xs ml-2">
-                        {tx.statusValidation?.correctionReason}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            <div className="flex space-x-2">
-              <button
-                onClick={() => {
-                  console.log('🔍 Current transactions state:', transactions);
-                  console.log('🔍 Status analysis:', transactions.map(tx => ({
-                    id: tx.id,
-                    type: tx.type,
-                    status: tx.status,
-                    hasHash: !!tx.blockchain?.txHash,
-                    hash: tx.blockchain?.txHash
-                  })));
-                }}
-                className="px-2 py-1 bg-[#0795B0] text-white text-xs rounded hover:bg-[#0684A0]"
-              >
-                Log Analysis
-              </button>
-              <button
-                onClick={() => loadTransactions(true)}
-                className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
-              >
-                Force Refresh
-              </button>
-              <button
-                onClick={async () => {
-                  console.log('🧪 Testing API connection...');
-                  try {
-                    const response = await fetch(`${process.env.NODE_ENV === 'production' ? 'https://api.nexuspaydefi.xyz' : 'http://localhost:8000'}/api/transactions/history?limit=1`, {
-                      headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('nexuspay_token')}`,
-                        'Content-Type': 'application/json'
-                      }
-                    });
-                    const data = await response.json();
-                    console.log('🧪 Direct API test response:', data);
-                    alert(`API Test: ${response.status} - ${data.success ? 'Success' : 'Failed'}`);
-                  } catch (error) {
-                    console.error('🧪 Direct API test error:', error);
-                    alert('API Test: Failed - Check console for details');
-                  }
-                }}
-                className="px-2 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700"
-              >
-                Test API
-              </button>
-            </div>
-          </div>
-        </details>
-        )}
       </div>
 
-      {/* Transaction Details Modal */}
-      {showDetails && selectedTransaction && (
-        <TransactionDetailsModal
-          transaction={selectedTransaction}
-          onClose={() => {
-            setShowDetails(false);
-            setSelectedTransaction(null);
-          }}
-        />
+      {error ? (
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 px-5 py-6">
+          <p className="text-sm text-red-300">{error}</p>
+          <button type="button" onClick={loadTransactions} className="rounded-lg border border-[#0795B0]/40 px-4 py-2 text-sm text-[#39BED3]">Try again</button>
+        </div>
+      ) : loading && transactions.length === 0 ? (
+        <div role="status" aria-label="Loading transactions" className="divide-y divide-white/5 px-5">
+          {[1, 2, 3].map(row => <div key={row} className="flex animate-pulse items-center gap-3 py-4"><div className="h-9 w-9 rounded-full bg-white/5" /><div className="h-3 w-32 rounded bg-white/10" /><div className="ml-auto h-3 w-20 rounded bg-white/10" /></div>)}
+        </div>
+      ) : transactions.length === 0 ? (
+        <div className="flex items-center gap-4 px-5 py-8">
+          <Receipt className="h-8 w-8 text-[#39BED3]" />
+          <div><p className="text-sm font-medium text-white">No transactions yet</p><p className="mt-1 text-sm text-white/50">Your payments will appear here once you get started.</p></div>
+        </div>
+      ) : (
+        <>
+          <div aria-hidden="true" className="hidden grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_100px_minmax(0,1fr)_20px] gap-4 border-b border-white/5 px-5 py-2.5 text-xs text-white/40 md:grid">
+            <span>Transaction</span><span>Network</span><span>Status</span><span className="text-right">Amount</span><span />
+          </div>
+          <ul className="divide-y divide-white/5">
+            {transactions.map(transaction => {
+              const { label, Icon } = transactionLabel(transaction);
+              const status = statusDisplay(transaction.status);
+              return (
+                <li key={transaction.id}>
+                  <button type="button" onClick={() => setSelectedTransaction(transaction)} aria-label={`View details: ${label}, ${transaction.token.amount} ${transaction.token.symbol}, ${status.label}`} className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0795B0] sm:px-5 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_100px_minmax(0,1fr)_20px] md:gap-4">
+                    <span className="flex min-w-0 items-center gap-3">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0795B0]/10 text-[#39BED3]"><Icon className="h-4 w-4" /></span>
+                      <span className="min-w-0"><span className="block text-sm font-medium text-white">{label}</span><span className="mt-1 block text-xs text-white/45">{dateLabel(transaction)}</span><span className="mt-1 block truncate text-[11px] text-white/45 md:hidden">{networkName(transaction.blockchain.chain)}</span></span>
+                    </span>
+                    <span className="hidden text-sm text-white/60 md:block">{networkName(transaction.blockchain.chain)}</span>
+                    <span className={`hidden w-fit rounded-full px-2 py-1 text-xs md:block ${status.style}`}>{status.label}</span>
+                    <span className="text-right"><span className="block text-sm font-medium tabular-nums text-white">{transaction.token.amount} {transaction.token.symbol}</span><span className="mt-1 hidden text-xs tabular-nums text-white/40 md:block">{transaction.values.usd.formatted}</span><span className={`mt-1.5 inline-block rounded-full px-2 py-0.5 text-[11px] md:hidden ${status.style}`}>{status.label}</span></span>
+                    <ChevronRight className="hidden h-4 w-4 text-white/30 md:block" />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </>
       )}
+      {selectedTransaction && <TransactionDetailsModal transaction={selectedTransaction} onClose={() => setSelectedTransaction(null)} />}
     </>
   );
 };

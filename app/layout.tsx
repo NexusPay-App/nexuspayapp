@@ -11,7 +11,6 @@ import { BusinessProvider } from "@/context/BusinessContext";
 import ClientOnly from "./ClientOnly";
 import { ReactQueryClientProvider } from "@/providers/ReactQueryClientProvider";
 import { Toaster } from "react-hot-toast";
-import PWAInstallPrompt from "@/components/pwa/PWAInstallPrompt";
 import PWAUpdateNotification from "@/components/pwa/PWAUpdateNotification";
 import BotChainFooter from '@/components/BotChainFooter';
 
@@ -164,7 +163,6 @@ export default function RootLayout({
                   <ChainProvider>
                     <BalanceProvider>
                       <ClientOnly>{children}</ClientOnly>
-                      <PWAInstallPrompt />
                       <PWAUpdateNotification />
                       <Toaster />
                     </BalanceProvider>

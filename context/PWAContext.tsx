@@ -2,16 +2,24 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
+const INSTALL_STORAGE_KEY = 'nexuspay-pwa-installed';
+
 interface PWAContextType {
   isInstalled: boolean;
+  installationChecked: boolean;
   isOnline: boolean;
   isUpdateAvailable: boolean;
-  installPrompt: any;
+  installPrompt: BeforeInstallPromptEvent | null;
   showInstallPrompt: boolean;
   showUpdatePrompt: boolean;
   setShowInstallPrompt: (show: boolean) => void;
   setShowUpdatePrompt: (show: boolean) => void;
-  triggerInstall: () => void;
+  triggerInstall: () => Promise<void>;
   triggerUpdate: () => void;
 }
 
@@ -31,48 +39,44 @@ interface PWAProviderProps {
 
 export const PWAProvider: React.FC<PWAProviderProps> = ({ children }) => {
   const [isInstalled, setIsInstalled] = useState(false);
+  const [installationChecked, setInstallationChecked] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
   const [isUpdateAvailable, setIsUpdateAvailable] = useState(false);
-  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
 
   useEffect(() => {
-    // Check if app is installed
-    const checkInstallation = () => {
-      const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-      const isIOSStandalone = (window.navigator as any).standalone === true;
-      const isPWA = isStandalone || isIOSStandalone || document.referrer.includes('android-app://');
-      setIsInstalled(isPWA);
-    };
-
-    // Check online status
-    const updateOnlineStatus = () => {
-      setIsOnline(navigator.onLine);
-    };
-
-    // Listen for beforeinstallprompt
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setInstallPrompt(e);
-      
-      // Check if user has dismissed before
-      const dismissed = localStorage.getItem('pwa-install-dismissed');
-      const dismissedTime = dismissed ? parseInt(dismissed) : 0;
-      const now = Date.now();
-      const daysSinceDismissed = (now - dismissedTime) / (1000 * 60 * 60 * 24);
-      
-      if (!isInstalled && daysSinceDismissed > 7) {
-        setShowInstallPrompt(true);
-      }
-    };
-
-    // Listen for app installed
-    const handleAppInstalled = () => {
+    const standalone = window.matchMedia('(display-mode: standalone)');
+    const isStandalone = () => standalone.matches ||
+      (navigator as Navigator & { standalone?: boolean }).standalone === true;
+    const rememberInstallation = () => {
       setIsInstalled(true);
       setShowInstallPrompt(false);
       setInstallPrompt(null);
-      localStorage.removeItem('pwa-install-dismissed');
+      try { localStorage.setItem(INSTALL_STORAGE_KEY, 'true'); } catch { /* Storage may be blocked. */ }
+    };
+    const checkInstallation = () => {
+      if (isStandalone()) {
+        rememberInstallation();
+      } else {
+        try { setIsInstalled(localStorage.getItem(INSTALL_STORAGE_KEY) === 'true'); } catch { /* Use browser events instead. */ }
+      }
+      setInstallationChecked(true);
+    };
+    const updateOnlineStatus = () => setIsOnline(navigator.onLine);
+
+    // Keep the native prompt for an explicit click, never open it on page load.
+    const handleBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      if (isStandalone()) return;
+      // A fresh install offer also lets a user reinstall after uninstalling.
+      try { localStorage.removeItem(INSTALL_STORAGE_KEY); } catch { /* Storage may be blocked. */ }
+      setIsInstalled(false);
+      setInstallPrompt(event as BeforeInstallPromptEvent);
+    };
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === INSTALL_STORAGE_KEY || event.key === null) checkInstallation();
     };
 
     // Listen for service worker updates
@@ -106,46 +110,37 @@ export const PWAProvider: React.FC<PWAProviderProps> = ({ children }) => {
 
     // Event listeners
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    window.addEventListener('appinstalled', handleAppInstalled);
+    window.addEventListener('appinstalled', rememberInstallation);
+    window.addEventListener('storage', handleStorage);
+    standalone.addEventListener('change', checkInstallation);
     window.addEventListener('online', updateOnlineStatus);
     window.addEventListener('offline', updateOnlineStatus);
 
-    // Show install prompt after delay if not installed
-    const timer = setTimeout(() => {
-      if (!isInstalled && !installPrompt) {
-        const dismissed = localStorage.getItem('pwa-install-dismissed');
-        const dismissedTime = dismissed ? parseInt(dismissed) : 0;
-        const now = Date.now();
-        const daysSinceDismissed = (now - dismissedTime) / (1000 * 60 * 60 * 24);
-        
-        if (daysSinceDismissed > 7) {
-          setShowInstallPrompt(true);
-        }
-      }
-    }, 5000); // Show after 5 seconds
-
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      window.removeEventListener('appinstalled', handleAppInstalled);
+      window.removeEventListener('appinstalled', rememberInstallation);
+      window.removeEventListener('storage', handleStorage);
+      standalone.removeEventListener('change', checkInstallation);
       window.removeEventListener('online', updateOnlineStatus);
       window.removeEventListener('offline', updateOnlineStatus);
-      clearTimeout(timer);
     };
-  }, [isInstalled, installPrompt]);
+  }, []);
 
   const triggerInstall = async () => {
-    if (installPrompt) {
-      installPrompt.prompt();
-      const { outcome } = await installPrompt.userChoice;
-      
-      if (outcome === 'accepted') {
-        setIsInstalled(true);
-        setShowInstallPrompt(false);
-      } else {
-        localStorage.setItem('pwa-install-dismissed', Date.now().toString());
-      }
-      
-      setInstallPrompt(null);
+    if (isInstalled) return;
+    if (!installPrompt) {
+      setShowInstallPrompt(true);
+      return;
+    }
+    const prompt = installPrompt;
+    setInstallPrompt(null); // Native prompts are single-use.
+    try {
+      await prompt.prompt();
+      await prompt.userChoice;
+      // Only appinstalled / standalone confirms a completed installation.
+      setShowInstallPrompt(false);
+    } catch {
+      setShowInstallPrompt(true);
     }
   };
 
@@ -162,6 +157,7 @@ export const PWAProvider: React.FC<PWAProviderProps> = ({ children }) => {
 
   const value: PWAContextType = {
     isInstalled,
+    installationChecked,
     isOnline,
     isUpdateAvailable,
     installPrompt,

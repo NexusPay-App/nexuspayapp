@@ -1,0 +1,9 @@
+.env
+.env.*
+!.env.example
+.claim-faucet.mjs
+.faucet.mjs
+.live-smoke.mjs
+.recv-check.mjs
+test-results
+playwright-report

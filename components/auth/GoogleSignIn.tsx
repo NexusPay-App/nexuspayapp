@@ -90,7 +90,7 @@ const GoogleSignIn: React.FC<GoogleSignInProps> = ({ mode, onSuccess, onError })
                   const buttonElement = document.getElementById('google-signin-button');
                   if (buttonElement && window.google) {
                     window.google.accounts.id.renderButton(buttonElement, {
-                      theme: mode === 'continue' ? 'filled_blue' : 'outline',
+                      theme: 'outline',
                       size: 'large',
                       shape: 'pill',
                       width: Math.min(400, Math.floor(buttonElement.clientWidth)),

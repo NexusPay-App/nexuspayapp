@@ -2,6 +2,9 @@
 
 @import "tailwindcss";
 @config "../tailwind.config.ts";
+@source "../app";
+@source "../components";
+@source "../context";
 
 /* Preserve the Tailwind 3 control defaults during the v4 migration. */
 @layer base {

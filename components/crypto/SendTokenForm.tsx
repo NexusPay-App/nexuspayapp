@@ -1,5 +1,6 @@
 "use client";
 
+import NetworkFeeNotice from "./NetworkFeeNotice";
 import { usePaymentNetworks } from '@/hooks/usePaymentNetworks';
 import React, { useState, useEffect } from 'react';
 import { useCrypto } from '../../hooks/useCrypto';
@@ -148,7 +149,7 @@ export const SendTokenForm: React.FC = () => {
         <h2 className="text-2xl font-bold mb-6 text-center text-white">Send Crypto</h2>
         
         <form onSubmit={handleSubmit} className="space-y-6">
-          {isBot && <p className="rounded-lg border border-cyan-800 bg-cyan-950/30 p-3 text-sm text-cyan-100">{sendFormData.chain === 'botchain-testnet' ? 'Testnet: use test assets only. ' : ''}Payments use your BOT wallet. Keep native BOT in it for network fees. <a href="/receive" className="underline">Get your BOT address</a>.</p>}
+          <NetworkFeeNotice network={sendFormData.chain} />
           {/* Recipient */}
           <div>
             <label htmlFor="recipientIdentifier" className="block text-sm font-medium text-gray-300 mb-2">

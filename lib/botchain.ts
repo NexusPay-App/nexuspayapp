@@ -1,7 +1,7 @@
 import api from './api';
 import type { PayMerchantResponse, SendTokenResponse } from './crypto';
 export type BotNetwork = 'botchain' | 'botchain-testnet';
-export type BotToken = 'BOT' | 'WBOT' | 'USDT';
+export type BotToken = 'BOT' | 'USDT';
 export interface BotCapability { id: BotNetwork; name: string; chainId: number; enabled: boolean; transfers: boolean; merchantPayments: boolean; deposits?: boolean; explorer: string; testnet: boolean; tokens?: { symbol: BotToken; decimals: number; address: string | null }[]; }
 export interface BotBalance { network: BotNetwork; address: string; gasMode: string; balances: { symbol: BotToken; decimals: number; balance: string; balanceUnits: string }[]; }
 export interface BotPayment { id: string; network: BotNetwork; sender: string; recipient: string; amount: string; tokenSymbol: BotToken; status: 'preparing' | 'submitted' | 'pending' | 'confirmed' | 'failed' | 'review'; userOpHash?: string; transactionHash?: string; explorerUrl?: string; failureReason?: string; failureCode?: string; createdAt: string; merchantId?: string; direction?: 'outgoing' | 'incoming'; }
@@ -41,7 +41,9 @@ export function clearBotRequest(scope: 'send' | 'merchant'): void {
   try { sessionStorage.removeItem(`nexuspay_bot_request_${scope}`); } catch { /* Storage unavailable. */ }
 }
 export const botAPI = {
-  networks: async () => (await api.get<{ data: BotCapability[] }>('/botchain/networks')).data.data,
+  // Consumer wallets expose mainnet only, including when a stale API advertises testnet.
+  networks: async () => (await api.get<{ data: BotCapability[] }>('/botchain/networks')).data.data
+    .filter(network => network.id === 'botchain' && !network.testnet),
   balance: async (network: BotNetwork, signal?: AbortSignal) => (await api.get<{ data: BotBalance }>(`/botchain/${network}/balances`, { signal })).data.data,
   history: async (network: BotNetwork, signal?: AbortSignal) => (await api.get<{ data: BotPayment[] }>(`/botchain/${network}/transfers`, { signal })).data.data,
   status: async (network: BotNetwork, id: string) => (await api.get<{ data: BotPayment }>(`/botchain/${network}/transfers/${id}`)).data.data,

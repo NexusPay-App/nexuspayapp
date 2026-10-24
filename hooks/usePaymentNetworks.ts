@@ -6,14 +6,13 @@ interface PaymentNetwork { id: string; name: string; chainId: number; tokens: { 
 const BOT_TOKEN_NAMES: Record<BotToken, { name: string; decimals: number }> = {
   USDT: { name: 'Tether USD', decimals: 6 },
   BOT: { name: 'BOT Chain', decimals: 18 },
-  WBOT: { name: 'Wrapped BOT', decimals: 18 },
 };
-const DEFAULT_BOT_TOKENS: BotToken[] = ['USDT', 'BOT', 'WBOT'];
+const DEFAULT_BOT_TOKENS: BotToken[] = ['USDT', 'BOT'];
 function toPaymentNetwork(capability: BotCapability): PaymentNetwork {
   const source = capability.tokens?.length
     ? capability.tokens.map(token => ({ symbol: token.symbol, decimals: token.decimals }))
     : DEFAULT_BOT_TOKENS.map(symbol => ({ symbol, decimals: BOT_TOKEN_NAMES[symbol].decimals }));
-  const tokens = source.map(token => ({
+  const tokens = source.filter(token => DEFAULT_BOT_TOKENS.includes(token.symbol)).map(token => ({
     symbol: token.symbol,
     name: BOT_TOKEN_NAMES[token.symbol]?.name || token.symbol,
     decimals: token.decimals,

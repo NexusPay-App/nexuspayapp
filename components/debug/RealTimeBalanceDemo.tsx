@@ -146,7 +146,6 @@ export const RealTimeBalanceDemo: React.FC = () => {
                 {/* <option value="ethereum">Ethereum</option> */}
                 <option value="base">Base</option>
                 {/* <option value="celo">Celo</option> */}
-                <option value="botchain-testnet">BOT Chain Testnet</option>
                 <option value="botchain">BOT Chain</option>
               </select>
             </div>

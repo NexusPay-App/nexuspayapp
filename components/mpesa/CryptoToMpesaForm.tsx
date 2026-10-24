@@ -185,7 +185,6 @@ export const CryptoToMpesaForm: React.FC = () => {
             {/* <option value="fuse">Fuse</option> */}
             {/* <option value="gnosis">Gnosis</option> */}
             {/* <option value="aurora">Aurora</option> */}
-            <option value="botchain-testnet">BOT Chain Testnet</option>
             <option value="botchain">BOT Chain</option>
           </select>
         </div>

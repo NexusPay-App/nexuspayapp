@@ -319,7 +319,6 @@ export const PayWithCryptoForm: React.FC = () => {
               <option value="arbitrum">Arbitrum</option>
               {/* <option value="ethereum">Ethereum</option> */}
               <option value="base">Base</option>
-              <option value="botchain-testnet">BOT Chain Testnet</option>
               <option value="botchain">BOT Chain</option>
             </select>
           </div>

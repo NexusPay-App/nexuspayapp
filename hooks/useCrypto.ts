@@ -15,7 +15,7 @@ import { useApi } from './useApi';import {
 } from '../lib/crypto';
 import { botAPI, botPaymentToSendResponse, botPaymentToMerchantResponse, botRequestKey, clearBotRequest, isBotNetwork, type BotToken } from '../lib/botchain';
 
-const BOT_TOKENS: BotToken[] = ['BOT', 'WBOT', 'USDT'];
+const BOT_TOKENS: BotToken[] = ['BOT', 'USDT'];
 
 export const useCrypto = () => {
   const queryClient = useQueryClient();
@@ -105,7 +105,7 @@ export const useCrypto = () => {
       const network = data.chain;
       const tokenSymbol = (data.tokenSymbol || 'USDT') as BotToken;
       if (!BOT_TOKENS.includes(tokenSymbol)) {
-        throw new Error('Select a BOT Chain asset (USDT, BOT, or WBOT) for this payment.');
+        throw new Error('Select a BOT Chain asset (USDT or BOT) for this payment.');
       }
       const amount = String(data.amount);
       const key = botRequestKey('send', [data.senderAddress.toLowerCase(), network, recipientIdentifier.trim(), amount, tokenSymbol]);

@@ -73,6 +73,7 @@ export const BusinessBalanceOverview: React.FC<BusinessBalanceOverviewProps> = (
       case 'base': return '🔵';
       // case 'celo': return '🟡';
       case 'botchain':
+      case 'botchain':
       case 'botchain-testnet': return '🤖';
       default: return '⛓️';
     }
@@ -84,6 +85,7 @@ export const BusinessBalanceOverview: React.FC<BusinessBalanceOverviewProps> = (
       case 'base': return 'text-blue-300';
       // case 'celo': return 'text-yellow-400';
       case 'botchain':
+      case 'botchain':
       case 'botchain-testnet': return 'text-emerald-400';
       default: return 'text-gray-400';
     }
@@ -94,6 +96,7 @@ export const BusinessBalanceOverview: React.FC<BusinessBalanceOverviewProps> = (
       case 'arbitrum': return 'bg-blue-500/10 border-blue-500/20';
       case 'base': return 'bg-blue-400/10 border-blue-400/20';
       // case 'celo': return 'bg-yellow-500/10 border-yellow-500/20';
+      case 'botchain':
       case 'botchain':
       case 'botchain-testnet': return 'bg-emerald-500/10 border-emerald-500/20';
       default: return 'bg-gray-500/10 border-gray-500/20';
@@ -232,7 +235,7 @@ export const BusinessBalanceOverview: React.FC<BusinessBalanceOverviewProps> = (
             All Chains
           </button>
           {/* Visible chains only: Arbitrum, Base, Botchain. Others commented, not removed. */}
-          {['arbitrum', 'base', 'botchain-testnet' /* , 'celo', 'polygon', 'optimism' */].map((chain) => {
+          {['arbitrum', 'base', 'botchain' /* , 'celo', 'polygon', 'optimism' */].map((chain) => {
             const chainTotal = getTotalForChain(chain);
             const hasBalance = chainTotal > 0;
             

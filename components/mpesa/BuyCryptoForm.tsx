@@ -351,7 +351,6 @@ export const BuyCryptoForm: React.FC = () => {
               {/* <option value="polygon">Polygon</option> */}
               <option value="base">Base</option>
               {/* <option value="stellar">🌟 Stellar</option> */}
-              <option value="botchain-testnet">BOT Chain Testnet</option>
               <option value="botchain">BOT Chain</option>
             </select>
           </div>

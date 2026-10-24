@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 const address = '0x1111111111111111111111111111111111111111';
 const capabilities = [{ id: 'botchain-testnet', name: 'BOT Chain Testnet', chainId: 968, enabled: true, transfers: true, merchantPayments: true, testnet: true, tokens: [{ symbol: 'USDT', decimals: 6 }, { symbol: 'BOT', decimals: 18 }] }, { id: 'botchain', name: 'BOT Chain', chainId: 677, enabled: false, transfers: false }];
-async function setup(page: Page, rejectPassword = false, network = 'botchain-testnet') {
+async function setup(page: Page, rejectPassword = false, network = 'botchain') {
   let posts = 0;
   let legacy = 0;
   await page.addInitScript(() => {
@@ -43,23 +43,23 @@ test('home network selection reaches the send form; one POST is followed by conf
   const calls = await setup(page);
   await page.goto('/home');
   await page.getByRole('combobox').first().click();
-  await page.getByRole('option', { name: 'BOT Chain Testnet', exact: true }).click();
+  await page.getByRole('option', { name: 'BOT Chain', exact: true }).click();
   await page.getByRole('button', { name: 'Send', exact: true }).click();
-  await expect(page.getByLabel('Chain', { exact: true })).toHaveValue('botchain-testnet');
+  await expect(page.getByLabel('Chain', { exact: true })).toHaveValue('botchain');
   await send(page);
   await expect(page.getByText('Payment Submitted', { exact: true })).toBeVisible();
   await expect(page.getByText('Transaction Successful!', { exact: true })).toBeVisible({ timeout: 15000 });
-  await expect(page.getByRole('link', { name: 'View on Explorer' })).toHaveAttribute('href', 'https://scan.bohr.life/tx/0xabc');
+  await expect(page.getByRole('link', { name: 'View on Explorer' })).toHaveAttribute('href', 'https://scan.botchain.ai/tx/0xabc');
   expect(calls()).toEqual({ posts: 1, legacy: 0 });
 });
 test('password rejection preserves the selected network and explains the failure', async ({ page }) => {
   const calls = await setup(page, true);
   await page.goto('/crypto');
-  await page.getByLabel('Chain', { exact: true }).selectOption('botchain-testnet');
+  await page.getByLabel('Chain', { exact: true }).selectOption('botchain');
   await send(page);
   await expect(page.getByText('Enter your NexusPay account password.', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Close', exact: true }).click();
-  await expect(page.getByLabel('Chain', { exact: true })).toHaveValue('botchain-testnet');
+  await expect(page.getByLabel('Chain', { exact: true })).toHaveValue('botchain');
   expect(calls()).toEqual({ posts: 1, legacy: 0 });
 });
 test('BOT mainnet uses the mainnet payment route, native fee notice and explorer', async ({ page }) => {
@@ -81,6 +81,6 @@ test('public ecosystem page shows both required links and honest network status'
   const footer = page.getByRole('contentinfo', { name: 'NexusPay ecosystem' });
   await expect(footer.getByRole('link', { name: 'BOT Chain website' })).toHaveAttribute('href', 'https://botchain.ai');
   await expect(footer.getByRole('link', { name: 'BOT Chain explorer' })).toHaveAttribute('href', 'https://scan.botchain.ai');
-  await expect(page.getByText('Payments not enabled', { exact: false })).toBeVisible();
-  await expect(page.getByRole('region', { name: 'BOT network availability' }).getByText('Test assets only', { exact: false })).toBeVisible();
+  await expect(page.getByText('Payments enabled', { exact: false })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'BOT network availability' }).getByText('Test assets only', { exact: false })).toHaveCount(0);
 });

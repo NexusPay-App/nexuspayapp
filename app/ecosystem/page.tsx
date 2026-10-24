@@ -16,7 +16,7 @@ export default function EcosystemPage() {
           <ol className="mt-4 list-decimal space-y-3 pl-5 text-slate-300">
             <li>Sign in or create your NexusPay account and set up an account password.</li>
             <li>Open Receive to get your address for the selected BOT network.</li>
-            <li>Fund that address with the asset you want to send and native BOT for network fees. On testnet, use test assets only.</li>
+            <li>Fund your BOT Chain mainnet address with USDT or native BOT. Keep some BOT available for network fees.</li>
             <li>Open Send, enter the recipient’s registered phone number and amount, and authorize with your NexusPay password.</li>
             <li>Wait for confirmation. Pending payments are not yet settled.</li>
           </ol>

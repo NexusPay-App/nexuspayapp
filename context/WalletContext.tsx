@@ -13,7 +13,7 @@ import { stellarWalletAPI, StellarBalance } from "../lib/stellar";
 // Supported chains and tokens
 // Visible: Arbitrum, Base, Botchain. Others commented, not removed.
 export const SUPPORTED_CHAINS = [
-  'arbitrum', 'base', 'botchain-testnet', 'botchain',
+  'arbitrum', 'base', 'botchain',
   // 'celo', 'polygon', 'optimism', 'ethereum',
   // 'bnb', 'avalanche', 'fantom', 'gnosis', 'scroll', 'moonbeam',
   // 'fuse', 'aurora', 'lisk', 'somnia', 'stellar'

@@ -198,12 +198,11 @@ export const SUPPORTED_CHAINS = [
   // { name: 'Lisk', id: 'lisk', chainId: 1135 },
   // { name: 'Somnia', id: 'somnia', chainId: 5031 },
   // { name: 'Stellar', id: 'stellar', chainId: 0 }, // Stellar doesn't use EVM chainId
-  { name: 'BOT Chain Testnet', id: 'botchain-testnet', chainId: 968 },
   { name: 'BOT Chain', id: 'botchain', chainId: 677 },
 ];
 
 /** Chain ids users can select anywhere in the app. Others stay commented in lists. */
-export const VISIBLE_CHAIN_IDS = new Set(['arbitrum', 'base', 'botchain', 'botchain-testnet']);
+export const VISIBLE_CHAIN_IDS = new Set(['arbitrum', 'base', 'botchain']);
 
 /** Keep only Arbitrum / Base / Botchain entries from an API chain list. */
 export function filterVisibleChains<T extends { id?: string; chain?: string }>(chains: T[]): T[] {

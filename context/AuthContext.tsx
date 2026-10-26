@@ -87,6 +87,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const userFromResponse = (responseData as any).user || responseData;
       
       const userData: User = {
+        id: userFromResponse?.id || userFromResponse?._id || responseData?.userId,
+        name: userFromResponse?.name || responseData?.name,
         email: (responseData as any).email || userFromResponse?.email || '',
         phoneNumber: (responseData as any).phoneNumber || userFromResponse?.phoneNumber || '',
         arbitrumWallet: (responseData as any).arbitrumWallet || userFromResponse?.arbitrumWallet || (responseData as any).walletAddress || (responseData as any).wallets?.evm || '',

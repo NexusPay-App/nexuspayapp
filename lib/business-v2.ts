@@ -1,27 +1,20 @@
 import apiClient from './api';
-
-// Types for Business V2
-export interface BusinessV2OtpRequest {
-  phoneNumber: string; // E.164
-}
+import type { BusinessPinVerifyResponse } from './business-pin';
 
 export interface BusinessV2CreateRequest {
-  userId: string; // stable personal user id
-  businessName: string;
-  ownerName: string;
-  phoneNumber: string; // E.164
-  location: string;
-  businessType: string;
-}
-
-export interface BusinessV2CompleteRequest {
-  userId: string;
+  requestId: string;
   businessName: string;
   ownerName: string;
   phoneNumber: string;
   location: string;
   businessType: string;
-  otp: string; // 6 digits
+}
+
+export interface BusinessV2CompleteRequest {
+  requestId: string;
+  phoneNumber: string;
+  otp: string;
+  pin: string;
 }
 
 export interface ApiEnvelope<T = any> {
@@ -72,13 +65,13 @@ export interface UserBusinessesResponse {
 
 export const businessV2API = {
   // POST /api/business/request-upgrade (Send OTP for business creation)
-  requestUpgrade: async (payload: BusinessV2CreateRequest): Promise<ApiEnvelope<{ existingBusinesses?: number }>> => {
+  requestUpgrade: async (payload: BusinessV2CreateRequest): Promise<ApiEnvelope<{ phoneNumber: string; retryAfter: number; expiresIn: number }>> => {
     const res = await apiClient.post('/business/request-upgrade', payload);
     return res.data;
   },
 
   // POST /api/business/complete-upgrade (Verify OTP and create business)
-  completeUpgrade: async (payload: BusinessV2CompleteRequest): Promise<ApiEnvelope<{ businessId: string; merchantId: string; walletAddress: string; businessName: string; creditLimit: number; availableCredit: number; overdraftEnabled: boolean }>> => {
+  completeUpgrade: async (payload: BusinessV2CompleteRequest): Promise<ApiEnvelope<{ business: BusinessAccount; session: BusinessPinVerifyResponse }>> => {
     const res = await apiClient.post('/business/complete-upgrade', payload);
     return res.data;
   },

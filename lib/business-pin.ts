@@ -2,13 +2,6 @@ import apiClient from './api';
 
 // Types for Business PIN API
 export interface BusinessPinSetData {
-  merchantId: string;
-  phoneNumber: string;
-  otp: string;
-  pin: string;
-}
-
-export interface BusinessPinSetPublicData {
   merchantId?: string;
   phoneNumber?: string;
   otp: string;
@@ -79,19 +72,10 @@ export interface BusinessResponse<T = any> {
 
 // Business PIN API functions
 export const businessPinAPI = {
-  // Public endpoints (no auth required)
   
   // Request OTP for PIN setup
   requestOtp: async (data: BusinessPinRequestOtpData): Promise<BusinessResponse<BusinessPinForgotRequestResponse>> => {
-    console.log("[business-pin] Requesting OTP with data:");
     const response = await apiClient.post('/business/pin/request-otp', data);
-    console.log("[business-pin] OTP request response:");
-    return response.data;
-  },
-
-  // Set PIN with OTP (public)
-  setPinPublic: async (data: BusinessPinSetPublicData): Promise<BusinessResponse> => {
-    const response = await apiClient.post('/business/pin/set-public', data);
     return response.data;
   },
 
@@ -109,21 +93,9 @@ export const businessPinAPI = {
 
   // Authenticated endpoints (require Bearer token)
   
-  // Set PIN with OTP verification
   setPin: async (data: BusinessPinSetData): Promise<BusinessResponse> => {
-    console.log("[business-pin] Making setPin request with data:");
-    console.log("[business-pin] Request URL: /business/pin/set");
-    
-    try {
-      const response = await apiClient.post('/business/pin/set', data);
-      console.log("[business-pin] setPin response:");
-      return response.data;
-    } catch (error: any) {
-      console.error('[business-pin] setPin error:', error);
-      console.error("[business-pin] setPin error response:");
-      console.error("[business-pin] setPin request config:");
-      throw error;
-    }
+    const response = await apiClient.post('/business/pin/set', data);
+    return response.data;
   },
 
   // Update PIN (requires old PIN)

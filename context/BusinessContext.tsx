@@ -25,6 +25,7 @@ interface BusinessContextType {
   isPinVerified: boolean;
   
   // Actions
+  openCreatedBusiness: (business: BusinessAccount, session: BusinessPinSession) => void;
   loadBusinessAccounts: () => Promise<void>;
   switchToBusiness: (businessId: string) => Promise<void>;
   switchToPersonal: () => void;
@@ -99,6 +100,12 @@ export const BusinessProvider: React.FC<BusinessProviderProps> = ({ children }) 
     }
   };
 
+  const openCreatedBusiness = (business: BusinessAccount, session: BusinessPinSession) => {
+    setBusinessAccounts(accounts => [...accounts.filter(account => account.businessId !== business.businessId), business]);
+    setCurrentBusiness(business);
+    setPinSession(session);
+  };
+
   // Switch to business account
   const switchToBusiness = async (businessId: string): Promise<void> => {
     console.log('BusinessContext - switching to business:', businessId);
@@ -138,7 +145,7 @@ export const BusinessProvider: React.FC<BusinessProviderProps> = ({ children }) 
         console.log("BusinessContext - Setting PIN session:");
         
         // Calculate expiration time (30 minutes from now)
-        const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+        const expiresAt = response.data.expiresAt;
         
         // Find the business to get additional details
         const business = businessAccounts.find(b => b.businessId === businessId);
@@ -305,6 +312,7 @@ export const BusinessProvider: React.FC<BusinessProviderProps> = ({ children }) 
     pinSession,
     isPinVerified,
     loadBusinessAccounts,
+    openCreatedBusiness,
     switchToBusiness,
     switchToPersonal,
     verifyBusinessPin,

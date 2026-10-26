@@ -1,8 +1,5 @@
-"use client";
-
-import React from 'react';
-import { BusinessCreationForm } from '@/components/business/BusinessCreationForm';
+import { redirect } from 'next/navigation';
 
 export default function BusinessCreatePage() {
-  return <BusinessCreationForm />;
+  redirect('/signup/business');
 }

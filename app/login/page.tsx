@@ -1,7 +1,7 @@
 // Login.tsx - Updated for production deployment
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation"; // Adjusted import for useRouter
 import { useForm, SubmitHandler } from "react-hook-form";
 import { useAuth as useAuthOriginal } from "@/context/AuthContext"; // Import the original useAuth hook
@@ -33,6 +33,7 @@ import { Form, Formik } from "formik";
 import TextInput from "@/components/inputs/TextInput";
 import PasswordInput from "@/components/inputs/PasswordInput";
 import GoogleSignIn from "@/components/auth/GoogleSignIn";
+import { getPostAuthPath } from "@/lib/auth";
 import { formatPhoneNumberToE164, validateE164PhoneNumber } from "@/lib/phone-utils";
 
 // A wrapper or assertion to cast the useAuth hook's return type
@@ -49,6 +50,8 @@ const Login: React.FC = () => {
   const [userCredentials, setUserCredentials] = useState<LoginFormFields | null>(null);
   const api = useAxios();
   const router = useRouter();
+  const [businessSetup, setBusinessSetup] = useState(false);
+  useEffect(() => setBusinessSetup(getPostAuthPath() === "/signup/business"), []);
 
   // Mutation to Initiate Login User
   const initiateLoginUser = useMutation({
@@ -70,7 +73,7 @@ const Login: React.FC = () => {
         // User is fully authenticated (no OTP required)
         setOpenLoggin(true);
         setTimeout(() => {
-          router.replace("/home");
+          router.replace(getPostAuthPath());
         }, 1000);
       } else if (data.success) {
         // Login successful, OTP sent - show OTP input
@@ -106,7 +109,7 @@ const Login: React.FC = () => {
       setOpenOTP(false);
       setOpenLoggin(true);
       setTimeout(() => {
-        router.replace("/home");
+        router.replace(getPostAuthPath());
       }, 1000);
     },
     onError: (error, variables, context) => {
@@ -206,7 +209,7 @@ const Login: React.FC = () => {
                 </Link>
               </p>
               <p className="text-[#909090] p-1 text-sm font-semibold">
-                <Link href="/signup" className="hover:text-white">
+                <Link href={businessSetup ? "/signup?next=/signup/business" : "/signup"} className="hover:text-white">
                   Create a Personal Account
                 </Link>
               </p>
@@ -234,12 +237,6 @@ const Login: React.FC = () => {
           </div>
           <GoogleSignIn
             mode="login"
-            onSuccess={() => {
-              setOpenLoggin(true);
-              setTimeout(() => {
-                router.replace("/home");
-              }, 1000);
-            }}
             onError={(error) => {
               console.error("Google login error:", error);
               setOpenAccErr(true);

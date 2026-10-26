@@ -128,7 +128,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ className = 
 
     setIsLoading(true);
     try {
-      const response = await businessPinAPI.setPinPublic({
+      const response = await businessPinAPI.setPin({
         merchantId: merchantId || undefined,
         phoneNumber: phoneNumber || undefined,
         otp,

@@ -84,6 +84,7 @@ export interface AuthResponse {
 }
 
 export interface User {
+    name?: string;
     id?: string; // User ID for business account creation
     email: string;
     phoneNumber: string;
@@ -242,3 +243,7 @@ export const userUtils = {
         return tokenUtils.isTokenValid() && userUtils.getUser() !== null;
     },
 };
+export function getPostAuthPath(): '/home' | '/signup/business' {
+    if (typeof window === 'undefined') return '/home';
+    return new URLSearchParams(window.location.search).get('next') === '/signup/business' ? '/signup/business' : '/home';
+}

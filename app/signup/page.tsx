@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import {
@@ -25,6 +25,7 @@ import ErrorDialog from "@/components/dialog/ErrorDialog";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import GoogleSignIn from "@/components/auth/GoogleSignIn";
+import { getPostAuthPath } from "@/lib/auth";
 import { formatPhoneNumberToE164, validateE164PhoneNumber } from "@/lib/phone-utils";
 
 
@@ -32,6 +33,8 @@ const Signup = () => {
   const { completeRegistration } = useAuthOriginal();
   const [openOTP, setOpenOTP] = useState(false);
   const router = useRouter();
+  const [businessSetup, setBusinessSetup] = useState(false);
+  useEffect(() => setBusinessSetup(getPostAuthPath() === "/signup/business"), []);
   const [tillNumberParts, setTillNumberParts] = useState("");
   const [openSigningUp, setOpenSigningUp] = useState(false); // Opens the Account Creation Loading Dialog
   const [openConfirmingOTP, setOpenConfirmingOTP] = useState(false); // Opens the confirm otp Loading Dialog
@@ -101,7 +104,7 @@ const Signup = () => {
     onSuccess: () => {
       setOpenOTP(false);
       setOpenSigningUp(false);
-      router.replace('/home');
+      router.replace(getPostAuthPath());
     },
     onError: (error: any) => {
       setErrorMessage(error.response?.data?.message || error.message || 'Unable to complete registration');
@@ -267,7 +270,7 @@ const Signup = () => {
             <div className="flex flex-col justify-start mb-5">
               <p className="text-[#909090] p-1 text-sm font-semibold">
                 Have an account?{" "}
-                <Link href="/login" className="hover:text-white text-gray-300">
+                <Link href={businessSetup ? "/login?next=/signup/business" : "/login"} className="hover:text-white text-gray-300">
                   Login
                 </Link>
               </p>
@@ -295,12 +298,6 @@ const Signup = () => {
           </div>
           <GoogleSignIn
             mode="signup"
-            onSuccess={() => {
-              setOpenSigningUp(true);
-              setTimeout(() => {
-                router.replace("/home");
-              }, 1000);
-            }}
             onError={(error) => {
               toast.error(error);
             }}

@@ -1,429 +1,837 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, Building, CheckCircle, Warning, Eye, EyeSlash } from '@phosphor-icons/react';
+import { FormEvent, useEffect, useRef, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import dynamic from "next/dynamic";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Building2,
+  Check,
+  CheckCheck,
+  Copy,
+  LoaderCircle,
+  LockKeyhole,
+  ShieldCheck,
+  Smartphone,
+} from "lucide-react";
+import { isAxiosError } from "axios";
+import GoogleSignIn from "@/components/auth/GoogleSignIn";
+import { useAuth } from "@/context/AuthContext";
+import { useBusiness } from "@/context/BusinessContext";
+import { businessV2API, BusinessAccount } from "@/lib/business-v2";
+import { NexusLogo } from "@/constants/svg";
 
-interface BusinessFormData {
-  businessName: string;
-  ownerName: string;
-  location: string;
-  businessType: string;
-  phoneNumber: string;
-}
+const QRCode = dynamic(
+  () => import("qrcode.react").then((module) => module.QRCodeSVG),
+  { ssr: false },
+);
+const categories = [
+  "Professional services",
+  "Retail & e-commerce",
+  "Software & technology",
+  "Food & hospitality",
+  "Creative & media",
+  "Education",
+  "Health & wellness",
+  "Travel & transport",
+  "Manufacturing",
+  "Nonprofit",
+  "Other",
+];
+const inputClass =
+  "min-h-12 w-full rounded-xl border border-white/15 bg-[#111E22] px-3.5 py-3 text-base text-white placeholder:text-[#80969C] outline-none transition-colors hover:border-white/30 focus:border-[#3EC1C8] focus:ring-2 focus:ring-[#3EC1C8]/20 disabled:opacity-60";
+const primaryClass =
+  "flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#0795B0] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#087E96] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#52D4E7] disabled:cursor-wait disabled:opacity-60";
+const textButtonClass =
+  "rounded text-sm font-medium text-[#52D4E7] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#52D4E7]";
+const emptyDetails = {
+  businessName: "",
+  ownerName: "",
+  country: "",
+  city: "",
+  businessType: "",
+  phoneNumber: "",
+};
+type Details = typeof emptyDetails;
+type Step = "details" | "secure" | "ready";
 
-export const BusinessCreationForm: React.FC = () => {
-  const router = useRouter();
-  const [step, setStep] = useState<'form' | 'otp' | 'success'>('form');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [otp, setOtp] = useState('');
-  const [showOtp, setShowOtp] = useState(false);
-  
-  const [formData, setFormData] = useState<BusinessFormData>({
-    businessName: '',
-    ownerName: '',
-    location: '',
-    businessType: '',
-    phoneNumber: '',
-  });
+export function BusinessCreationForm() {
+  const { user, loading, isAuthenticated } = useAuth();
+  const { openCreatedBusiness } = useBusiness();
+  const [details, setDetails] = useState<Details>(emptyDetails);
+  const [step, setStep] = useState<Step>("details");
+  const [requestId, setRequestId] = useState("");
+  const [loadedDraftKey, setLoadedDraftKey] = useState("");
+  const [sentAt, setSentAt] = useState(0);
+  const [now, setNow] = useState(0);
+  const [otp, setOtp] = useState("");
+  const [pin, setPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+  const [showPin, setShowPin] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const [business, setBusiness] = useState<BusinessAccount | null>(null);
+  const [copied, setCopied] = useState("");
+  const inFlight = useRef(false);
+  const heading = useRef<HTMLHeadingElement>(null);
+  const draftKey = `nexuspay-business-setup:${user?.id || user?.email || user?.phoneNumber || ""}`;
+  const draftLoaded = loadedDraftKey === draftKey;
+  const retryIn = Math.max(0, Math.ceil((sentAt + 60_000 - now) / 1000));
 
   useEffect(() => {
-    // Auto-fill phone number from user account
-    const user = localStorage.getItem('nexuspay_user');
-    if (user) {
-      const userData = JSON.parse(user);
-      setFormData(prev => ({
-        ...prev,
-        phoneNumber: userData.phoneNumber || '',
-      }));
-    }
-  }, []);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
+    if (!isAuthenticated || !user) return;
+    const defaults = {
+      ...emptyDetails,
+      ownerName: user.name || "",
+      phoneNumber: user.phoneNumber || "",
+    };
+    setOtp("");
+    setPin("");
+    setConfirmPin("");
+    setError("");
+    setBusiness(null);
+    setDetails(defaults);
+    setStep("details");
+    setRequestId(crypto.randomUUID());
+    setSentAt(0);
+    setNow(Date.now());
     try {
-      const token = localStorage.getItem('nexuspay_token');
-      const user = localStorage.getItem('nexuspay_user');
-      
-      if (!token || !user) {
-        router.push('/login');
-        return;
+      const stored = JSON.parse(sessionStorage.getItem(draftKey) || "null");
+      if (stored && Date.now() - stored.savedAt < 24 * 60 * 60_000) {
+        const restored = Object.fromEntries(
+          Object.entries(defaults).map(([key, value]) => [
+            key,
+            typeof stored.details?.[key] === "string"
+              ? stored.details[key]
+              : value,
+          ]),
+        ) as Details;
+        setDetails(restored);
+        if (typeof stored.requestId === "string")
+          setRequestId(stored.requestId);
+        if (stored.step === "secure") setStep("secure");
+        if (typeof stored.sentAt === "number") setSentAt(stored.sentAt);
       }
-
-      const userData = JSON.parse(user);
-
-      const response = await fetch(`${process.env.NODE_ENV === 'production' ? 'https://api.nexuspaydefi.xyz' : 'http://localhost:8000'}/api/business/request-upgrade`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: userData.id,
-          phoneNumber: formData.phoneNumber,
-          businessName: formData.businessName,
-          ownerName: formData.ownerName,
-          location: formData.location,
-          businessType: formData.businessType,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        // Immediately show OTP form since OTP is logged in server
-        setStep('otp');
-        // Auto-focus OTP input
-        setTimeout(() => {
-          const otpInput = document.getElementById('otp');
-          if (otpInput) {
-            otpInput.focus();
-          }
-        }, 100);
-      } else {
-        setError(data.message || 'Failed to request business creation');
-      }
-    } catch (err) {
-      setError('Network error. Please try again.');
-    } finally {
-      setLoading(false);
+    } catch {
+      /* Setup remains usable when browser storage is unavailable. */
     }
-  };
+    setLoadedDraftKey(draftKey);
+  }, [draftKey, isAuthenticated]);
 
-  const handleOtpSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
+  useEffect(() => {
+    if (!draftLoaded || !isAuthenticated || step === "ready") return;
     try {
-      const token = localStorage.getItem('nexuspay_token');
-      const user = localStorage.getItem('nexuspay_user');
-      
-      if (!token || !user) {
-        router.push('/login');
-        return;
-      }
-
-      const userData = JSON.parse(user);
-
-      const response = await fetch(`${process.env.NODE_ENV === 'production' ? 'https://api.nexuspaydefi.xyz' : 'http://localhost:8000'}/api/business/complete-upgrade`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: userData.id,
-          phoneNumber: formData.phoneNumber,
-          otp: otp,
-          businessName: formData.businessName,
-          ownerName: formData.ownerName,
-          location: formData.location,
-          businessType: formData.businessType,
+      sessionStorage.setItem(
+        draftKey,
+        JSON.stringify({
+          details,
+          requestId,
+          step,
+          sentAt,
+          savedAt: Date.now(),
         }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setStep('success');
-      } else {
-        setError(data.message || 'Failed to complete business creation');
-      }
-    } catch (err) {
-      setError('Network error. Please try again.');
-    } finally {
-      setLoading(false);
+      );
+    } catch {
+      /* Keep the in-memory draft. */
     }
-  };
+  }, [
+    details,
+    requestId,
+    step,
+    sentAt,
+    draftLoaded,
+    draftKey,
+    isAuthenticated,
+  ]);
 
-  const handleBackToHome = () => {
-    router.push('/home');
-  };
+  useEffect(() => {
+    if (step !== "secure") return;
+    const currentTime = Date.now();
+    setNow(currentTime);
+    if (currentTime >= sentAt + 60_000) return;
+    const timer = setInterval(() => {
+      const time = Date.now();
+      setNow(time);
+      if (time >= sentAt + 60_000) clearInterval(timer);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [step, sentAt]);
 
-  const businessTypes = [
-    'Technology Services',
-    'Retail & E-commerce',
-    'Food & Beverage',
-    'Healthcare',
-    'Education',
-    'Finance & Banking',
-    'Real Estate',
-    'Transportation',
-    'Entertainment',
-    'Manufacturing',
-    'Consulting',
-    'Other'
-  ];
+  useEffect(() => {
+    if (draftLoaded) heading.current?.focus();
+  }, [step, draftLoaded]);
 
-  if (step === 'success') {
-    return (
-      <section className="home-background">
-        <article className="bg-[#0A0E0E] flex flex-col p-5 xl:px-[200px] border-0 border-b border-[#0795B0]">
-          <div className="flex items-center mb-6">
-            <button
-              onClick={handleBackToHome}
-              className="flex items-center text-white hover:text-[#0795B0] transition-colors duration-200 cursor-pointer"
-            >
-              <ArrowLeft size={24} className="mr-2" />
-              <span className="text-lg font-medium">Back to Home</span>
-            </button>
-          </div>
-          
-          <div className="text-center">
-            <div className="p-8 bg-green-900/20 border border-green-500 rounded-lg max-w-md mx-auto">
-              <CheckCircle size={64} className="text-green-400 mx-auto mb-4" />
-              <h3 className="text-2xl font-bold text-green-400 mb-4">Business Created Successfully!</h3>
-              <p className="text-green-300 mb-6">
-                Your business account has been created and is ready to use.
-              </p>
-              <button
-                onClick={() => router.push('/business')}
-                className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
-              >
-                Go to Business Dashboard
-              </button>
-            </div>
-          </div>
-        </article>
-      </section>
+  function reportError(cause: unknown) {
+    const status = isAxiosError(cause) ? cause.response?.status : undefined;
+    setSessionExpired(status === 401);
+    setError(
+      isAxiosError(cause)
+        ? cause.response?.data?.message ||
+            cause.response?.data?.error?.message ||
+            "Connection interrupted. Check your connection and try again."
+        : cause instanceof Error
+          ? cause.message
+          : "Something went wrong. Please try again.",
     );
   }
 
+  async function sendCode(event?: FormEvent<HTMLFormElement>) {
+    event?.preventDefault();
+    if (inFlight.current || (step === "secure" && retryIn > 0)) return;
+    const phoneNumber = details.phoneNumber.replace(/[\s()-]/g, "");
+    if (!/^\+[1-9]\d{7,14}$/.test(phoneNumber)) {
+      setError("Include your country code, for example +254712345678.");
+      return;
+    }
+    inFlight.current = true;
+    setBusy(true);
+    setError("");
+    try {
+      const result = await businessV2API.requestUpgrade({
+        requestId,
+        businessName: details.businessName.trim(),
+        ownerName: details.ownerName.trim(),
+        businessType: details.businessType.trim(),
+        location: `${details.city.trim()}, ${details.country.trim()}`,
+        phoneNumber,
+      });
+      if (!result.success)
+        throw new Error(
+          result.message || "Your verification code could not be sent.",
+        );
+      setDetails((current) => ({ ...current, phoneNumber }));
+      setOtp("");
+      setSentAt(Date.now());
+      setNow(Date.now());
+      setStep("secure");
+    } catch (cause) {
+      reportError(cause);
+    } finally {
+      inFlight.current = false;
+      setBusy(false);
+    }
+  }
+
+  async function createBusiness(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (inFlight.current) return;
+    if (pin !== confirmPin) {
+      setError("Your PINs do not match. Please enter them again.");
+      return;
+    }
+    inFlight.current = true;
+    setBusy(true);
+    setError("");
+    try {
+      const result = await businessV2API.completeUpgrade({
+        requestId,
+        phoneNumber: details.phoneNumber,
+        otp,
+        pin,
+      });
+      if (
+        !result.success ||
+        !result.data?.business?.businessId ||
+        !result.data.session?.verified
+      )
+        throw new Error(
+          result.message || "Business setup did not finish. Please try again.",
+        );
+      openCreatedBusiness(result.data.business, result.data.session);
+      setBusiness(result.data.business);
+      setOtp("");
+      setPin("");
+      setConfirmPin("");
+      setStep("ready");
+      try {
+        sessionStorage.removeItem(draftKey);
+      } catch {
+        /* No credentials are stored in the draft. */
+      }
+    } catch (cause) {
+      reportError(cause);
+    } finally {
+      inFlight.current = false;
+      setBusy(false);
+    }
+  }
+
+  async function copy(value: string, label: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(label);
+    } catch {
+      setError("Copy is unavailable. Select and copy the text below.");
+    }
+  }
+
+  function update(field: keyof Details, value: string) {
+    setDetails((current) => ({ ...current, [field]: value }));
+    if (error) setError("");
+  }
+
+  const signedIn = isAuthenticated && Boolean(user);
+  const currentStep = !signedIn ? 0 : step === "details" ? 1 : 2;
+  const title = !signedIn
+    ? "Your business starts here."
+    : step === "details"
+      ? "Make it your business."
+      : step === "secure"
+        ? "Secure your business wallet."
+        : "Ready for your first payment.";
+
   return (
-    <section className="home-background">
-      <article className="bg-[#0A0E0E] flex flex-col p-5 xl:px-[200px] border-0 border-b border-[#0795B0]">
-        <div className="flex items-center mb-6">
-          <button
-            onClick={handleBackToHome}
-            className="flex items-center text-white hover:text-[#0795B0] transition-colors duration-200 cursor-pointer"
-          >
-            <ArrowLeft size={24} className="mr-2" />
-            <span className="text-lg font-medium">Back to Home</span>
-          </button>
-        </div>
-        
-        <div className="text-center mb-8">
-          <h1 className="text-4xl text-white font-bold mb-3">Create Business Account</h1>
-          <p className="text-gray-400 text-lg">
-            {step === 'form' ? 'Set up your business profile to access credit and overdraft facilities' : 'Enter the verification code from server logs'}
-          </p>
-        </div>
-      </article>
-      
-      <article className="mt-8 flex flex-col items-center p-5 xl:px-[200px]">
-        <div className="w-full max-w-2xl">
-          <div className="bg-[#0A0E0E] rounded-xl border border-[#0795B0] p-8 shadow-lg">
-            {step === 'form' ? (
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label htmlFor="businessName" className="block text-sm font-medium text-gray-300 mb-2">
-                    Business Name *
-                  </label>
-                  <input
-                    type="text"
-                    id="businessName"
-                    name="businessName"
-                    value={formData.businessName}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 bg-[#1A1E1E] border border-[#0795B0] rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0795B0] focus:border-transparent hover:border-[#0AA5C0] transition-colors duration-200"
-                    placeholder="Enter your business name"
-                    required
-                  />
-                </div>
+    <main className="min-h-[calc(100svh-90px)] bg-[#080F12] px-4 py-5 text-white sm:px-6 sm:py-8">
+      <header className="mx-auto flex max-w-5xl items-center justify-between gap-4">
+        <Link
+          href={signedIn ? "/home" : "/onboarding"}
+          aria-label="NexusPay home"
+          className="rounded focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#52D4E7]"
+        >
+          <Image
+            src={NexusLogo}
+            alt="NexusPay"
+            priority
+            className="h-9 w-auto sm:h-10"
+          />
+        </Link>
+        <span className="flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5 text-xs font-medium text-[#B7C9CE]">
+          <Building2 size={14} aria-hidden="true" /> For business
+        </span>
+      </header>
 
-                <div>
-                  <label htmlFor="ownerName" className="block text-sm font-medium text-gray-300 mb-2">
-                    Owner Name *
-                  </label>
-                  <input
-                    type="text"
-                    id="ownerName"
-                    name="ownerName"
-                    value={formData.ownerName}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 bg-[#1A1E1E] border border-[#0795B0] rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0795B0] focus:border-transparent hover:border-[#0AA5C0] transition-colors duration-200"
-                    placeholder="Enter owner's full name"
-                    required
-                  />
-                </div>
+      <div className="mx-auto max-w-[520px] py-7 sm:py-10">
+        <nav aria-label="Setup progress" className="mb-7">
+          <ol className="flex items-center justify-between gap-2">
+            {["Account", "Business", "Security"].map((label, index) => (
+              <li
+                key={label}
+                aria-current={index === currentStep ? "step" : undefined}
+                className={`flex items-center gap-2 text-xs sm:text-sm ${index <= currentStep ? "text-[#DAE9EC]" : "text-[#8A9EA4]"}`}
+              >
+                <span
+                  className={`flex size-6 items-center justify-center rounded-full text-xs ${index < currentStep || step === "ready" ? "bg-[#3EC1C8] text-[#061316]" : index === currentStep ? "border border-[#3EC1C8] bg-[#0795B0]/15 text-[#52D4E7]" : "border border-white/15"}`}
+                >
+                  {index < currentStep || step === "ready" ? (
+                    <Check size={13} aria-hidden="true" />
+                  ) : (
+                    index + 1
+                  )}
+                </span>
+                {label}
+              </li>
+            ))}
+          </ol>
+        </nav>
 
-                <div>
-                  <label htmlFor="location" className="block text-sm font-medium text-gray-300 mb-2">
-                    Business Location *
-                  </label>
-                  <input
-                    type="text"
-                    id="location"
-                    name="location"
-                    value={formData.location}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 bg-[#1A1E1E] border border-[#0795B0] rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0795B0] focus:border-transparent hover:border-[#0AA5C0] transition-colors duration-200"
-                    placeholder="e.g., Nairobi, Kenya"
-                    required
-                  />
-                </div>
+        <section
+          className="overflow-hidden rounded-2xl border border-white/10 bg-[#0D181C] shadow-[0_16px_60px_rgba(0,0,0,0.18)]"
+          aria-labelledby="business-setup-title"
+          aria-busy={busy}
+        >
+          <div className="h-1 bg-gradient-to-r from-[#0795B0] to-[#3EC1C8]" />
+          <div className="p-5 sm:p-7">
+            <h1
+              ref={heading}
+              tabIndex={-1}
+              id="business-setup-title"
+              className="text-[26px] leading-tight font-semibold tracking-tight outline-none sm:text-[28px]"
+            >
+              {title}
+            </h1>
+            <p className="mt-2 text-sm leading-6 text-[#A9BCC2]">
+              {!signedIn
+                ? "Sign in or create an account, then set up a separate wallet for your business."
+                : step === "details"
+                  ? "A few details to put a name to your payments."
+                  : step === "secure"
+                    ? `We sent a six-digit code to ${details.phoneNumber}. Confirm it and choose your business PIN.`
+                    : `${business?.businessName} is set up. Share your details to receive a payment.`}
+            </p>
 
-                <div>
-                  <label htmlFor="businessType" className="block text-sm font-medium text-gray-300 mb-2">
-                    Business Type *
-                  </label>
-                  <select
-                    id="businessType"
-                    name="businessType"
-                    value={formData.businessType}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 bg-[#1A1E1E] border border-[#0795B0] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#0795B0] focus:border-transparent hover:border-[#0AA5C0] transition-colors duration-200"
-                    required
+            {loading && !signedIn ? (
+              <div
+                role="status"
+                className="flex items-center gap-2 py-10 text-sm text-[#A9BCC2]"
+              >
+                <LoaderCircle size={18} className="animate-spin" /> Checking
+                your account…
+              </div>
+            ) : !signedIn ? (
+              <div className="mt-7 space-y-5">
+                <GoogleSignIn
+                  mode="continue"
+                  redirectTo="/signup/business"
+                  onError={setError}
+                />
+                <div className="flex items-center gap-3 text-xs text-[#8A9EA4]">
+                  <span className="h-px flex-1 bg-white/10" />
+                  or
+                  <span className="h-px flex-1 bg-white/10" />
+                </div>
+                <Link
+                  href="/login?next=/signup/business"
+                  className={`${primaryClass} !border !border-white/15 !bg-[#15262C] hover:!bg-[#1C343C]`}
+                >
+                  <Smartphone size={17} /> Continue with phone and password
+                </Link>
+                <p className="text-center text-sm text-[#A9BCC2]">
+                  New to NexusPay?{" "}
+                  <Link
+                    href="/signup?next=/signup/business"
+                    className={textButtonClass}
                   >
-                    <option value="">Select business type</option>
-                    {businessTypes.map((type) => (
-                      <option key={type} value={type}>{type}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-300 mb-2">
-                    Phone Number *
-                  </label>
-                  <input
-                    type="tel"
-                    id="phoneNumber"
-                    name="phoneNumber"
-                    value={formData.phoneNumber}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 bg-[#1A1E1E] border border-[#0795B0] rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0795B0] focus:border-transparent hover:border-[#0AA5C0] transition-colors duration-200"
-                    placeholder="+254712345678"
-                    required
-                  />
-                  <p className="text-xs text-gray-400 mt-1">
-                    This number will be used for OTP verification
+                    Create an account
+                  </Link>
+                </p>
+                <div className="flex items-start gap-3 border-t border-white/10 pt-5 text-xs leading-5 text-[#A9BCC2]">
+                  <ShieldCheck size={18} className="shrink-0 text-[#3EC1C8]" />
+                  <p>
+                    One sign-in for your personal and business accounts.
+                    Separate wallets to keep your money organised.
                   </p>
                 </div>
-
-                {error && (
-                  <div className="p-4 bg-red-900/20 border border-red-500 rounded-lg">
-                    <div className="flex items-center">
-                      <Warning size={20} className="text-red-400 mr-2" />
-                      <p className="text-red-300 text-sm">{error}</p>
+              </div>
+            ) : !draftLoaded ? (
+              <p role="status" className="py-8 text-sm text-[#A9BCC2]">
+                Loading your details…
+              </p>
+            ) : step === "details" ? (
+              <form onSubmit={sendCode} className="mt-6 space-y-4">
+                <fieldset disabled={busy} className="space-y-4">
+                  <div>
+                    <label
+                      htmlFor="businessName"
+                      className="mb-1.5 block text-sm font-medium"
+                    >
+                      Business name
+                    </label>
+                    <input
+                      id="businessName"
+                      name="businessName"
+                      autoComplete="organization"
+                      required
+                      minLength={2}
+                      maxLength={120}
+                      value={details.businessName}
+                      onChange={(event) =>
+                        update("businessName", event.target.value)
+                      }
+                      placeholder="e.g. Acacia Studio"
+                      className={inputClass}
+                    />
+                    <p className="mt-1.5 text-xs text-[#91A8AF]">
+                      The name customers will see when they pay you.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 min-[380px]:grid-cols-2">
+                    <div>
+                      <label
+                        htmlFor="country"
+                        className="mb-1.5 block text-sm font-medium"
+                      >
+                        Country
+                      </label>
+                      <input
+                        id="country"
+                        name="country"
+                        autoComplete="country-name"
+                        required
+                        minLength={2}
+                        maxLength={60}
+                        value={details.country}
+                        onChange={(event) =>
+                          update("country", event.target.value)
+                        }
+                        placeholder="Country"
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="city"
+                        className="mb-1.5 block text-sm font-medium"
+                      >
+                        City / town
+                      </label>
+                      <input
+                        id="city"
+                        name="city"
+                        autoComplete="address-level2"
+                        required
+                        minLength={2}
+                        maxLength={55}
+                        value={details.city}
+                        onChange={(event) => update("city", event.target.value)}
+                        placeholder="City or town"
+                        className={inputClass}
+                      />
                     </div>
                   </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-4 px-6 bg-[#0795B0] hover:bg-[#0684A0] text-white rounded-lg font-semibold text-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0795B0] disabled:opacity-50 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center"
-                >
-                  {loading ? (
+                  <div>
+                    <label
+                      htmlFor="businessType"
+                      className="mb-1.5 block text-sm font-medium"
+                    >
+                      Business category
+                    </label>
+                    <input
+                      id="businessType"
+                      name="businessType"
+                      list="business-categories"
+                      required
+                      minLength={2}
+                      maxLength={120}
+                      value={details.businessType}
+                      onChange={(event) =>
+                        update("businessType", event.target.value)
+                      }
+                      placeholder="Search or enter a category"
+                      className={inputClass}
+                    />
+                    <datalist id="business-categories">
+                      {categories.map((category) => (
+                        <option key={category} value={category} />
+                      ))}
+                    </datalist>
+                  </div>
+                  <div className="border-t border-white/10 pt-4">
+                    <p className="mb-3 flex items-center gap-2 text-xs font-medium text-[#91A8AF]">
+                      <ShieldCheck size={15} /> Account owner
+                    </p>
+                    <div className="space-y-4">
+                      <div>
+                        <label
+                          htmlFor="ownerName"
+                          className="mb-1.5 block text-sm font-medium"
+                        >
+                          Your full name
+                        </label>
+                        <input
+                          id="ownerName"
+                          name="ownerName"
+                          autoComplete="name"
+                          required
+                          minLength={2}
+                          maxLength={120}
+                          value={details.ownerName}
+                          onChange={(event) =>
+                            update("ownerName", event.target.value)
+                          }
+                          placeholder="Full name"
+                          className={inputClass}
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="phoneNumber"
+                          className="mb-1.5 block text-sm font-medium"
+                        >
+                          Verification phone number
+                        </label>
+                        <input
+                          id="phoneNumber"
+                          name="phoneNumber"
+                          type="tel"
+                          autoComplete="tel"
+                          required
+                          maxLength={24}
+                          value={details.phoneNumber}
+                          onChange={(event) =>
+                            update("phoneNumber", event.target.value)
+                          }
+                          placeholder="+254 712 345 678"
+                          aria-describedby="phone-help"
+                          className={inputClass}
+                        />
+                        <p
+                          id="phone-help"
+                          className="mt-1.5 text-xs text-[#91A8AF]"
+                        >
+                          Include your country code. We’ll send a verification
+                          code here.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </fieldset>
+                <button disabled={busy || !requestId} className={primaryClass}>
+                  {busy ? (
                     <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                      Processing...
+                      <LoaderCircle size={17} className="animate-spin" />{" "}
+                      Sending code…
                     </>
                   ) : (
                     <>
-                      <Building size={20} className="mr-2" />
-                      Create Business Account
+                      Continue <ArrowRight size={17} />
+                    </>
+                  )}
+                </button>
+              </form>
+            ) : step === "secure" ? (
+              <form onSubmit={createBusiness} className="mt-6 space-y-5">
+                <fieldset disabled={busy} className="space-y-5">
+                  <div>
+                    <label
+                      htmlFor="businessOtp"
+                      className="mb-2 block text-sm font-medium"
+                    >
+                      Verification code
+                    </label>
+                    <input
+                      id="businessOtp"
+                      name="otp"
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      pattern="[0-9]{6}"
+                      required
+                      maxLength={6}
+                      value={otp}
+                      onChange={(event) =>
+                        setOtp(
+                          event.target.value.replace(/\D/g, "").slice(0, 6),
+                        )
+                      }
+                      placeholder="000000"
+                      className={`${inputClass} text-center !text-2xl tracking-[0.35em]`}
+                    />
+                    <div className="mt-3 flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        disabled={busy || retryIn > 0}
+                        onClick={() => void sendCode()}
+                        className={`${textButtonClass} disabled:text-[#91A8AF] disabled:no-underline`}
+                      >
+                        {retryIn > 0 ? `Resend in ${retryIn}s` : "Resend code"}
+                      </button>
+                      <button
+                        type="button"
+                        className={textButtonClass}
+                        onClick={() => {
+                          setStep("details");
+                          setOtp("");
+                          setPin("");
+                          setConfirmPin("");
+                          setError("");
+                        }}
+                      >
+                        Edit details
+                      </button>
+                    </div>
+                  </div>
+                  <div className="border-t border-white/10 pt-5">
+                    <div className="mb-4 flex items-start gap-3">
+                      <LockKeyhole
+                        size={18}
+                        className="mt-0.5 shrink-0 text-[#3EC1C8]"
+                      />
+                      <div>
+                        <p className="text-sm font-medium">
+                          Choose your business PIN
+                        </p>
+                        <p className="mt-1 text-xs leading-5 text-[#91A8AF]">
+                          Use six digits to unlock this business account. Avoid
+                          obvious numbers such as your birthday.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label
+                          htmlFor="businessPin"
+                          className="mb-1.5 block text-sm font-medium"
+                        >
+                          New PIN
+                        </label>
+                        <input
+                          id="businessPin"
+                          type={showPin ? "text" : "password"}
+                          inputMode="numeric"
+                          autoComplete="new-password"
+                          pattern="[0-9]{6}"
+                          required
+                          maxLength={6}
+                          value={pin}
+                          onChange={(event) =>
+                            setPin(
+                              event.target.value.replace(/\D/g, "").slice(0, 6),
+                            )
+                          }
+                          className={inputClass}
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="confirmPin"
+                          className="mb-1.5 block text-sm font-medium"
+                        >
+                          Confirm PIN
+                        </label>
+                        <input
+                          id="confirmPin"
+                          type={showPin ? "text" : "password"}
+                          inputMode="numeric"
+                          autoComplete="new-password"
+                          pattern="[0-9]{6}"
+                          required
+                          maxLength={6}
+                          value={confirmPin}
+                          onChange={(event) =>
+                            setConfirmPin(
+                              event.target.value.replace(/\D/g, "").slice(0, 6),
+                            )
+                          }
+                          className={inputClass}
+                        />
+                      </div>
+                    </div>
+                    <label className="mt-3 flex min-h-8 w-fit items-center gap-2 text-xs text-[#A9BCC2]">
+                      <input
+                        type="checkbox"
+                        checked={showPin}
+                        onChange={(event) => setShowPin(event.target.checked)}
+                        className="size-4 accent-[#0795B0]"
+                      />{" "}
+                      Show PIN
+                    </label>
+                  </div>
+                </fieldset>
+                <button disabled={busy} className={primaryClass}>
+                  {busy ? (
+                    <>
+                      <LoaderCircle size={17} className="animate-spin" />{" "}
+                      Creating your business…
+                    </>
+                  ) : (
+                    <>
+                      Create business wallet <ArrowRight size={17} />
                     </>
                   )}
                 </button>
               </form>
             ) : (
-              <form onSubmit={handleOtpSubmit} className="space-y-6">
-                <div className="text-center mb-6">
-                  <div className="w-16 h-16 bg-blue-900/20 border border-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Building size={32} className="text-blue-400" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-white mb-2">Enter Verification Code</h3>
-                  <p className="text-gray-300">
-                    Check your server logs for the OTP sent to <span className="text-white font-medium">{formData.phoneNumber}</span>
-                  </p>
-                  <div className="mt-3 p-3 bg-yellow-900/20 border border-yellow-500 rounded-lg">
-                    <p className="text-sm text-yellow-300">
-                      💡 <strong>Developer Note:</strong> OTP is logged in server console for testing purposes
-                    </p>
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="otp" className="block text-sm font-medium text-gray-300 mb-2">
-                    Verification Code *
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showOtp ? "text" : "password"}
-                      id="otp"
-                      value={otp}
-                      onChange={(e) => setOtp(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#1A1E1E] border border-[#0795B0] rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0795B0] focus:border-transparent hover:border-[#0AA5C0] transition-colors duration-200 text-center text-2xl tracking-widest"
-                      placeholder="000000"
-                      maxLength={6}
-                      required
-                      autoFocus
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowOtp(!showOtp)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
-                    >
-                      {showOtp ? <EyeSlash size={20} /> : <Eye size={20} />}
-                    </button>
-                  </div>
-                  <p className="text-xs text-gray-400 mt-1 text-center">
-                    Enter the 6-digit code from server logs
-                  </p>
-                </div>
-
-                {error && (
-                  <div className="p-4 bg-red-900/20 border border-red-500 rounded-lg">
-                    <div className="flex items-center">
-                      <Warning size={20} className="text-red-400 mr-2" />
-                      <p className="text-red-300 text-sm">{error}</p>
+              business && (
+                <div className="mt-6 space-y-5">
+                  <div className="flex items-center gap-3 rounded-xl border border-[#3EC1C8]/25 bg-[#0795B0]/10 p-4">
+                    <CheckCheck className="shrink-0 text-[#52D4E7]" size={22} />
+                    <div className="min-w-0">
+                      <p className="break-words text-sm font-semibold">
+                        {business.businessName}
+                      </p>
+                      <p className="mt-1 text-xs text-[#A9BCC2]">
+                        Business wallet created · PIN set
+                      </p>
                     </div>
                   </div>
-                )}
-
-                <div className="flex space-x-4">
-                  <button
-                    type="button"
-                    onClick={() => setStep('form')}
-                    className="flex-1 py-3 px-4 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors duration-200"
-                  >
-                    Back
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={loading || otp.length !== 6}
-                    className="flex-1 py-3 px-4 bg-[#0795B0] hover:bg-[#0684A0] text-white rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0795B0] disabled:opacity-50 transition-all duration-200 flex items-center justify-center"
-                  >
-                    {loading ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Verifying...
-                      </>
-                    ) : (
-                      'Verify & Create'
-                    )}
-                  </button>
+                  <div className="text-center">
+                    <div className="inline-block rounded-2xl bg-white p-4">
+                      <QRCode
+                        value={JSON.stringify({
+                          type: "business_payment",
+                          businessName: business.businessName,
+                          merchantId: business.merchantId,
+                          walletAddress: business.walletAddress,
+                          businessType: business.businessType,
+                        })}
+                        size={184}
+                        level="M"
+                        role="img"
+                        aria-label={`${business.businessName} NexusPay payment QR`}
+                      />
+                    </div>
+                    <p className="mt-3 text-xs text-[#A9BCC2]">
+                      Scan with NexusPay to pay this business.
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-white/10 p-4">
+                    <p className="text-xs text-[#91A8AF]">Merchant ID</p>
+                    <div className="mt-2 flex items-center justify-between gap-3">
+                      <span className="select-all font-mono text-lg">
+                        {business.merchantId}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void copy(business.merchantId, "merchant")
+                        }
+                        className={textButtonClass}
+                        aria-label="Copy merchant ID"
+                      >
+                        {copied === "merchant" ? (
+                          <Check size={18} />
+                        ) : (
+                          <Copy size={18} />
+                        )}
+                      </button>
+                    </div>
+                    <p className="mt-4 text-xs text-[#91A8AF]">
+                      Wallet address
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        void copy(business.walletAddress, "wallet")
+                      }
+                      className="mt-2 w-full break-all text-left font-mono text-xs leading-5 text-[#C7DCE2]"
+                      aria-label="Copy wallet address"
+                    >
+                      {business.walletAddress}
+                    </button>
+                    <span
+                      role="status"
+                      className="mt-1 block min-h-4 text-xs text-[#52D4E7]"
+                    >
+                      {copied
+                        ? `${copied === "merchant" ? "Merchant ID" : "Wallet address"} copied`
+                        : ""}
+                    </span>
+                  </div>
+                  <Link href="/business/home" className={primaryClass}>
+                    Open business account <ArrowRight size={17} />
+                  </Link>
                 </div>
-              </form>
+              )
+            )}
+            {error && (
+              <div
+                role="alert"
+                className="mt-5 rounded-xl border border-rose-400/25 bg-rose-400/10 p-3 text-sm leading-6 text-rose-200"
+              >
+                {error}
+                {sessionExpired && (
+                  <Link
+                    href="/login?next=/signup/business"
+                    className="mt-2 block font-semibold underline"
+                  >
+                    Sign in to continue
+                  </Link>
+                )}
+              </div>
             )}
           </div>
+        </section>
+        <div className="mt-5 flex items-center justify-between gap-3 text-xs text-[#91A8AF]">
+          <Link
+            href={signedIn ? "/home" : "/onboarding"}
+            className="flex min-h-10 items-center gap-1.5 hover:text-white"
+          >
+            <ArrowLeft size={14} />{" "}
+            {signedIn ? "Back to personal wallet" : "Back to NexusPay"}
+          </Link>
+          {signedIn && (
+            <Link
+              href="/business"
+              className="flex min-h-10 items-center gap-1.5 hover:text-white"
+            >
+              Your businesses <ArrowRight size={14} />
+            </Link>
+          )}
         </div>
-      </article>
-    </section>
+      </div>
+    </main>
   );
-};
+}

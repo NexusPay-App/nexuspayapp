@@ -24,14 +24,7 @@ export type SignUpFormData = {
   confirmPassword: string;
 };
 
-export type SignUpBusinessFormData = {
-  userId: string;
-  ownerName: string;
-  businessName: string;
-  location: string;
-  phoneNumber: string;
-  businessType: string;
-};
+
 
 
 export type OTPFormData = {

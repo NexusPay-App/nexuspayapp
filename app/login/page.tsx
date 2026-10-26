@@ -1,316 +1,303 @@
-// Login.tsx - Updated for production deployment
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation"; // Adjusted import for useRouter
-import { useForm, SubmitHandler } from "react-hook-form";
-import { useAuth as useAuthOriginal } from "@/context/AuthContext"; // Import the original useAuth hook
-import dynamic from "next/dynamic";
-import loading from "@/public/json/loading.json";
-import errorJson from "@/public/json/error.json";
-
-// Dynamically import Player to avoid SSR issues
-const Player = dynamic(
-  () => import("@lottiefiles/react-lottie-player").then((mod) => mod.Player),
-  { ssr: false }
-);
-import * as Yup from "yup";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Eye, EyeSlash } from "@phosphor-icons/react";
-import { AuthContextType, LoginFormFields } from "@/types/form-types";
-import { useMutation } from "@tanstack/react-query";
-import useAxios from "@/hooks/useAxios";
-import LoadingDialog from "@/components/dialog/LoadingDialog";
-import ErrorDialog from "@/components/dialog/ErrorDialog";
-import { Form, Formik } from "formik";
-import TextInput from "@/components/inputs/TextInput";
-import PasswordInput from "@/components/inputs/PasswordInput";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 import GoogleSignIn from "@/components/auth/GoogleSignIn";
 import { getPostAuthPath } from "@/lib/auth";
-import { formatPhoneNumberToE164, validateE164PhoneNumber } from "@/lib/phone-utils";
+import {
+  formatPhoneNumberToE164,
+  validateE164PhoneNumber,
+} from "@/lib/phone-utils";
 
-// A wrapper or assertion to cast the useAuth hook's return type
-const useAuth = () => useAuthOriginal() as unknown as AuthContextType;
+const field =
+  "w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3.5 text-white outline-none transition focus:border-[#39BED3] focus:ring-2 focus:ring-[#0795B0]/20 disabled:opacity-50";
+const primary =
+  "flex w-full items-center justify-center gap-2 rounded-xl bg-[#0795B0] px-4 py-3.5 font-semibold text-white transition hover:bg-[#07869e] disabled:cursor-not-allowed disabled:opacity-50";
+const errorMessage = (error: any) =>
+  error?.response?.data?.error?.message ||
+  error?.response?.data?.message ||
+  error?.message ||
+  "Sign-in could not complete. Please try again.";
 
-const Login: React.FC = () => {
-  const { login, verifyLogin } = useAuth(); // Use the typed useAuth hook here
-  const [openLoading, setOpenLoading] = useState(false);
-  const [passwordVisibility, setPasswordVisibility] = useState("password");
-  const [openLoggin, setOpenLoggin] = useState(false); // Opens the Account Creation Loading Dialog
-  const [openAccErr, setOpenAccErr] = useState(false); // Opens the Failed Acc Creation Loading Dialog
-  const [openOTP, setOpenOTP] = useState(false); // Opens the OTP input dialog
-  const [otpCode, setOtpCode] = useState("");
-  const [userCredentials, setUserCredentials] = useState<LoginFormFields | null>(null);
-  const api = useAxios();
+export default function Login() {
+  const { login, verifyLogin } = useAuth();
   const router = useRouter();
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [visible, setVisible] = useState(false);
+  const [code, setCode] = useState("");
+  const [step, setStep] = useState<"credentials" | "code">("credentials");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [resendAt, setResendAt] = useState(0);
+  const [now, setNow] = useState(Date.now());
   const [businessSetup, setBusinessSetup] = useState(false);
-  useEffect(() => setBusinessSetup(getPostAuthPath() === "/signup/business"), []);
+  const submitting = useRef(false);
+  const codeInput = useRef<HTMLInputElement>(null);
+  const normalizedPhone = formatPhoneNumberToE164(phone);
+  const remaining = Math.max(0, Math.ceil((resendAt - now) / 1000));
 
-  // Mutation to Initiate Login User
-  const initiateLoginUser = useMutation({
-    mutationFn: async (initiateLoginUserPost: LoginFormFields) => {
-      // Store credentials for OTP verification
-      setUserCredentials(initiateLoginUserPost);
+  useEffect(
+    () => setBusinessSetup(getPostAuthPath() === "/signup/business"),
+    [],
+  );
+  useEffect(() => {
+    if (step !== "code") return;
+    codeInput.current?.focus();
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [step]);
 
-      // First, initiate login
-      const loginResponse = await login({
-        phoneNumber: initiateLoginUserPost.phoneNumber,
-        password: initiateLoginUserPost.password,
-      });
-
-      return loginResponse;
-    },
-    onSuccess: (data, variables, context) => {
-      setOpenLoading(false);
-      if (data.data.token) {
-        // User is fully authenticated (no OTP required)
-        setOpenLoggin(true);
-        setTimeout(() => {
-          router.replace(getPostAuthPath());
-        }, 1000);
-      } else if (data.success) {
-        // Login successful, OTP sent - show OTP input
-        setOpenOTP(true);
-      }
-    },
-    onError: (error, variables, context) => {
-      // Handle errors, e.g., show a message to the user
-      console.error(error);
-      setOpenLoading(false);
-      setOpenAccErr(true);
-    },
-    onSettled: (data, error, variables, context) => {},
-  });
-
-  // Mutation to Verify OTP
-  const verifyOTPMutation = useMutation({
-    mutationFn: async (otp: string) => {
-      if (!userCredentials) throw new Error("No user credentials found");
-
-      const verifyResponse = await verifyLogin({
-        phoneNumber: userCredentials.phoneNumber,
-        otp: otp,
-      });
-
-      return verifyResponse;
-    },
-    onSuccess: (data, variables, context) => {
-      console.log("OTP verification response:", data);
-
-      // The AuthContext handleAuthSuccess will handle token extraction and storage
-      // If we get here, authentication was successful
-      setOpenOTP(false);
-      setOpenLoggin(true);
-      setTimeout(() => {
-        router.replace(getPostAuthPath());
-      }, 1000);
-    },
-    onError: (error, variables, context) => {
-      console.error("OTP verification failed:", error);
-      setOpenAccErr(true);
-    },
-  });
-
-  // Handle OTP submission
-  const handleOTPSubmit = () => {
-    if (otpCode.length === 6) {
-      verifyOTPMutation.mutate(otpCode);
+  async function requestCode() {
+    if (submitting.current) return;
+    setError("");
+    if (!validateE164PhoneNumber(normalizedPhone)) {
+      setError(
+        "Enter your phone number, including the country code for numbers outside Kenya.",
+      );
+      return;
     }
-  };
+    submitting.current = true;
+    setBusy(true);
+    try {
+      const response = await login({ phoneNumber: normalizedPhone, password });
+      if (!response.success || response.data?.smsFailure)
+        throw new Error(
+          "We couldn’t send your code. Wait a minute and try again.",
+        );
+      if (response.data?.token) {
+        setPassword("");
+        router.replace(getPostAuthPath());
+        return;
+      }
+      setPhone(normalizedPhone);
+      setCode("");
+      setVisible(false);
+      setStep("code");
+      setResendAt(Date.now() + 60000);
+      setNow(Date.now());
+    } catch (failure) {
+      setError(errorMessage(failure));
+    } finally {
+      submitting.current = false;
+      setBusy(false);
+    }
+  }
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (step === "credentials") return requestCode();
+    if (submitting.current || !/^\d{6}$/.test(code)) return;
+    submitting.current = true;
+    setBusy(true);
+    setError("");
+    try {
+      await verifyLogin({ phoneNumber: normalizedPhone, otp: code });
+      setPassword("");
+      router.replace(getPostAuthPath());
+    } catch (failure) {
+      setError(errorMessage(failure));
+      codeInput.current?.focus();
+    } finally {
+      submitting.current = false;
+      setBusy(false);
+    }
+  }
 
   return (
-    <section className="app-background">
-      <LoadingDialog
-        message="Confirming Credentials..."
-        openLoading={openLoading}
-        setOpenLoading={setOpenLoading}
-      />
-      <LoadingDialog
-        message="Logging you in..."
-        openLoading={openLoggin}
-        setOpenLoading={setOpenLoggin}
-      />
-      <ErrorDialog
-        message="Failed to Login"
-        openError={openAccErr}
-        setOpenError={setOpenAccErr}
-      />
-      <article>
-        <h2 className="text-4xl text-white font-bold">Sign in with Password</h2>
-        <h4 className="text-white my-5">Enter your Phone Number to Login</h4>
-        {/* SignUp using Formik */}
-        <Formik
-          initialValues={{
-            phoneNumber: "",
-            password: "",
-          }}
-          validationSchema={Yup.object({
-            phoneNumber: Yup.number()
-              .min(13, "Min of 13 Characters required")
-              .required("Phone Number is Required"),
-            password: Yup.string()
-              .max(20, "Must be 20 characters or less")
-              .min(5, "Min of 5 Characters required")
-              .required("Password is Required"),
-          })}
-          onSubmit={(values, { setSubmitting }) => {
-            setTimeout(async () => {
-              setOpenLoading(true);
-
-              // Format phone number to E.164 format using utility function
-              const formattedPhoneNumber = formatPhoneNumberToE164(values.phoneNumber);
-
-              // Validate the formatted phone number
-              if (!validateE164PhoneNumber(formattedPhoneNumber)) {
-                console.error('Invalid phone number format:', formattedPhoneNumber);
-                setOpenLoading(false);
-                setOpenAccErr(true);
-                setSubmitting(false);
-                return;
-              }
-
-              // Use the formatted phone number in your API request
-              const requestData = {
-                ...values,
-                phoneNumber: formattedPhoneNumber, // Now properly formatted as E.164
-              };
-
-              // Call the Initiate Login User Mutation
-              initiateLoginUser.mutate(requestData);
-              setOpenLoggin(false);
-              setSubmitting(false);
-            }, 400);
-          }}
+    <section className="min-h-[80dvh] bg-[#0A0E0E] px-5 py-8 sm:py-14">
+      <div className="mx-auto max-w-md">
+        <Link
+          href="/onboarding"
+          className="mb-8 inline-flex items-center gap-2 text-sm text-white/55 hover:text-white"
         >
-          <Form>
-            <TextInput
-              label="Phone Number eg (0720****20)"
-              name="phoneNumber"
-              type="text"
-              placeholder="Enter your Phone Number"
-            />
-
-            <PasswordInput
-              label="Password"
-              name="password"
-              placeholder="Enter your Password"
-            />
-            <div className="flex flex-col justify-start mb-5">
-              <p className="text-[#909090] p-1 text-sm font-semibold">
-                <Link href="/forgotpassword" className="hover:text-white">
-                  Forgot Password?
-                </Link>
-              </p>
-              <p className="text-[#909090] p-1 text-sm font-semibold">
-                <Link href={businessSetup ? "/signup?next=/signup/business" : "/signup"} className="hover:text-white">
-                  Create a Personal Account
-                </Link>
-              </p>
-              <p className="text-[#909090] p-1 text-sm font-semibold">
-                <Link href="/signup/business" className="hover:text-white">
-                Create a Business Account?
-                </Link>
-              </p>
-            </div>
-            <button
-              type="submit"
-              className="bg-white mt-5 p-3 rounded-full font-bold w-full cursor-pointer"
-            >
-              Submit
-            </button>
-          </Form>
-        </Formik>
-
-        {/* Google Sign-In */}
-        <div className="mt-6">
-          <div className="flex items-center justify-center mb-4">
-            <div className="border-t border-gray-300 flex-grow"></div>
-            <span className="px-4 text-white text-sm">or</span>
-            <div className="border-t border-gray-300 flex-grow"></div>
+          <ArrowLeft size={16} /> Back
+        </Link>
+        <div className="rounded-3xl border border-white/10 bg-[#0E1617] p-6 sm:p-8">
+          <div className="mb-6">
+            <p className="mb-2 text-sm font-medium text-[#39BED3]">NexusPay</p>
+            <h1 className="text-2xl font-semibold tracking-tight text-white">
+              {step === "code" ? "Check your messages" : "Welcome back"}
+            </h1>
+            <p className="mt-2 text-sm leading-6 text-white/55">
+              {step === "code"
+                ? `Enter the 6-digit code sent to ${normalizedPhone}.`
+                : "Sign in with your phone number and password."}
+            </p>
           </div>
-          <GoogleSignIn
-            mode="login"
-            onError={(error) => {
-              console.error("Google login error:", error);
-              setOpenAccErr(true);
-            }}
-          />
-        </div>
-      </article>
-
-      {/* OTP Verification Dialog */}
-      <Dialog open={openOTP} onOpenChange={setOpenOTP}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="mb-[20px]">Enter Verification Code</DialogTitle>
-            <DialogDescription>
-              We&apos;ve sent a 6-digit verification code to your phone number.
-              Please enter it below to complete your login.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="flex flex-col items-center space-y-6">
-            <div className="flex justify-center space-x-2">
-              {[0, 1, 2, 3, 4, 5].map((index) => (
+          <form onSubmit={submit} className="space-y-5" aria-busy={busy}>
+            {step === "credentials" ? (
+              <>
+                <div>
+                  <label
+                    htmlFor="login-phone"
+                    className="mb-2 block text-sm text-white/75"
+                  >
+                    Phone number
+                  </label>
+                  <input
+                    id="login-phone"
+                    type="tel"
+                    autoComplete="username"
+                    value={phone}
+                    onChange={(event) => setPhone(event.target.value)}
+                    placeholder="0712 345 678 or +254…"
+                    className={field}
+                    disabled={busy}
+                    required
+                  />
+                  <p className="mt-2 text-xs text-white/40">
+                    Use the number linked to your NexusPay account.
+                  </p>
+                </div>
+                <div>
+                  <div className="mb-2 flex items-center justify-between">
+                    <label
+                      htmlFor="login-password"
+                      className="text-sm text-white/75"
+                    >
+                      Password
+                    </label>
+                    <Link
+                      href="/forgotpassword"
+                      className="text-xs text-[#39BED3] hover:underline"
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
+                  <div className="relative">
+                    <input
+                      id="login-password"
+                      type={visible ? "text" : "password"}
+                      autoComplete="current-password"
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      className={`${field} pr-12`}
+                      disabled={busy}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setVisible(!visible)}
+                      aria-label={visible ? "Hide password" : "Show password"}
+                      aria-pressed={visible}
+                      className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-white/55"
+                    >
+                      {visible ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div>
+                <label
+                  htmlFor="login-code"
+                  className="mb-2 block text-sm text-white/75"
+                >
+                  Verification code
+                </label>
                 <input
-                  key={index}
-                  type="text"
-                  maxLength={1}
-                  value={otpCode[index] || ""}
-                  onChange={(e) => {
-                    const newOtp = otpCode.split("");
-                    newOtp[index] = e.target.value;
-                    setOtpCode(newOtp.join(""));
-
-                    // Auto-focus next input
-                    if (e.target.value && index < 5 && typeof document !== 'undefined') {
-                      const nextInput = document.querySelector(`input[data-index="${index + 1}"]`) as HTMLInputElement;
-                      if (nextInput) nextInput.focus();
-                    }
-                  }}
-                  onKeyDown={(e) => {
-                    // Handle backspace to focus previous input
-                    if (e.key === "Backspace" && !otpCode[index] && index > 0 && typeof document !== 'undefined') {
-                      const prevInput = document.querySelector(`input[data-index="${index - 1}"]`) as HTMLInputElement;
-                      if (prevInput) prevInput.focus();
-                    }
-                  }}
-                  data-index={index}
-                  className="w-12 h-12 text-center text-xl font-semibold border-2 border-gray-300 rounded-lg focus:border-[#0795B0] focus:outline-none bg-white text-black"
+                  ref={codeInput}
+                  id="login-code"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  pattern="[0-9]{6}"
+                  maxLength={6}
+                  value={code}
+                  onChange={(event) =>
+                    setCode(event.target.value.replace(/\D/g, "").slice(0, 6))
+                  }
+                  className={`${field} text-center text-2xl tracking-[0.4em]`}
+                  disabled={busy}
+                  required
                 />
-              ))}
-            </div>
-
-            <div className="flex space-x-3 w-full">
+                <p className="mt-2 text-xs text-white/40">
+                  You can paste the whole code. It expires in 5 minutes.
+                </p>
+              </div>
+            )}
+            {error && (
+              <p
+                role="alert"
+                className="rounded-xl bg-red-400/10 p-3 text-sm leading-5 text-red-200"
+              >
+                {error}
+              </p>
+            )}
+            <button
+              className={primary}
+              disabled={
+                busy ||
+                (step === "code"
+                  ? code.length !== 6
+                  : !phone.trim() || !password)
+              }
+            >
+              {busy && <Loader2 size={17} className="animate-spin" />}
+              {busy
+                ? step === "code"
+                  ? "Verifying…"
+                  : "Signing in…"
+                : step === "code"
+                  ? "Verify and sign in"
+                  : "Sign in"}
+            </button>
+          </form>
+          {step === "code" ? (
+            <div className="mt-5 flex items-center justify-between text-sm">
               <button
+                type="button"
+                disabled={busy}
                 onClick={() => {
-                  setOpenOTP(false);
-                  setOtpCode("");
+                  setStep("credentials");
+                  setCode("");
+                  setError("");
                 }}
-                className="flex-1 bg-gray-500 text-white p-3 rounded-xl font-bold"
+                className="text-white/55 hover:text-white"
               >
-                Cancel
+                Change number
               </button>
               <button
-                onClick={handleOTPSubmit}
-                disabled={otpCode.length !== 6 || verifyOTPMutation.isPending}
-                className="flex-1 bg-[#0795B0] text-white p-3 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                type="button"
+                disabled={busy || remaining > 0}
+                onClick={requestCode}
+                className="text-[#39BED3] disabled:text-white/35"
               >
-                {verifyOTPMutation.isPending ? "Verifying..." : "Verify"}
+                {remaining ? `Resend in ${remaining}s` : "Resend code"}
               </button>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          ) : (
+            <>
+              <div className="my-6 flex items-center gap-3 text-xs text-white/35">
+                <span className="h-px flex-1 bg-white/10" />
+                or
+                <span className="h-px flex-1 bg-white/10" />
+              </div>
+              <GoogleSignIn mode="login" />
+              <p className="mt-6 text-center text-sm text-white/55">
+                New to NexusPay?{" "}
+                <Link
+                  className="text-[#39BED3] hover:underline"
+                  href={
+                    businessSetup ? "/signup?next=/signup/business" : "/signup"
+                  }
+                >
+                  Create an account
+                </Link>
+              </p>
+            </>
+          )}
+        </div>
+        <p className="mt-5 flex items-center justify-center gap-2 text-xs text-white/35">
+          <ShieldCheck size={14} />
+          {step === "code"
+            ? "Never share your verification code."
+            : "Your account stays protected with SMS verification."}
+        </p>
+      </div>
     </section>
   );
-};
-
-export default Login;
+}

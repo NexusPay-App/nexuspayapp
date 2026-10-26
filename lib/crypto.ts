@@ -14,6 +14,7 @@ export interface SendTokenData {
 }
 
 export interface PayMerchantData {
+  maxNetworkFee?: string;
   senderAddress: string;
   merchantId: string;
   amount: string | number;

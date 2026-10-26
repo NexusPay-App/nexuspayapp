@@ -186,7 +186,7 @@ export const useCrypto = () => {
       try {
         const response = await payMerchantApi.execute(
           async () => {
-            const payment = await botAPI.send(network, { amount, tokenSymbol: 'USDT', password: data.password || '', merchantId: data.merchantId.trim() }, key);
+            const payment = await botAPI.send(network, { amount, tokenSymbol: 'USDT', password: data.password || '', merchantId: data.merchantId.trim(), maxNetworkFee: data.maxNetworkFee }, key);
             if (payment.status === 'failed') {
               clearBotRequest('merchant');
               throw new Error(payment.failureReason || 'Payment failed');

@@ -185,56 +185,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // Login
   const login = async (data: any) => {
-    try {
-      setLoading(true);
-      const response = await authAPI.login(data);
-      
-      if (response.success) {
-        toast.success(response.message);
-      }
-      
-      return response;
-    } catch (error: any) {
-      const message = error.response?.data?.message || 'Login failed';
-      toast.error(message);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
+    const response = await authAPI.login(data);
+    if (response.success && response.data?.token) handleAuthSuccess(response);
+    return response;
   };
 
-  // Verify login
   const verifyLogin = async (data: any) => {
-    try {
-      setLoading(true);
-      const response = await authAPI.verifyLogin(data);
-      
-      console.log("Full OTP verification response:");
-      
-      // Check multiple possible response structures for token
-      const token = (response as any)?.data?.token || 
-                   (response as any)?.token || 
-                   (response as any)?.data?.data?.token ||
-                   (response as any)?.data?.accessToken ||
-                   (response as any)?.accessToken;
-      
-      if ((response as any).success && token) {
-        return handleAuthSuccess(response);
-      } else {
-        console.error("No token found in response. Response structure:");
-        throw new Error("Authentication failed - no token received");
-      }
-      
-      return response;
-    } catch (error: any) {
-      const message = error.response?.data?.message || 'Login verification failed';
-      toast.error(message);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
+    const response = await authAPI.verifyLogin(data);
+    if (!response.success || !response.data?.token) throw new Error('Sign-in could not be verified. Please request a new code.');
+    return handleAuthSuccess(response);
   };
 
   // Request password reset

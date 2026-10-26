@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import { PayBusinessForm } from './PayBusinessForm';
+import { PayMerchantForm } from './PayMerchantForm';
 import { 
   QrCode, 
   Camera, 
@@ -173,14 +173,7 @@ export const QRCodeScanner: React.FC<QRCodeScannerProps> = ({
             </Button>
           </div>
           
-          <PayBusinessForm 
-            qrData={scannedData} 
-            onSuccess={() => {
-              setShowPayForm(false);
-              setScannedData(null);
-              if (onClose) onClose();
-            }}
-          />
+          <PayMerchantForm initialMerchantId={scannedData.merchantId} />
         </div>
       </div>
     );

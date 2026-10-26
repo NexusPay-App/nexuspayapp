@@ -9,15 +9,10 @@ import { useCrypto } from '@/hooks/useCrypto';
 import { useAuth } from '@/context/AuthContext';
 import { botAPI, isBotNetwork } from '@/lib/botchain';
 import api from '@/lib/api';
+import { amountUnits as units } from '@/lib/amounts';
 import { validateRecipientIdentifier, normalizeRecipientPhone } from '@/lib/crypto';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 
-function units(value: string, decimals: number): bigint | null {
-  if (!/^\d+(\.\d+)?$/.test(value)) return null;
-  const [whole, fraction = ''] = value.split('.');
-  if (fraction.length > decimals || whole.length > 78) return null;
-  return BigInt(whole) * BigInt(10) ** BigInt(decimals) + BigInt(fraction.padEnd(decimals, '0') || '0');
-}
 
 function message(error: unknown): string {
   const failure = error as { response?: { data?: { error?: { message?: string }; message?: string } }; message?: string };

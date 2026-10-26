@@ -4,7 +4,8 @@ export type BotNetwork = 'botchain' | 'botchain-testnet';
 export type BotToken = 'BOT' | 'USDT';
 export interface BotCapability { id: BotNetwork; name: string; chainId: number; enabled: boolean; transfers: boolean; merchantPayments: boolean; deposits?: boolean; explorer: string; testnet: boolean; tokens?: { symbol: BotToken; decimals: number; address: string | null }[]; }
 export interface BotBalance { network: BotNetwork; address: string; gasMode: string; balances: { symbol: BotToken; decimals: number; balance: string; balanceUnits: string }[]; }
-export interface BotPayment { id: string; network: BotNetwork; sender: string; recipient: string; amount: string; tokenSymbol: BotToken; status: 'preparing' | 'submitted' | 'pending' | 'confirmed' | 'failed' | 'review'; userOpHash?: string; transactionHash?: string; explorerUrl?: string; failureReason?: string; failureCode?: string; createdAt: string; merchantId?: string; direction?: 'outgoing' | 'incoming'; }
+export interface BotFeeQuote { recipient: string; amount: string; tokenSymbol: BotToken; feeCurrency: string; maxNetworkFee: string; walletFee: string; totalBotDebit: string; expiresAt: string; }
+export interface BotPayment { id: string; network: BotNetwork; sender: string; recipient: string; amount: string; tokenSymbol: BotToken; status: 'preparing' | 'submitted' | 'pending' | 'confirmed' | 'failed' | 'review'; userOpHash?: string; transactionHash?: string; explorerUrl?: string; failureReason?: string; failureCode?: string; createdAt: string; merchantId?: string; direction?: 'outgoing' | 'incoming'; actualNetworkFee?: string; }
 export const BOT_NETWORK_IDS: BotNetwork[] = ['botchain', 'botchain-testnet'];
 export function isBotNetwork(value: string): value is BotNetwork {
   return (BOT_NETWORK_IDS as string[]).includes(value);
@@ -46,10 +47,11 @@ export const botAPI = {
   networks: async () => (await api.get<{ data: BotCapability[] }>('/botchain/networks')).data.data
     .filter(network => network.id === 'botchain' && !network.testnet),
   balance: async (network: BotNetwork, signal?: AbortSignal) => (await api.get<{ data: BotBalance }>(`/botchain/${network}/balances`, { signal })).data.data,
+  quote: async (network: BotNetwork, input: { recipientIdentifier: string; amount: string; tokenSymbol: string }, signal?: AbortSignal) => (await api.post<{ data: BotFeeQuote }>(`/botchain/${network}/quote`, input, { signal, timeout: 60000 })).data.data,
   max: async (network: BotNetwork, recipientIdentifier: string, signal?: AbortSignal) => (await api.post<{ data: { amount: string; gasReserve: string; balance: string; recipient: string } }>(`/botchain/${network}/max`, { recipientIdentifier }, { signal })).data.data,
   history: async (network: BotNetwork, signal?: AbortSignal) => (await api.get<{ data: BotPayment[] }>(`/botchain/${network}/transfers`, { signal })).data.data,
   status: async (network: BotNetwork, id: string) => (await api.get<{ data: BotPayment }>(`/botchain/${network}/transfers/${id}`)).data.data,
-  send: async (network: BotNetwork, input: { amount: string; tokenSymbol: BotToken; password: string; recipientIdentifier?: string; merchantId?: string; senderAddress?: string }, key: string) => (await api.post<{ data: BotPayment }>(`/botchain/${network}/transfers`, input, { headers: { 'Idempotency-Key': key } })).data.data,
+  send: async (network: BotNetwork, input: { amount: string; tokenSymbol: BotToken; password: string; recipientIdentifier?: string; merchantId?: string; senderAddress?: string; maxNetworkFee?: string }, key: string) => (await api.post<{ data: BotPayment }>(`/botchain/${network}/transfers`, input, { headers: { 'Idempotency-Key': key } })).data.data,
 };
 export function botPaymentLabel(payment: BotPayment): string {
   if (payment.status === 'confirmed') return 'Payment confirmed';
@@ -68,6 +70,7 @@ export function botPaymentToSendResponse(payment: BotPayment, recipientIdentifie
       transactionHash: payment.transactionHash || '',
       explorerUrl: payment.explorerUrl || '',
       amount: payment.amount,
+      actualNetworkFee: payment.actualNetworkFee,
       tokenSymbol: payment.tokenSymbol,
       chain: payment.network,
       sender: { address: payment.sender },

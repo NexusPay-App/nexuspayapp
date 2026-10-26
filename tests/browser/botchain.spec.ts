@@ -13,6 +13,7 @@ test('BOT Chain sends through the shared multi-chain send screen', async ({ page
   await page.route('**/api/**', async route => {
     const url = new URL(route.request().url());
     let data: unknown = {};
+    if (url.pathname.endsWith('/botchain/botchain/quote')) return route.fulfill({json: {success: true, data: {maxNetworkFee: '0.00001', walletFee: '0.00001', totalBotDebit: '0.02001', feeCurrency: 'BOT', expiresAt: new Date(Date.now() + 60000).toISOString()}}});
     if (url.pathname.endsWith('/botchain/networks')) data = [{ id: 'botchain', name: 'BOT Chain', chainId: 677, enabled: true, transfers: true, merchantPayments: true, testnet: false, explorer: 'https://scan.botchain.ai', tokens: [{ symbol: 'USDT', decimals: 6, address: '0xaBabc7Ddc03e501d190C676BF3d92ef0e6e87a3C' }, { symbol: 'BOT', decimals: 18, address: null }, { symbol: 'WBOT', decimals: 18, address: '0xD5452816194a3784dBa983426cCe7c122F4abd30' }] }, { id: 'botchain-testnet', name: 'BOT Chain Testnet', chainId: 968, enabled: true, transfers: true, merchantPayments: true, testnet: true, explorer: 'https://scan.bohr.life' }];
     else if (url.pathname.endsWith('/token/networks')) data = [{ id: 'arbitrum', name: 'Arbitrum', chainId: 42161, tokens: [{ symbol: 'USDC', name: 'USD Coin', decimals: 6 }] }];
     else if (url.pathname.endsWith('/botchain/botchain/balances')) data = {address, balances: [{symbol: 'USDT', balance: '20'}, {symbol: 'BOT', balance: '1'}]};

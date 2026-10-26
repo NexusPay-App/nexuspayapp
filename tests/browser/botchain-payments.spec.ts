@@ -44,6 +44,7 @@ async function prepare(page: Page, accountFails = false) {
   );
   await page.route("**/api/**", async (route) => {
     const path = new URL(route.request().url()).pathname;
+    if (path.endsWith('/botchain/botchain/quote')) return route.fulfill({json: {success: true, data: {maxNetworkFee: '0.00001', walletFee: '0.00001', totalBotDebit: '0.02001', feeCurrency: 'BOT', expiresAt: new Date(Date.now() + 60000).toISOString()}}});
     if (path.endsWith('/botchain/botchain/balances')) return route.fulfill({status: accountFails ? 503 : 200, json: {success: !accountFails, data: {network: 'botchain', address: bot, balances: [{symbol: 'USDT', decimals: 6, balance: '20.123456', balanceUnits: '20123456'}, {symbol: 'BOT', decimals: 18, balance: '0.123456789012345678', balanceUnits: '123456789012345678'}]}}});
     if (path.endsWith('/botchain/botchain/max')) return route.fulfill({json: {success: true, data: {amount: '0.120456789012345678', gasReserve: '0.003', balance: '0.123456789012345678', recipient}}});
     if (path.endsWith("/botchain/botchain/account"))
@@ -240,5 +241,38 @@ test('unavailable balance disables Max and payment review', async ({ page }) => 
   await expect(page.getByText('Balance unavailable')).toBeVisible();
   await expect(page.getByRole('button', {name: 'Max', exact: true})).toBeDisabled();
   await expect(page.getByRole('button', {name: 'Review payment'})).toBeDisabled();
+  expect(sends()).toBe(0);
+});
+
+test('review shows the BOT fee and password can be shown and hidden without sending', async ({ page }) => {
+  const sends = await prepare(page);
+  await page.goto('/crypto', { waitUntil: 'domcontentloaded' });
+  await page.getByLabel('Network', { exact: true }).selectOption('botchain');
+  await page.getByLabel('Asset', { exact: true }).selectOption('BOT');
+  await page.getByLabel('Recipient', { exact: true }).fill(recipient);
+  await page.getByLabel('Amount', { exact: true }).fill('0.02');
+  await page.getByRole('button', { name: 'Review payment', exact: true }).click();
+  await expect(page.getByRole('dialog')).toContainText('0.00001 BOT maximum');
+  await expect(page.getByRole('dialog')).toContainText('0.02001 BOT');
+  const password = page.getByLabel('NexusPay password', { exact: true });
+  await password.fill('test-password');
+  await page.getByRole('button', { name: 'Show password', exact: true }).click();
+  await expect(password).toHaveAttribute('type', 'text');
+  await page.getByRole('button', { name: 'Hide password', exact: true }).click();
+  await expect(password).toHaveAttribute('type', 'password');
+  await expect(page.getByRole('button', { name: 'Confirm and send' })).toBeEnabled();
+  expect(sends()).toBe(0);
+});
+test('unavailable fee blocks confirmation even with a password', async ({ page }) => {
+  const sends = await prepare(page);
+  await page.route('**/botchain/botchain/quote', route => route.fulfill({status: 503, json: {success: false, error: {message: 'Fee service unavailable'}}}));
+  await page.goto('/crypto', { waitUntil: 'domcontentloaded' });
+  await page.getByLabel('Network', { exact: true }).selectOption('botchain');
+  await page.getByLabel('Recipient', { exact: true }).fill(recipient);
+  await page.getByLabel('Amount', { exact: true }).fill('1');
+  await page.getByRole('button', { name: 'Review payment', exact: true }).click();
+  await page.getByLabel('NexusPay password', { exact: true }).fill('test-password');
+  await expect(page.getByRole('dialog')).toContainText('Unavailable');
+  await expect(page.getByRole('button', { name: 'Confirm and send' })).toBeDisabled();
   expect(sends()).toBe(0);
 });

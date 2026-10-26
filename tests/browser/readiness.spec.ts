@@ -15,6 +15,7 @@ async function setup(page: Page, rejectPassword = false, network = 'botchain') {
   await page.route('**/api/**', async route => {
     const path = new URL(route.request().url()).pathname;
     let data: unknown = {};
+    if (path.endsWith(`/botchain/${network}/quote`)) return route.fulfill({json: {success: true, data: {maxNetworkFee: '0.00001', walletFee: '0.00001', totalBotDebit: '0.02001', feeCurrency: 'BOT', expiresAt: new Date(Date.now() + 60000).toISOString()}}});
     if (path.endsWith('/botchain/networks')) data = capabilities.map(n => n.id === 'botchain' && network === 'botchain' ? { ...n, enabled: true, transfers: true, merchantPayments: true, testnet: false, tokens: capabilities[0].tokens } : n);
     else if (path.endsWith('/token/networks')) data = [{ id: 'arbitrum', name: 'Arbitrum', chainId: 42161, tokens: [{ symbol: 'USDC', decimals: 6 }] }];
     else if (path.endsWith(`/botchain/${network}/balances`)) data = {address, balances: [{symbol: 'USDT', balance: '20'}, {symbol: 'BOT', balance: '1'}]};

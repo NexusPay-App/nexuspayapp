@@ -112,7 +112,7 @@ export const useCrypto = () => {
       try {
         const response = await sendTokenApi.execute(
           async () => {
-            const payment = await botAPI.send(network, { amount, tokenSymbol, password: data.password || '', recipientIdentifier: recipientIdentifier.trim() }, key);
+            const payment = await botAPI.send(network, { amount, tokenSymbol, password: data.password || '', recipientIdentifier: recipientIdentifier.trim(), maxNetworkFee: data.maxNetworkFee }, key);
             if (payment.status === 'failed') {
               clearBotRequest('send');
               throw new Error(payment.failureReason || 'Payment failed');

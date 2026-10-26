@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
-import { ArrowRight, ArrowUpRight, Check, Loader2, LockKeyhole, RefreshCw } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Check, Loader2, LockKeyhole, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { usePaymentNetworks } from '@/hooks/usePaymentNetworks';
 import { useCrypto } from '@/hooks/useCrypto';
@@ -38,6 +38,7 @@ export const SendTokenForm = () => {
   const [error, setError] = useState('');
   const [review, setReview] = useState(false);
   const [password, setPassword] = useState('');
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [maxLoading, setMaxLoading] = useState(false);
   const [gasReserve, setGasReserve] = useState('');
@@ -65,6 +66,17 @@ export const SendTokenForm = () => {
   const overBalance = amountUnits !== null && balanceUnits !== null && amountUnits > balanceUnits;
   const recipient = normalizeRecipientPhone(recipientIdentifier.trim());
   const validRecipient = validateRecipientIdentifier(recipient) && !/^G[A-Z2-7]{55}$/.test(recipient);
+  const fee = useQuery({
+    queryKey: ['send-fee', user?.walletAddress, chain, tokenType, amount, recipient],
+    enabled: review && isBotNetwork(chain) && !sendTokenLoading,
+    queryFn: ({ signal }) => {
+      if (!isBotNetwork(chain)) throw new Error('Unsupported network');
+      return botAPI.quote(chain, { recipientIdentifier: recipient, amount, tokenSymbol: tokenType }, signal);
+    },
+    retry: false, staleTime: 15_000, refetchInterval: 30_000,
+  });
+  const feeRequired = isBotNetwork(chain);
+  const feeReady = !feeRequired || (!!fee.data && !fee.isError && !fee.isFetching && Date.parse(fee.data.expiresAt) > Date.now());
   const canReview = !!network && network.transfers !== false && !!token && !!wallet.data?.address && balanceUnits !== null && amountUnits !== null && amountUnits > BigInt(0) && !overBalance && validRecipient && !maxLoading && !wallet.isFetching;
 
   useEffect(() => {
@@ -111,22 +123,24 @@ export const SendTokenForm = () => {
     setError('');
     updateSendForm('recipientIdentifier', recipient);
     updateSendForm('amount', amount.replace(/^0+(?=\d)/, ''));
+    setPasswordVisible(false);
     setReview(true);
   };
 
   const confirm = async (event: FormEvent) => {
     event.preventDefault();
     if (sending.current || !password.trim() || !wallet.data?.address) return;
+    if (!feeReady) { setError('Refresh the network fee before confirming.'); void fee.refetch(); return; }
     sending.current = true;
     setError('');
     try {
-      const response = await sendToken({ recipientIdentifier: recipient, amount, senderAddress: wallet.data.address, chain, tokenSymbol: tokenType, password });
+      const response = await sendToken({ recipientIdentifier: recipient, amount, senderAddress: wallet.data.address, chain, tokenSymbol: tokenType, password, ...(feeRequired ? { maxNetworkFee: fee.data!.maxNetworkFee } : {}) });
       if (!response?.success) throw new Error(response?.message || 'Payment could not be submitted. Check your transaction history before retrying.');
       setReview(false);
       setShowResult(true);
       void wallet.refetch();
     } catch (failure) { setError(message(failure)); }
-    finally { setPassword(''); sending.current = false; }
+    finally { setPasswordVisible(false); setPassword(''); sending.current = false; }
   };
 
   if (showResult && sendTokenData) {
@@ -143,6 +157,7 @@ export const SendTokenForm = () => {
       <p className="mt-7 break-all text-3xl font-semibold tracking-tight">{payment.amount} <span className="text-lg text-white/50">{payment.tokenSymbol}</span></p>
       <p className="mt-3 break-all text-sm text-white/65">To {payment.recipient.identifier || payment.recipient.address}</p>
       <p className="mt-1 text-sm text-white/40">{networks.find(item => item.id === payment.chain)?.name || payment.chain}</p>
+      {payment.actualNetworkFee && <p className="mt-4 text-sm text-white/65">Network fee paid: {payment.actualNetworkFee} BOT</p>}
       {payment.explorerUrl && <a className="mt-5 inline-flex items-center gap-1 text-sm text-[#39BED3]" href={payment.explorerUrl} target="_blank" rel="noopener noreferrer">View on explorer <ArrowUpRight size={16} /></a>}
       <Link href="/home" className={`${primary} mt-8`}>Back to wallet</Link>
       {(confirmed || failed) && <button type="button" onClick={() => { resetSendForm(); setShowResult(false); void wallet.refetch(); setGasReserve(''); setError(''); }} className="mt-4 w-full text-sm text-white/60">Make another payment</button>}
@@ -191,7 +206,7 @@ export const SendTokenForm = () => {
       </div>
       <button type="submit" className={primary} disabled={!canReview}>Review payment <ArrowRight size={16} /></button>
     </form>
-    <Dialog open={review} onOpenChange={open => { if (!sending.current) { setReview(open); setPassword(''); setError(''); } }}>
+    <Dialog open={review} onOpenChange={open => { if (!sending.current) { setReview(open); setPasswordVisible(false); setPassword(''); setError(''); } }}>
       <DialogContent className="max-h-[90dvh] overflow-y-auto rounded-2xl border-white/10 bg-[#0E1617] p-6 text-white sm:p-7">
         <DialogTitle className="text-xl">Review payment</DialogTitle>
         <DialogDescription className="text-sm text-white/50">Check the recipient and network before confirming.</DialogDescription>
@@ -199,16 +214,19 @@ export const SendTokenForm = () => {
         <dl className="space-y-4 border-y border-white/10 py-5 text-sm">
           <div><dt className="text-xs text-white/45">To</dt><dd className="mt-1 break-all">{recipient}</dd></div>
           <div className="flex justify-between gap-4"><dt className="text-white/45">Network</dt><dd>{network?.name}</dd></div>
-          <div className="flex justify-between gap-4"><dt className="text-white/45">Network fee</dt><dd className="text-right">{gasReserve ? `${gasReserve} BOT reserve estimate` : `Calculated at send · ${isBotNetwork(chain) ? 'BOT' : 'ETH'}`}</dd></div>
+          <div className="flex justify-between gap-4"><dt className="text-white/45">Network fee estimate</dt><dd className="text-right">{feeRequired ? fee.isFetching ? 'Estimating…' : fee.isError ? 'Unavailable' : fee.data ? `${fee.data.maxNetworkFee} BOT maximum` : 'Estimating…' : 'Calculated at send · ETH'}</dd></div>
+          {feeRequired && fee.data && !fee.isError && <><div className="flex justify-between gap-4"><dt className="text-white/45">Maximum BOT from wallet</dt><dd className="break-all text-right">{fee.data.totalBotDebit} BOT</dd></div><p className="text-xs leading-5 text-white/45">The actual fee may be lower. You’ll see the final fee after confirmation.</p></>}
+          {feeRequired && fee.isError && <p role="alert" className="text-sm text-red-200">{message(fee.error)}</p>}
+          {feeRequired && <button type="button" onClick={() => void fee.refetch()} disabled={fee.isFetching || sendTokenLoading} className="text-xs text-[#39BED3] disabled:opacity-50">Refresh fee estimate</button>}
         </dl>
         <form onSubmit={confirm} className="mt-2 space-y-4">
           <div><label htmlFor="send-password" className="mb-2 flex items-center gap-2 text-sm text-white/70"><LockKeyhole size={14} />NexusPay password</label>
-            <input id="send-password" type="password" autoComplete="current-password" className={field} value={password} onChange={event => setPassword(event.target.value)} disabled={sendTokenLoading} required />
+            <div className="relative"><input id="send-password" type={passwordVisible ? 'text' : 'password'} autoComplete="current-password" className={`${field} pr-12`} value={password} onChange={event => setPassword(event.target.value)} disabled={sendTokenLoading} required /><button type="button" aria-label={passwordVisible ? 'Hide password' : 'Show password'} aria-pressed={passwordVisible} onClick={() => setPasswordVisible(value => !value)} className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-white/55 hover:text-white">{passwordVisible ? <EyeOff size={18} /> : <Eye size={18} />}</button></div>
             <Link href="/settings" className="mt-2 inline-block text-xs text-[#39BED3]">Set up or manage your password</Link>
           </div>
           {error && <p role="alert" className="rounded-lg bg-red-400/10 p-3 text-sm text-red-200">{error}</p>}
-          <button type="submit" className={primary} disabled={sendTokenLoading || !password.trim()}>{sendTokenLoading ? <><Loader2 size={16} className="animate-spin" />Submitting payment…</> : 'Confirm and send'}</button>
-          <button type="button" disabled={sendTokenLoading} onClick={() => { setReview(false); setPassword(''); setError(''); }} className="w-full py-1 text-sm text-white/50 disabled:opacity-40">Edit payment</button>
+          <button type="submit" className={primary} disabled={sendTokenLoading || !password.trim() || !feeReady}>{sendTokenLoading ? <><Loader2 size={16} className="animate-spin" />Submitting payment…</> : 'Confirm and send'}</button>
+          <button type="button" disabled={sendTokenLoading} onClick={() => { setReview(false); setPasswordVisible(false); setPassword(''); setError(''); }} className="w-full py-1 text-sm text-white/50 disabled:opacity-40">Edit payment</button>
         </form>
       </DialogContent>
     </Dialog>

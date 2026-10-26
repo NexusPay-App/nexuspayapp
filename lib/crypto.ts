@@ -3,6 +3,7 @@ import type { BotPayment } from './botchain';
 
 // Types for crypto operations
 export interface SendTokenData {
+  maxNetworkFee?: string;
   recipientIdentifier: string; // Email, phone, or wallet address
   amount: string | number;
   senderAddress: string;
@@ -27,6 +28,7 @@ export interface SendTokenResponse {
   success: boolean;
   message: string;
   data: {
+    actualNetworkFee?: string;
     transactionCode: string;
     transactionHash: string;
     explorerUrl: string;

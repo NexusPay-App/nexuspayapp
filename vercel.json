@@ -1,4 +1,14 @@
 {
+  "functions": {
+    "app/api/queues/bot-monitor/route.ts": {
+      "experimentalTriggers": [
+        {
+          "type": "queue/v2beta",
+          "topic": "botchain-monitor"
+        }
+      ]
+    }
+  },
   "git": {
     "deploymentEnabled": {
       "main": true,

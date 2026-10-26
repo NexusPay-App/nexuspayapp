@@ -44,6 +44,8 @@ async function prepare(page: Page, accountFails = false) {
   );
   await page.route("**/api/**", async (route) => {
     const path = new URL(route.request().url()).pathname;
+    if (path.endsWith('/botchain/botchain/balances')) return route.fulfill({status: accountFails ? 503 : 200, json: {success: !accountFails, data: {network: 'botchain', address: bot, balances: [{symbol: 'USDT', decimals: 6, balance: '20.123456', balanceUnits: '20123456'}, {symbol: 'BOT', decimals: 18, balance: '0.123456789012345678', balanceUnits: '123456789012345678'}]}}});
+    if (path.endsWith('/botchain/botchain/max')) return route.fulfill({json: {success: true, data: {amount: '0.120456789012345678', gasReserve: '0.003', balance: '0.123456789012345678', recipient}}});
     if (path.endsWith("/botchain/botchain/account"))
       return route.fulfill({
         status: accountFails ? 503 : 200,
@@ -103,7 +105,7 @@ async function prepare(page: Page, accountFails = false) {
         email: "owner@example.test",
       };
     else if (path.includes("/token/balance"))
-      data = { balances: {}, totalUSDValue: 0 };
+      data = { walletAddress: legacy, balances: {}, exactBalances: {USDC: "10"}, totalUSDValue: 0 };
     else if (path.includes("/business/my-businesses"))
       data = { businesses: [], totalCount: 0 };
     else if (path.includes("/transfers/"))
@@ -172,23 +174,71 @@ test("legacy routes lead to the current receive and password-authorized send scr
   }
   await page.goto("/send", { waitUntil: "domcontentloaded" });
   await expect(page).toHaveURL(/\/crypto$/);
-  await page.getByLabel("Chain", { exact: true }).selectOption("botchain");
-  await page.getByLabel("Token", { exact: true }).selectOption("USDT");
+  await page.getByLabel("Network", { exact: true }).selectOption("botchain");
+  await page.getByLabel("Asset", { exact: true }).selectOption("USDT");
   await page.getByLabel("Recipient", { exact: true }).fill("0712345678");
   await page.getByLabel("Amount", { exact: true }).fill("1");
-  await page.getByRole("button", { name: "Send Crypto", exact: true }).click();
+  await page.getByRole("button", { name: "Review payment", exact: true }).click();
   await page.locator('input[type="password"]').fill("test-password");
-  await page.getByRole("button", { name: "Send", exact: true }).click();
+  await page.getByRole("button", { name: "Confirm and send", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Payment Submitted" }),
+    page.getByRole("heading", { name: "Payment submitted" }),
   ).toBeVisible();
   await expect(
     page.getByText(
-      "Pending confirmation on BOT Chain. This is not confirmed yet.",
+      "Waiting for network confirmation. You can safely leave this page and follow the payment in your history.",
     ),
   ).toBeVisible();
   expect(sends()).toBe(1);
   await expect(
     page.getByRole("heading", { name: "Transaction Successful!" }),
   ).toHaveCount(0);
+});
+
+
+test('shows exact balance, fills Max and rejects overspending before review', async ({ page }) => {
+  const sends = await prepare(page);
+  await page.goto('/crypto', {waitUntil: 'domcontentloaded'});
+  await page.getByLabel('Network', {exact: true}).selectOption('botchain');
+  await expect(page.getByText('20.123456 USDT', {exact: true})).toBeVisible();
+  await page.getByRole('button', {name: 'Max', exact: true}).click();
+  await expect(page.getByLabel('Amount', {exact: true})).toHaveValue('20.123456');
+  await page.getByLabel('Recipient', {exact: true}).fill('0712345678');
+  await page.getByLabel('Amount', {exact: true}).fill('20.123457');
+  await expect(page.getByText('Amount exceeds your available USDT balance.')).toBeVisible();
+  await expect(page.getByRole('button', {name: 'Review payment'})).toBeDisabled();
+  await page.getByLabel('Amount', {exact: true}).fill('1.1234567');
+  await expect(page.getByRole('button', {name: 'Review payment'})).toBeDisabled();
+  expect(sends()).toBe(0);
+});
+
+test('native BOT Max reserves gas and retains all 18 decimal places', async ({ page }) => {
+  const sends = await prepare(page);
+  await page.goto('/crypto', {waitUntil: 'domcontentloaded'});
+  await page.getByLabel('Network', {exact: true}).selectOption('botchain');
+  await page.getByLabel('Asset', {exact: true}).selectOption('BOT');
+  await page.getByRole('button', {name: 'Max', exact: true}).click();
+  await expect(page.getByText('Enter the recipient first so we can estimate the BOT network fee.')).toBeVisible();
+  await page.getByLabel('Recipient', {exact: true}).fill('0712345678');
+  await page.getByRole('button', {name: 'Max', exact: true}).click();
+  await expect(page.getByLabel('Amount', {exact: true})).toHaveValue('0.120456789012345678');
+  await expect(page.getByText('0.003 BOT kept for network fees. The final fee may change.')).toBeVisible();
+  await page.getByRole('button', {name: 'Review payment'}).click();
+  await expect(page.getByRole('dialog')).toContainText('+254712345678');
+  await expect(page.getByRole('dialog')).toContainText('BOT Chain');
+  await expect(page.getByRole('button', {name: 'Confirm and send'})).toBeDisabled();
+  expect(sends()).toBe(0);
+  await page.getByRole('button', {name: 'Edit payment'}).click();
+  await page.getByLabel('Network', {exact: true}).selectOption('arbitrum');
+  await expect(page.getByLabel('Amount', {exact: true})).toHaveValue('');
+});
+
+test('unavailable balance disables Max and payment review', async ({ page }) => {
+  const sends = await prepare(page, true);
+  await page.goto('/crypto', {waitUntil: 'domcontentloaded'});
+  await page.getByLabel('Network', {exact: true}).selectOption('botchain');
+  await expect(page.getByText('Balance unavailable')).toBeVisible();
+  await expect(page.getByRole('button', {name: 'Max', exact: true})).toBeDisabled();
+  await expect(page.getByRole('button', {name: 'Review payment'})).toBeDisabled();
+  expect(sends()).toBe(0);
 });

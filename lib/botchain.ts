@@ -46,6 +46,7 @@ export const botAPI = {
   networks: async () => (await api.get<{ data: BotCapability[] }>('/botchain/networks')).data.data
     .filter(network => network.id === 'botchain' && !network.testnet),
   balance: async (network: BotNetwork, signal?: AbortSignal) => (await api.get<{ data: BotBalance }>(`/botchain/${network}/balances`, { signal })).data.data,
+  max: async (network: BotNetwork, recipientIdentifier: string, signal?: AbortSignal) => (await api.post<{ data: { amount: string; gasReserve: string; balance: string; recipient: string } }>(`/botchain/${network}/max`, { recipientIdentifier }, { signal })).data.data,
   history: async (network: BotNetwork, signal?: AbortSignal) => (await api.get<{ data: BotPayment[] }>(`/botchain/${network}/transfers`, { signal })).data.data,
   status: async (network: BotNetwork, id: string) => (await api.get<{ data: BotPayment }>(`/botchain/${network}/transfers/${id}`)).data.data,
   send: async (network: BotNetwork, input: { amount: string; tokenSymbol: BotToken; password: string; recipientIdentifier?: string; merchantId?: string; senderAddress?: string }, key: string) => (await api.post<{ data: BotPayment }>(`/botchain/${network}/transfers`, input, { headers: { 'Idempotency-Key': key } })).data.data,

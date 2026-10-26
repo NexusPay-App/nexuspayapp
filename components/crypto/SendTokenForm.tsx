@@ -1,413 +1,216 @@
 "use client";
 
-import NetworkFeeNotice from "./NetworkFeeNotice";
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import Link from 'next/link';
+import { ArrowRight, ArrowUpRight, Check, Loader2, LockKeyhole, RefreshCw } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { usePaymentNetworks } from '@/hooks/usePaymentNetworks';
-import React, { useState, useEffect } from 'react';
-import { useCrypto } from '../../hooks/useCrypto';
-import { validateRecipientIdentifier, normalizeRecipientPhone } from '../../lib/crypto';
+import { useCrypto } from '@/hooks/useCrypto';
+import { useAuth } from '@/context/AuthContext';
+import { botAPI, isBotNetwork } from '@/lib/botchain';
+import api from '@/lib/api';
+import { validateRecipientIdentifier, normalizeRecipientPhone } from '@/lib/crypto';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 
-export const SendTokenForm: React.FC = () => {
-  const {
-    sendToken,
-    sendFormData,
-    updateSendForm,
-    resetSendForm,
-    sendTokenLoading,
-    sendTokenData,
-    sendTokenError,
-    getCurrentUserAddress,
-  } = useCrypto();
+function units(value: string, decimals: number): bigint | null {
+  if (!/^\d+(\.\d+)?$/.test(value)) return null;
+  const [whole, fraction = ''] = value.split('.');
+  if (fraction.length > decimals || whole.length > 78) return null;
+  return BigInt(whole) * BigInt(10) ** BigInt(decimals) + BigInt(fraction.padEnd(decimals, '0') || '0');
+}
 
-  const { networks, tokens, isBot } = usePaymentNetworks(sendFormData.chain);
+function message(error: unknown): string {
+  const failure = error as { response?: { data?: { error?: { message?: string }; message?: string } }; message?: string };
+  return failure.response?.data?.error?.message || failure.response?.data?.message || failure.message || 'Unable to complete this request. Please try again.';
+}
 
-  // Selecting a BOT network must not keep a legacy token symbol selected.
-  useEffect(() => {
-    if (isBot && tokens.length && !tokens.some(t => t.symbol === sendFormData.tokenType)) {
-      updateSendForm('tokenType', 'USDT');
-    }
-  }, [isBot, tokens, sendFormData.tokenType, updateSendForm]);
+const field = 'w-full rounded-xl border border-white/10 bg-[#141E20] px-4 py-3.5 text-sm text-white outline-none transition focus:border-[#39BED3] focus:ring-2 focus:ring-[#0795B0]/20 disabled:opacity-50';
+const primary = 'flex w-full items-center justify-center gap-2 rounded-xl bg-[#0795B0] px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-[#06849C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#39BED3] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0E1617] disabled:cursor-not-allowed disabled:opacity-40';
 
-  const [validationError, setValidationError] = useState<string>('');
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authValue, setAuthValue] = useState<string>('');
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [showError, setShowError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string>('');
-  const [currentUserAddress, setCurrentUserAddress] = useState<string>('');
-  const [loadingWallet, setLoadingWallet] = useState(true);
+export const SendTokenForm = () => {
+  const { user } = useAuth();
+  const { sendToken, sendFormData, updateSendForm, resetSendForm, sendTokenLoading, sendTokenData } = useCrypto();
+  const { chain, tokenType, amount, recipientIdentifier } = sendFormData;
+  const { networks, tokens } = usePaymentNetworks(chain);
+  const network = networks.find(item => item.id === chain);
+  const token = tokens.find(item => item.symbol === tokenType);
+  const native = isBotNetwork(chain) && tokenType === 'BOT';
+  const [error, setError] = useState('');
+  const [review, setReview] = useState(false);
+  const [password, setPassword] = useState('');
+  const [showResult, setShowResult] = useState(false);
+  const [maxLoading, setMaxLoading] = useState(false);
+  const [gasReserve, setGasReserve] = useState('');
+  const sending = useRef(false);
+  const maxRequest = useRef<AbortController | null>(null);
 
-  // Get current user's wallet address automatically
-  useEffect(() => {
-    let active = true;
-    const fetchWalletAddress = async () => {
-      try {
-        setLoadingWallet(true);
-        setCurrentUserAddress('');
-        const address = await getCurrentUserAddress(sendFormData.chain);
-        if (active) setCurrentUserAddress(address);
-      } catch (error) {
-        console.error('Failed to fetch wallet address:', error);
-        if (active) setCurrentUserAddress('');
-      } finally {
-        if (active) setLoadingWallet(false);
+  const wallet = useQuery({
+    queryKey: ['send-balance', user?.walletAddress, chain],
+    enabled: !!user && !!network,
+    queryFn: async ({ signal }) => {
+      if (isBotNetwork(chain)) {
+        const data = await botAPI.balance(chain, signal);
+        return { address: data.address, balances: Object.fromEntries(data.balances.map(row => [row.symbol, row.balance])) as Record<string, string> };
       }
-    };
+      const response = await api.get(`/token/balance/${chain}`, { signal, params: { refresh: true } });
+      if (!response.data.success || !response.data.data.exactBalances) throw new Error('Your balance could not be verified. Refresh to try again.');
+      return { address: response.data.data.walletAddress as string, balances: response.data.data.exactBalances as Record<string, string> };
+    },
+    staleTime: 15_000, refetchInterval: review || showResult ? false : 30_000, retry: 1,
+  });
+  const balance = wallet.isError ? undefined : wallet.data?.balances[tokenType];
+  const decimals = token?.decimals ?? 6;
+  const amountUnits = units(amount, decimals);
+  const balanceUnits = balance === undefined ? null : units(balance, decimals);
+  const overBalance = amountUnits !== null && balanceUnits !== null && amountUnits > balanceUnits;
+  const recipient = normalizeRecipientPhone(recipientIdentifier.trim());
+  const validRecipient = validateRecipientIdentifier(recipient) && !/^G[A-Z2-7]{55}$/.test(recipient);
+  const canReview = !!network && network.transfers !== false && !!token && !!wallet.data?.address && balanceUnits !== null && amountUnits !== null && amountUnits > BigInt(0) && !overBalance && validRecipient && !maxLoading && !wallet.isFetching;
 
-    fetchWalletAddress();
-    return () => { active = false; };
-  }, [getCurrentUserAddress, sendFormData.chain]);
+  useEffect(() => {
+    if (tokens.length && !tokens.some(item => item.symbol === tokenType)) updateSendForm('tokenType', tokens.find(item => item.symbol === 'USDT')?.symbol || tokens[0].symbol);
+  }, [tokens, tokenType, updateSendForm]);
+  useEffect(() => () => maxRequest.current?.abort(), []);
 
-  // Handle form submission - just show auth modal
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setValidationError('');
-
-    // Validate amount
-    if (!sendFormData.amount || parseFloat(sendFormData.amount) <= 0) {
-      setValidationError('Please enter a valid amount');
-      return;
-    }
-
-    if (!networks.some(n => n.id === sendFormData.chain && n.transfers !== false)) {
-      setValidationError('Select an available payment network.');
-      return;
-    }
-
-    // Validate sender address
-    if (!currentUserAddress || currentUserAddress.trim() === '') {
-      setValidationError('Wallet address not found. Please ensure you are logged in.');
-      return;
-    }
-
-    // Validate recipient identifier (phone-like values are normalized to E.164)
-    const normalizedRecipient = normalizeRecipientPhone(sendFormData.recipientIdentifier);
-    if (!validateRecipientIdentifier(normalizedRecipient) || /^G[A-Z2-7]{55}$/.test(normalizedRecipient)) {
-      setValidationError('Please enter a valid recipient identifier');
-      return;
-    }
-    if (normalizedRecipient !== sendFormData.recipientIdentifier) {
-      updateSendForm('recipientIdentifier', normalizedRecipient);
-    }
-
-    // Show authentication modal
-    setShowAuthModal(true);
+  const change = (name: keyof typeof sendFormData, value: string) => {
+    maxRequest.current?.abort();
+    setMaxLoading(false);
+    setGasReserve('');
+    setError('');
+    if (name === 'chain' || name === 'tokenType') updateSendForm('amount', '');
+    updateSendForm(name, value);
   };
 
-  // Handle authentication and send
-  const handleAuthenticateAndSend = async () => {
-    if (!authValue.trim()) {
-      setValidationError('Please enter your account password');
-      return;
-    }
-
-    setValidationError('');
-
-    const requestData = {
-      recipientIdentifier: sendFormData.recipientIdentifier,
-      amount: sendFormData.amount,
-      senderAddress: currentUserAddress,
-      chain: sendFormData.chain,
-      tokenSymbol: sendFormData.tokenType, // API expects tokenSymbol, not tokenType
-      password: authValue,
-    };
-
-
-
+  const useMax = async () => {
+    if (native && !validRecipient) { setError('Enter the recipient first so we can estimate the BOT network fee.'); return; }
+    const controller = new AbortController();
+    maxRequest.current?.abort();
+    maxRequest.current = controller;
+    setMaxLoading(true);
+    setError('');
     try {
-      const response = await sendToken(requestData);
-      
-      if (response.success) {
-        setShowAuthModal(false);
-        setShowSuccess(true);
-        resetSendForm();
-        setAuthValue('');
+      if (native && isBotNetwork(chain)) {
+        const quote = await botAPI.max(chain, recipient, controller.signal);
+        if (controller.signal.aborted) return;
+        updateSendForm('amount', quote.amount);
+        setGasReserve(quote.gasReserve);
+      } else {
+        const fresh = await wallet.refetch();
+        if (controller.signal.aborted) return;
+        const available = fresh.data?.balances[tokenType];
+        if (fresh.isError || available === undefined) throw new Error('Your balance could not be verified. Refresh to try again.');
+        updateSendForm('amount', available);
       }
-    } catch (error: any) {
-      setShowAuthModal(false);
-      setAuthValue('');
-      
-      const displayMessage = error.response?.data?.error?.message || error.response?.data?.message || error.message || 'Unable to send this payment. Check transaction history before retrying.';
-
-      setErrorMessage(displayMessage);
-      setShowError(true);
-    }
+    } catch (failure) { if (!controller.signal.aborted) setError(message(failure)); }
+    finally { if (maxRequest.current === controller) setMaxLoading(false); }
   };
 
-  // Get placeholder text showing all options
-  const getPlaceholder = () => {
-    return 'Phone number, email, or 0x wallet address';
+  const openReview = (event: FormEvent) => {
+    event.preventDefault();
+    if (!canReview) return;
+    setError('');
+    updateSendForm('recipientIdentifier', recipient);
+    updateSendForm('amount', amount.replace(/^0+(?=\d)/, ''));
+    setReview(true);
   };
 
-  // Get validation message
-  const getValidationMessage = () => {
-    return 'Use a registered phone number (for example +254…), email, or a wallet address on the selected network.';
+  const confirm = async (event: FormEvent) => {
+    event.preventDefault();
+    if (sending.current || !password.trim() || !wallet.data?.address) return;
+    sending.current = true;
+    setError('');
+    try {
+      const response = await sendToken({ recipientIdentifier: recipient, amount, senderAddress: wallet.data.address, chain, tokenSymbol: tokenType, password });
+      if (!response?.success) throw new Error(response?.message || 'Payment could not be submitted. Check your transaction history before retrying.');
+      setReview(false);
+      setShowResult(true);
+      void wallet.refetch();
+    } catch (failure) { setError(message(failure)); }
+    finally { setPassword(''); sending.current = false; }
   };
 
-  return (
-    <div className="w-full">
-      <div className="bg-[#0A0E0E] rounded-xl border border-[#0795B0] p-6 shadow-lg">
-        <h2 className="text-2xl font-bold mb-6 text-center text-white">Send Crypto</h2>
-        
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <NetworkFeeNotice network={sendFormData.chain} />
-          {/* Recipient */}
-          <div>
-            <label htmlFor="recipientIdentifier" className="block text-sm font-medium text-gray-300 mb-2">
-              Recipient
-            </label>
-            <input
-              type="text"
-              id="recipientIdentifier"
-              value={sendFormData.recipientIdentifier}
-              onChange={(e) => updateSendForm('recipientIdentifier', e.target.value)}
-              placeholder={getPlaceholder()}
-              className="w-full px-3 py-3 bg-[#1A1E1E] border border-[#0795B0] rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0795B0] focus:border-transparent hover:border-[#0AA5C0] transition-colors duration-200"
-              required
-            />
-            <p className="text-xs text-gray-400 mt-1">{getValidationMessage()}</p>
-          </div>
-
-          {/* Amount */}
-          <div>
-            <label htmlFor="amount" className="block text-sm font-medium text-gray-300 mb-2">
-              Amount
-            </label>
-            <input
-              type="number"
-              id="amount"
-              value={sendFormData.amount}
-              onChange={(e) => updateSendForm('amount', e.target.value)}
-              placeholder="0.00"
-              step="0.000001"
-              min="0"
-              className="w-full px-3 py-3 bg-[#1A1E1E] border border-[#0795B0] rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0795B0] focus:border-transparent hover:border-[#0AA5C0] transition-colors duration-200"
-              required
-            />
-          </div>
-
-          {/* Token & Chain */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="tokenType" className="block text-sm font-medium text-gray-300 mb-2">
-                Token
-              </label>
-              <select
-                id="tokenType"
-                value={sendFormData.tokenType}
-                onChange={(e) => updateSendForm('tokenType', e.target.value)}
-                className="w-full px-3 py-3 bg-[#1A1E1E] border border-[#0795B0] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#0795B0] focus:border-transparent hover:border-[#0AA5C0] transition-colors duration-200"
-              >
-                {tokens.map((token) => (
-                  <option key={token.symbol} value={token.symbol}>
-                    {token.symbol}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label htmlFor="chain" className="block text-sm font-medium text-gray-300 mb-2">
-                Chain
-              </label>
-              <select
-                id="chain"
-                value={sendFormData.chain}
-                onChange={(e) => updateSendForm('chain', e.target.value)}
-                className="w-full px-3 py-3 bg-[#1A1E1E] border border-[#0795B0] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#0795B0] focus:border-transparent hover:border-[#0AA5C0] transition-colors duration-200"
-              >
-                {networks.map((chain) => (
-                  <option key={chain.id} value={chain.id}>
-                    {chain.id === 'stellar' ? '🌟 ' : ''}{chain.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Error Display */}
-          {validationError && (
-            <div className="p-3 bg-red-900/20 border border-red-500 rounded-md">
-              <p className="text-red-300 text-sm">{validationError}</p>
-            </div>
-          )}
-
-          
-
-
-
-          {/* Send Button */}
-          <button
-            type="submit"
-            className="w-full flex justify-center py-4 px-6 border border-transparent rounded-md shadow-lg text-lg font-semibold text-white bg-[#0795B0] hover:bg-[#0684A0] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0795B0] transition-all duration-200 mt-8 transform hover:scale-[1.02] active:scale-[0.98]"
-          >
-            Send Crypto
-          </button>
-        </form>
-
-        {/* Authentication Modal */}
-        {showAuthModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-[#0A0E0E] border border-[#0795B0] rounded-xl p-6 w-full max-w-md mx-4">
-              <h3 className="text-xl font-bold text-white mb-4 text-center">🔐 Authentication Required</h3>
-              
-              <div className="space-y-4">
-                {/* Account password */}
-                <input
-                  type="password" autoComplete="current-password"
-                  value={authValue}
-                  onChange={(e) => setAuthValue(e.target.value)}
-                  placeholder="Enter your account password"
-                  className="w-full px-3 py-3 bg-[#1A1E1E] border border-[#0795B0] rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0795B0] focus:border-transparent"
-                  autoFocus
-                />
-
-                {/* Action Buttons */}
-                <div className="flex space-x-3">
-                  <button
-                    onClick={() => {
-                      setShowAuthModal(false);
-                      setAuthValue('');
-                    }}
-                    className="flex-1 py-2 px-4 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors duration-200"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleAuthenticateAndSend}
-                    disabled={sendTokenLoading || !authValue.trim()}
-                    className="flex-1 py-2 px-4 bg-[#0795B0] text-white rounded-md hover:bg-[#0684A0] disabled:opacity-50 transition-colors duration-200"
-                  >
-                    {sendTokenLoading ? 'Sending...' : 'Send'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Success Card */}
-        {showSuccess && sendTokenData && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-[#0A0E0E] border border-[#0795B0] rounded-xl p-6 w-full max-w-md mx-4">
-              <div className="text-center mb-6">
-                <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl">{sendTokenData.data.botStatus === 'failed' ? '×' : sendTokenData.data.botStatus && sendTokenData.data.botStatus !== 'confirmed' ? '…' : '✓'}</span>
-                </div>
-                <h3 className="text-xl font-bold text-white mb-2">{sendTokenData.data.botStatus === 'failed' ? 'Payment Failed' : sendTokenData.data.botStatus && sendTokenData.data.botStatus !== 'confirmed' ? 'Payment Submitted' : 'Transaction Successful!'}</h3>
-                <p className="text-gray-400">
-                  {sendTokenData.data.botStatus === 'failed' ? sendTokenData.message : sendTokenData.data.botStatus && sendTokenData.data.botStatus !== 'confirmed'
-                    ? 'Pending confirmation on BOT Chain. This is not confirmed yet.'
-                    : 'Your crypto has been sent successfully'}
-                </p>
-              </div>
-
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Recipient:</span>
-                  <span className="text-white font-mono text-xs">
-                    {sendTokenData.data.recipient?.identifier || sendTokenData.data.recipient?.address || 'N/A'}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Amount:</span>
-                  <span className="text-white">
-                    {sendTokenData.data.transaction?.amountDisplay || sendTokenData.data.amount || 'N/A'}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Chain:</span>
-                  <span className="text-white capitalize">{sendTokenData.data.chain}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Transaction Hash:</span>
-                  <span className="text-white font-mono text-xs">
-                    {sendTokenData.data.transactionHash || sendTokenData.data.transaction?.hash || 'N/A'}
-                  </span>
-                </div>
-                {sendTokenData.data.explorerUrl && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Explorer:</span>
-                    <a 
-                      href={sendTokenData.data.explorerUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-blue-400 hover:text-blue-300 text-xs underline"
-                    >
-                      View on Explorer
-                    </a>
-                  </div>
-                )}
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Time:</span>
-                  <span className="text-white">
-                    {sendTokenData.data.timestamp?.local || new Date().toLocaleString()}
-                  </span>
-                </div>
-                {sendTokenData.data.security && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Security:</span>
-                    <span className="text-white capitalize">
-                      {sendTokenData.data.security.authMethod} ({sendTokenData.data.security.level})
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              <button
-                onClick={() => {
-                  setShowSuccess(false);
-                  setAuthValue('');
-                }}
-                className="w-full mt-6 py-3 bg-[#0795B0] text-white rounded-md hover:bg-[#0684A0] transition-colors duration-200"
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Error Card */}
-        {showError && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-[#0A0E0E] border border-red-500 rounded-xl p-6 w-full max-w-md mx-4">
-              <div className="text-center mb-6">
-                <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl">❌</span>
-                </div>
-                <h3 className="text-xl font-bold text-white mb-2">Transaction Failed</h3>
-                <p className="text-gray-400">There was an error sending your crypto</p>
-              </div>
-
-              <div className="bg-red-900/20 border border-red-500 rounded-md p-4 mb-6">
-                <p className="text-red-300 text-sm">{errorMessage}</p>
-                <a href="/settings" className="mt-3 inline-block text-sm text-white underline">Account and password settings</a>
-              </div>
-
-              <div className="flex space-x-3">
-                <button
-                  onClick={() => {
-                    setShowError(false);
-                    setErrorMessage('');
-                  }}
-                  className="flex-1 py-3 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors duration-200"
-                >
-                  Close
-                </button>
-                <button
-                  onClick={() => {
-                    setShowError(false);
-                    setErrorMessage('');
-                    setShowAuthModal(true);
-                  }}
-                  className="flex-1 py-3 bg-[#0795B0] text-white rounded-md hover:bg-[#0684A0] transition-colors duration-200"
-                >
-                  Try Again
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+  if (showResult && sendTokenData) {
+    const payment = sendTokenData.data;
+    const status = payment.botStatus || payment.transaction?.status;
+    const confirmed = status === 'confirmed' || status === 'success' || status === 'completed';
+    const failed = status === 'failed';
+    return <section className="rounded-3xl border border-white/10 bg-[#0E1617] p-6 sm:p-8" aria-live="polite">
+      <div className={`mb-6 flex h-12 w-12 items-center justify-center rounded-full ${failed ? 'bg-red-400/10 text-red-300' : 'bg-[#0795B0]/15 text-[#39BED3]'}`}>
+        {confirmed ? <Check size={24} /> : failed ? <span className="text-2xl">×</span> : <Loader2 className="animate-spin" size={24} />}
       </div>
-    </div>
-  );
+      <h2 className="text-2xl font-semibold">{confirmed ? 'Payment confirmed' : failed ? 'Payment failed' : 'Payment submitted'}</h2>
+      <p className="mt-2 text-sm leading-6 text-white/55">{confirmed ? 'Your transfer is complete.' : failed ? sendTokenData.message : 'Waiting for network confirmation. You can safely leave this page and follow the payment in your history.'}</p>
+      <p className="mt-7 break-all text-3xl font-semibold tracking-tight">{payment.amount} <span className="text-lg text-white/50">{payment.tokenSymbol}</span></p>
+      <p className="mt-3 break-all text-sm text-white/65">To {payment.recipient.identifier || payment.recipient.address}</p>
+      <p className="mt-1 text-sm text-white/40">{networks.find(item => item.id === payment.chain)?.name || payment.chain}</p>
+      {payment.explorerUrl && <a className="mt-5 inline-flex items-center gap-1 text-sm text-[#39BED3]" href={payment.explorerUrl} target="_blank" rel="noopener noreferrer">View on explorer <ArrowUpRight size={16} /></a>}
+      <Link href="/home" className={`${primary} mt-8`}>Back to wallet</Link>
+      {(confirmed || failed) && <button type="button" onClick={() => { resetSendForm(); setShowResult(false); void wallet.refetch(); setGasReserve(''); setError(''); }} className="mt-4 w-full text-sm text-white/60">Make another payment</button>}
+    </section>;
+  }
+
+  return <section className="rounded-3xl border border-white/10 bg-[#0E1617] p-5 shadow-xl shadow-black/10 sm:p-8">
+    <form onSubmit={openReview} className="space-y-6">
+      <div className="grid grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] gap-3">
+        <div><label htmlFor="chain" className="mb-2 block text-xs font-medium text-white/55">Network</label>
+          <select id="chain" className={field} value={chain} onChange={event => change('chain', event.target.value)} disabled={!networks.length}>
+            {!networks.length && <option>Loading networks…</option>}
+            {networks.map(item => <option key={item.id} value={item.id}>{item.name}{item.transfers === false ? ' · Unavailable' : ''}</option>)}
+          </select>
+        </div>
+        <div><label htmlFor="tokenType" className="mb-2 block text-xs font-medium text-white/55">Asset</label>
+          <select id="tokenType" className={field} value={tokenType} onChange={event => change('tokenType', event.target.value)} disabled={!tokens.length}>
+            {!tokens.length && <option>Loading…</option>}
+            {tokens.map(item => <option key={item.symbol} value={item.symbol}>{item.symbol}</option>)}
+          </select>
+        </div>
+      </div>
+      <div><label htmlFor="recipientIdentifier" className="mb-2 block text-sm font-medium">Recipient</label>
+        <input id="recipientIdentifier" className={field} value={recipientIdentifier} onChange={event => change('recipientIdentifier', event.target.value)} placeholder="Phone, email or wallet address" autoComplete="off" autoCapitalize="none" spellCheck={false} maxLength={254} required aria-describedby="recipient-help" />
+        <p id="recipient-help" className="mt-2 text-xs leading-5 text-white/40">Use a NexusPay phone or email, or an address on {network?.name || 'this network'}.</p>
+      </div>
+      <div className="rounded-2xl border border-white/10 bg-[#101B1D] p-4 sm:p-5 focus-within:border-[#0795B0]/70">
+        <label htmlFor="amount" className="block text-sm font-medium text-white/65">Amount</label>
+        <div className="mt-3 flex items-center gap-3">
+          <input id="amount" type="text" inputMode="decimal" autoComplete="off" className="min-w-0 flex-1 bg-transparent py-1 text-4xl font-medium tracking-tight text-white outline-none placeholder:text-white/20 sm:text-5xl" placeholder="0.00" value={amount} onChange={event => { if (/^\d*\.?\d*$/.test(event.target.value) && event.target.value.length <= 80) change('amount', event.target.value); }} required aria-describedby="available-balance amount-error" aria-invalid={overBalance || (!!amount && amountUnits === null)} />
+          <span className="text-base font-medium text-white/60">{tokenType}</span>
+        </div>
+        <div className="mt-4 flex items-start justify-between gap-3 border-t border-white/5 pt-3">
+          <div className="min-w-0 text-xs leading-5 text-white/50" id="available-balance" aria-live="polite">
+            {wallet.isPending ? 'Checking balance…' : balance === undefined ? 'Balance unavailable' : <>Available <span className="break-all text-white/80">{balance} {tokenType}</span></>}
+            <button type="button" aria-label="Refresh available balance" title="Refresh balance" disabled={wallet.isFetching || maxLoading} onClick={() => void wallet.refetch()} className="ml-2 inline-flex align-middle text-white/40 hover:text-[#39BED3] disabled:opacity-40"><RefreshCw size={12} className={wallet.isFetching ? 'animate-spin' : ''} /></button>
+          </div>
+          <button type="button" onClick={useMax} disabled={balanceUnits === null || balanceUnits <= BigInt(0) || maxLoading || wallet.isFetching} className="flex shrink-0 items-center gap-1 rounded-md bg-[#0795B0]/15 px-2.5 py-1 text-xs font-semibold text-[#4BC9DE] hover:bg-[#0795B0]/25 disabled:opacity-40">{maxLoading && <Loader2 size={12} className="animate-spin" />}{maxLoading ? 'Estimating…' : 'Max'}</button>
+        </div>
+      </div>
+      <div className="space-y-2 text-xs leading-5">
+        <p id="amount-error" className="text-red-300" role={overBalance ? 'alert' : undefined}>{overBalance ? `Amount exceeds your available ${tokenType} balance.` : amount && amountUnits === null ? `Use up to ${decimals} decimal places.` : ''}</p>
+        <p className="text-white/45">{gasReserve ? `${gasReserve} BOT kept for network fees. The final fee may change.` : `Network fee paid separately in ${isBotNetwork(chain) ? 'BOT' : 'ETH'}. ${native ? 'Max keeps a fee reserve in your wallet.' : 'Keep a little available for gas.'}`}</p>
+        {network?.transfers === false && <p role="alert" className="text-amber-200">Sending on this network is currently unavailable.</p>}
+        {error && !review && <p role="alert" className="rounded-lg bg-red-400/10 p-3 text-sm text-red-200">{error}</p>}
+      </div>
+      <button type="submit" className={primary} disabled={!canReview}>Review payment <ArrowRight size={16} /></button>
+    </form>
+    <Dialog open={review} onOpenChange={open => { if (!sending.current) { setReview(open); setPassword(''); setError(''); } }}>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto rounded-2xl border-white/10 bg-[#0E1617] p-6 text-white sm:p-7">
+        <DialogTitle className="text-xl">Review payment</DialogTitle>
+        <DialogDescription className="text-sm text-white/50">Check the recipient and network before confirming.</DialogDescription>
+        <div className="my-3"><p className="break-all text-3xl font-semibold tracking-tight">{amount} <span className="text-lg text-white/45">{tokenType}</span></p></div>
+        <dl className="space-y-4 border-y border-white/10 py-5 text-sm">
+          <div><dt className="text-xs text-white/45">To</dt><dd className="mt-1 break-all">{recipient}</dd></div>
+          <div className="flex justify-between gap-4"><dt className="text-white/45">Network</dt><dd>{network?.name}</dd></div>
+          <div className="flex justify-between gap-4"><dt className="text-white/45">Network fee</dt><dd className="text-right">{gasReserve ? `${gasReserve} BOT reserve estimate` : `Calculated at send · ${isBotNetwork(chain) ? 'BOT' : 'ETH'}`}</dd></div>
+        </dl>
+        <form onSubmit={confirm} className="mt-2 space-y-4">
+          <div><label htmlFor="send-password" className="mb-2 flex items-center gap-2 text-sm text-white/70"><LockKeyhole size={14} />NexusPay password</label>
+            <input id="send-password" type="password" autoComplete="current-password" className={field} value={password} onChange={event => setPassword(event.target.value)} disabled={sendTokenLoading} required />
+            <Link href="/settings" className="mt-2 inline-block text-xs text-[#39BED3]">Set up or manage your password</Link>
+          </div>
+          {error && <p role="alert" className="rounded-lg bg-red-400/10 p-3 text-sm text-red-200">{error}</p>}
+          <button type="submit" className={primary} disabled={sendTokenLoading || !password.trim()}>{sendTokenLoading ? <><Loader2 size={16} className="animate-spin" />Submitting payment…</> : 'Confirm and send'}</button>
+          <button type="button" disabled={sendTokenLoading} onClick={() => { setReview(false); setPassword(''); setError(''); }} className="w-full py-1 text-sm text-white/50 disabled:opacity-40">Edit payment</button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  </section>;
 };

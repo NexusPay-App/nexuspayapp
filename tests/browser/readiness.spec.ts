@@ -17,6 +17,7 @@ async function setup(page: Page, rejectPassword = false, network = 'botchain') {
     let data: unknown = {};
     if (path.endsWith('/botchain/networks')) data = capabilities.map(n => n.id === 'botchain' && network === 'botchain' ? { ...n, enabled: true, transfers: true, merchantPayments: true, testnet: false, tokens: capabilities[0].tokens } : n);
     else if (path.endsWith('/token/networks')) data = [{ id: 'arbitrum', name: 'Arbitrum', chainId: 42161, tokens: [{ symbol: 'USDC', decimals: 6 }] }];
+    else if (path.endsWith(`/botchain/${network}/balances`)) data = {address, balances: [{symbol: 'USDT', balance: '20'}, {symbol: 'BOT', balance: '1'}]};
     else if (path.endsWith('/token/receive')) data = { walletAddress: address };
     else if (path.endsWith('/token/sendToken')) legacy++;
     else if (path.includes('/token/balance')) data = { walletAddress: address, balances: {}, totalUSDValue: 0, supportedChains: ['arbitrum'], lastUpdated: new Date().toISOString() };
@@ -35,49 +36,49 @@ async function setup(page: Page, rejectPassword = false, network = 'botchain') {
 async function send(page: Page) {
   await page.getByLabel('Recipient', { exact: true }).fill('0712345678');
   await page.getByLabel('Amount', { exact: true }).fill('0.01');
-  await page.getByRole('button', { name: 'Send Crypto', exact: true }).click();
-  await page.getByPlaceholder('Enter your account password').fill('fixture-password');
-  await page.getByRole('button', { name: 'Send', exact: true }).click();
+  await page.getByRole('button', { name: 'Review payment', exact: true }).click();
+  await page.getByLabel('NexusPay password').fill('fixture-password');
+  await page.getByRole('button', { name: 'Confirm and send', exact: true }).click();
 }
 test('home network selection reaches the send form; one POST is followed by confirmation reads', async ({ page }) => {
   const calls = await setup(page);
-  await page.goto('/home');
+  await page.goto('/home', {waitUntil: 'domcontentloaded'});
   await page.getByRole('combobox').first().click();
   await page.getByRole('option', { name: 'BOT Chain', exact: true }).click();
   await page.getByRole('button', { name: 'Send', exact: true }).click();
-  await expect(page.getByLabel('Chain', { exact: true })).toHaveValue('botchain');
+  await expect(page.getByLabel('Network', { exact: true })).toHaveValue('botchain');
   await send(page);
-  await expect(page.getByText('Payment Submitted', { exact: true })).toBeVisible();
-  await expect(page.getByText('Transaction Successful!', { exact: true })).toBeVisible({ timeout: 15000 });
-  await expect(page.getByRole('link', { name: 'View on Explorer' })).toHaveAttribute('href', 'https://scan.botchain.ai/tx/0xabc');
+  await expect(page.getByText('Payment submitted', { exact: true })).toBeVisible();
+  await expect(page.getByText('Payment confirmed', { exact: true })).toBeVisible({ timeout: 15000 });
+  await expect(page.getByRole('link', { name: 'View on explorer' })).toHaveAttribute('href', 'https://scan.botchain.ai/tx/0xabc');
   expect(calls()).toEqual({ posts: 1, legacy: 0 });
 });
 test('password rejection preserves the selected network and explains the failure', async ({ page }) => {
   const calls = await setup(page, true);
-  await page.goto('/crypto');
-  await page.getByLabel('Chain', { exact: true }).selectOption('botchain');
+  await page.goto('/crypto', {waitUntil: 'domcontentloaded'});
+  await page.getByLabel('Network', { exact: true }).selectOption('botchain');
   await send(page);
   await expect(page.getByText('Enter your NexusPay account password.', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Close', exact: true }).click();
-  await expect(page.getByLabel('Chain', { exact: true })).toHaveValue('botchain');
+  await expect(page.getByLabel('Network', { exact: true })).toHaveValue('botchain');
   expect(calls()).toEqual({ posts: 1, legacy: 0 });
 });
 test('BOT mainnet uses the mainnet payment route, native fee notice and explorer', async ({ page }) => {
   const calls = await setup(page, false, 'botchain');
-  await page.goto('/home');
+  await page.goto('/home', {waitUntil: 'domcontentloaded'});
   await page.getByRole('combobox').first().click();
   await page.getByRole('option', { name: 'BOT Chain', exact: true }).click();
   await page.getByRole('button', { name: 'Send', exact: true }).click();
-  await expect(page.getByLabel('Chain', { exact: true })).toHaveValue('botchain');
-  await expect(page.getByText('Mainnet: real assets.', { exact: false })).toContainText('network fees in BOT');
+  await expect(page.getByLabel('Network', { exact: true })).toHaveValue('botchain');
+  await expect(page.getByText('Network fee paid separately in BOT.', { exact: false })).toBeVisible();
   await send(page);
-  await expect(page.getByText('Transaction Successful!', { exact: true })).toBeVisible({ timeout: 15000 });
-  await expect(page.getByRole('link', { name: 'View on Explorer' })).toHaveAttribute('href', 'https://scan.botchain.ai/tx/0xabc');
+  await expect(page.getByText('Payment confirmed', { exact: true })).toBeVisible({ timeout: 15000 });
+  await expect(page.getByRole('link', { name: 'View on explorer' })).toHaveAttribute('href', 'https://scan.botchain.ai/tx/0xabc');
   expect(calls()).toEqual({ posts: 1, legacy: 0 });
 });
 test('public ecosystem page shows both required links and honest network status', async ({ page }) => {
   await setup(page);
-  await page.goto('/ecosystem');
+  await page.goto('/ecosystem', {waitUntil: 'domcontentloaded'});
   const footer = page.getByRole('contentinfo', { name: 'NexusPay ecosystem' });
   await expect(footer.getByRole('link', { name: 'BOT Chain website' })).toHaveAttribute('href', 'https://botchain.ai');
   await expect(footer.getByRole('link', { name: 'BOT Chain explorer' })).toHaveAttribute('href', 'https://scan.botchain.ai');

@@ -13,7 +13,12 @@ const nextConfig = {
   },
   async redirects() {
     // BOT Chain is served through the shared multi-chain screens; keep old links working.
-    return [{ source: '/botchain', destination: '/home', permanent: false }];
+    return [
+      { source: '/botchain', destination: '/home', permanent: false },
+      { source: '/send', destination: '/crypto', permanent: false },
+      { source: '/receive/share-qr', destination: '/receive', permanent: false },
+      { source: '/receive/amount', destination: '/receive', permanent: false },
+    ];
   },
 };
 export default nextConfig;

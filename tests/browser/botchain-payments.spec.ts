@@ -126,7 +126,7 @@ test("BOT receiving QR, copy action and explorer use the BOT account", async ({
   page,
 }) => {
   await prepare(page);
-  await page.goto("/receive");
+  await page.goto("/receive", { waitUntil: "domcontentloaded" });
   await page.getByLabel("Receiving network").selectOption("botchain");
   await expect(page.getByTestId("receive-address")).toHaveText(bot);
   await expect(page.locator("svg title")).toHaveText(
@@ -148,7 +148,7 @@ test("BOT address failure never falls back to the generic EVM QR or copy action"
   page,
 }) => {
   await prepare(page, true);
-  await page.goto("/receive");
+  await page.goto("/receive", { waitUntil: "domcontentloaded" });
   await page.getByLabel("Receiving network").selectOption("botchain");
   await expect(
     page
@@ -167,10 +167,10 @@ test("legacy routes lead to the current receive and password-authorized send scr
 }) => {
   const sends = await prepare(page);
   for (const path of ["/receive/share-qr", "/receive/amount"]) {
-    await page.goto(path);
+    await page.goto(path, { waitUntil: "domcontentloaded" });
     await expect(page).toHaveURL(/\/receive$/);
   }
-  await page.goto("/send");
+  await page.goto("/send", { waitUntil: "domcontentloaded" });
   await expect(page).toHaveURL(/\/crypto$/);
   await page.getByLabel("Chain", { exact: true }).selectOption("botchain");
   await page.getByLabel("Token", { exact: true }).selectOption("USDT");

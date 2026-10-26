@@ -282,8 +282,9 @@ export const useCrypto = () => {
   }, [selectedChain]);
 
   // Get current user's wallet address from API (same as receive page)
-  const getCurrentUserAddress = useCallback(async () => {
+  const getCurrentUserAddress = useCallback(async (network?: string) => {
     try {
+      if (network && isBotNetwork(network)) return (await botAPI.account(network)).address;
       console.log('🔍 Fetching wallet address from API...');
       const response = await cryptoAPI.getReceiveInfo();
       

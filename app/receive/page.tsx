@@ -1,317 +1,217 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { ArrowLeft, Copy } from "@phosphor-icons/react";
-import { QRCodeSVG as QRCode } from 'qrcode.react';
+import { QRCodeSVG } from "qrcode.react";
 import { useAuth } from "@/context/AuthContext";
 import { useWallet } from "@/context/WalletContext";
 import { useChain } from "@/context/ChainContext";
 import AuthGuard from "@/components/auth/AuthGuard";
-import { botAPI, type BotBalance, type BotCapability } from "@/lib/botchain";
-import { filterVisibleChains } from "@/lib/crypto";
+import { botAPI } from "@/lib/botchain";
 import toast from "react-hot-toast";
 
-const Receive: React.FC = () => {
-  const router = useRouter();
-  const { user } = useAuth();
-  const { wallet, hasWallet, loading, initializeWallet } = useWallet();
-  const { chain } = useChain();
-  const [initializing, setInitializing] = useState(false);
-  const [selectedWalletType, setSelectedWalletType] = useState<'evm' | 'stellar'>('evm');
+const networks = [
+  {
+    id: "botchain",
+    name: "BOT Chain",
+    assets: "USDT or native BOT",
+    explorer: "https://scan.botchain.ai",
+  },
+  {
+    id: "base",
+    name: "Base",
+    assets: "assets on Base",
+    explorer: "https://basescan.org",
+  },
+  {
+    id: "arbitrum",
+    name: "Arbitrum",
+    assets: "assets on Arbitrum",
+    explorer: "https://arbiscan.io",
+  },
+];
 
-  // Inline BOT Chain receive information for every enabled network.
-  const [botNetworks, setBotNetworks] = useState<BotCapability[]>([]);
-  const [botBalances, setBotBalances] = useState<Record<string, BotBalance>>({});
-  const [botFailed, setBotFailed] = useState<Record<string, boolean>>({});
-  const [botAttempt, setBotAttempt] = useState(0);
+export default function Receive() {
+  const { user, isAuthenticated } = useAuth();
+  const { wallet } = useWallet();
+  const { chain, setChain } = useChain();
+  const selected =
+    networks.find((network) => network.id === chain) || networks[0];
+  const owner = user?.id || user?.email || user?.phoneNumber || "";
+  const [account, setAccount] = useState<{
+    owner: string;
+    address: string;
+  } | null>(null);
+  const [failure, setFailure] = useState("");
+  const [attempt, setAttempt] = useState(0);
+  const isBot = selected.id === "botchain";
+
   useEffect(() => {
+    if (!isAuthenticated || !isBot) return;
     const abort = new AbortController();
-    let active = true;
-    const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-    botAPI.networks().then(async list => {
-      const enabled = list.filter(n => n.enabled);
-      if (!active) return;
-      setBotNetworks(enabled);
-      for (const network of enabled) {
-        // The public testnet RPC times out occasionally; retry before giving up so
-        // one flaky response never leaves the receive address stuck as unavailable.
-        for (let attempt = 1; attempt <= 3 && active; attempt++) {
-          try {
-            const balance = await botAPI.balance(network.id, abort.signal);
-            if (!active) return;
-            setBotBalances(prev => ({ ...prev, [network.id]: balance }));
-            setBotFailed(prev => ({ ...prev, [network.id]: false }));
-            break;
-          } catch {
-            if (attempt < 3) await sleep(1200 * attempt);
-            else if (active) setBotFailed(prev => ({ ...prev, [network.id]: true }));
-          }
+    setAccount(null);
+    setFailure("");
+    async function load() {
+      try {
+        const available = await botAPI.networks();
+        if (
+          !available.some(
+            (network) => network.id === "botchain" && network.enabled,
+          )
+        ) {
+          throw new Error("BOT Chain receiving is currently unavailable.");
         }
+        const result = await botAPI.account("botchain", abort.signal);
+        if (
+          result.network !== "botchain" ||
+          !/^0x[\da-f]{40}$/i.test(result.address)
+        ) {
+          throw new Error("The BOT Chain address could not be verified.");
+        }
+        if (!abort.signal.aborted)
+          setAccount({ owner, address: result.address });
+      } catch {
+        if (!abort.signal.aborted)
+          setFailure(
+            "We couldn't load your BOT Chain address. Retry before sending funds.",
+          );
       }
-    }).catch(() => { /* BOT disabled: receive screen stays legacy-only. */ });
-    return () => { active = false; abort.abort(); };
-  }, [botAttempt]);
+    }
+    void load();
+    return () => abort.abort();
+  }, [isAuthenticated, isBot, owner, attempt]);
 
-  // Get wallet address and user info from the new API response
-  const walletAddress = wallet?.walletAddress || wallet?.address || user?.walletAddress || "";
-  const stellarAddress = user?.stellarAccountId || "";
-  const phoneNumber = wallet?.phoneNumber || user?.phoneNumber || "";
-  const email = wallet?.email || user?.email || "";
-  const supportedChains = wallet?.supportedChains || [];
-  const note = wallet?.note || "";
-  
-  // Get the current display address based on selection
-  const currentDisplayAddress = selectedWalletType === 'stellar' ? stellarAddress : walletAddress;
+  const address = isBot
+    ? account?.owner === owner
+      ? account.address
+      : ""
+    : wallet?.walletAddress || wallet?.address || user?.walletAddress || "";
 
-  const copyToClipboard = async (text: string, message = "Copied to clipboard") => {
+  async function copy(text: string) {
     try {
       await navigator.clipboard.writeText(text);
-      toast.success(message);
-    } catch (err) {
-      toast.error("Failed to copy");
+      toast.success("Copied to clipboard");
+    } catch {
+      toast.error("Couldn't copy. Select and copy the address below.");
     }
-  };
-
-  // Initialize wallet for new users
-  const handleInitializeWallet = async () => {
-    try {
-      setInitializing(true);
-      await initializeWallet();
-      toast.success('Wallet set up successfully!');
-    } catch (error) {
-      // Error already handled in context
-    } finally {
-      setInitializing(false);
-    }
-  };
-
-  const formatWalletAddress = (address: string) => {
-    return address ? `${address.substring(0, 6)}...${address.substring(address.length - 4)}` : 'No wallet address';
-  };
+  }
 
   return (
     <AuthGuard>
-      <section className="home-background h-screen flex flex-col p-5 xl:px-[200px]">
-        <div className="flex justify-between items-center mb-6">
-          <ArrowLeft 
-            size={24} 
-            color="#ffffff" 
-            onClick={() => router.replace("/home")}
-            className="cursor-pointer"
-          />
-          <h3 className="text-white text-lg">Receive Crypto</h3>
-          <span></span>
-        </div>
-
-        <div className="flex flex-col items-center mt-10">
-          <h5 className="text-xl text-white mb-2">Scan to Receive</h5>
-          <p className="text-sm text-gray-400 text-center mb-4">
-            Share this QR code or wallet address to receive payments
-          </p>
-          
-          {/* Wallet Type Selector — Stellar hidden (visible chains: Arbitrum, Base, Botchain) */}
-          {false && walletAddress && stellarAddress && (
-            <div className="flex gap-2 mb-4">
-              <button
-                onClick={() => setSelectedWalletType('evm')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  selectedWalletType === 'evm'
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                }`}
-              >
-                EVM Chains
-              </button>
-              <button
-                onClick={() => setSelectedWalletType('stellar')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  selectedWalletType === 'stellar'
-                    ? 'bg-purple-500 text-white'
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                }`}
-              >
-                🌟 Stellar
-              </button>
-            </div>
-          )}
-        </div>
-
-        <div className="flex justify-center mb-8">
-          {loading || initializing ? (
-            <div className="bg-gray-800 p-8 rounded-lg text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
+      <section className="home-background min-h-screen px-5 py-6 text-white">
+        <div className="mx-auto max-w-lg">
+          <header className="mb-8 flex items-center gap-4">
+            <Link
+              href="/home"
+              aria-label="Back to wallet"
+              className="rounded-lg p-2 hover:bg-white/5"
+            >
+              <ArrowLeft size={24} />
+            </Link>
+            <h1 className="text-xl font-semibold">Receive crypto</h1>
+          </header>
+          <label
+            htmlFor="receive-network"
+            className="mb-2 block text-sm text-gray-300"
+          >
+            Receiving network
+          </label>
+          <select
+            id="receive-network"
+            value={selected.id}
+            onChange={(event) => setChain(event.target.value)}
+            className="mb-6 w-full rounded-xl border border-[#0795B0] bg-[#0A0E0E] p-3 text-white"
+          >
+            {networks.map((network) => (
+              <option key={network.id} value={network.id}>
+                {network.name}
+              </option>
+            ))}
+          </select>
+          <div className="rounded-2xl border border-[#0795B0]/40 bg-[#0A0E0E] p-5 text-center">
+            <h2 className="mb-2 text-lg font-medium">
+              Your {selected.name} address
+            </h2>
+            <p className="mb-5 text-sm text-gray-400">
+              Send only {selected.assets} using the {selected.name} network.
+            </p>
+            {address ? (
+              <>
+                <div className="mx-auto w-fit rounded-xl bg-white p-4">
+                  <QRCodeSVG
+                    value={address}
+                    size={200}
+                    level="H"
+                    title={`${selected.name} receiving address: ${address}`}
+                  />
+                </div>
+                <p
+                  className="mt-5 break-all rounded-lg bg-white/5 p-3 text-left font-mono text-sm"
+                  data-testid="receive-address"
+                >
+                  {address}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => copy(address)}
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-[#0795B0] px-4 py-3 font-medium hover:bg-[#0684A0]"
+                >
+                  <Copy size={20} /> Copy {selected.name} address
+                </button>
+                <a
+                  href={`${selected.explorer}/address/${address}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 inline-block text-sm text-[#52D4E7] hover:underline"
+                >
+                  View on explorer
+                </a>
+              </>
+            ) : failure && isBot ? (
+              <div role="alert" className="py-6">
+                <p className="text-sm text-amber-200">{failure}</p>
+                <button
+                  type="button"
+                  onClick={() => setAttempt((value) => value + 1)}
+                  className="mt-4 rounded-lg border border-[#0795B0] px-5 py-2 text-[#52D4E7]"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : (
+              <p role="status" className="py-12 text-sm text-gray-400">
+                Loading your {selected.name} address…
+              </p>
+            )}
+            {isBot && (
+              <p className="mt-5 text-sm leading-6 text-gray-400">
+                Use this same BOT Chain address for USDT and BOT. Keep some BOT
+                here to pay network fees. Your Base and Arbitrum address is
+                different.
+              </p>
+            )}
+          </div>
+          {(user?.phoneNumber || user?.email) && (
+            <div className="mt-6 space-y-3 text-sm">
               <p className="text-gray-400">
-                {initializing ? 'Setting up wallet...' : 'Loading wallet...'}
+                Other NexusPay users can also send to you using:
               </p>
-            </div>
-          ) : currentDisplayAddress ? (
-            <div className="bg-white p-4 rounded-lg">
-              <QRCode 
-                value={currentDisplayAddress} 
-                size={200} 
-                level={"H"} 
-                includeMargin={true} 
-              />
-              <p className="text-xs text-center mt-2 text-gray-600">
-                {selectedWalletType === 'stellar' ? 'Stellar Network' : 'EVM Compatible Chains'}
-              </p>
-            </div>
-          ) : (
-            <div className="bg-gray-800 p-8 rounded-lg text-center">
-              <p className="text-gray-400 mb-4">No wallet address available</p>
-              <p className="text-sm text-gray-500 mb-4">
-                Complete your wallet setup to receive payments
-              </p>
-              <button
-                onClick={handleInitializeWallet}
-                disabled={initializing}
-                className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 disabled:opacity-50"
-              >
-                {initializing ? 'Setting up...' : 'Set Up Wallet'}
-              </button>
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-4">
-          {/* EVM Wallet Address */}
-          <div className="flex flex-col">
-            <label className="text-[#909090] p-1 text-sm">
-              EVM Wallet Address
-            </label>
-            <div className="flex justify-between items-center border border-[#0795B0] rounded-lg p-3 bg-[#0A0E0E] text-white">
-              <span className="flex-1 mr-2 text-sm">
-                {walletAddress ? formatWalletAddress(walletAddress) : 'Not available'}
-              </span>
-              {walletAddress && (
-                <Copy 
-                  size={20} 
-                  color="#ffffff" 
-                  onClick={() => copyToClipboard(walletAddress, "EVM wallet address copied!")}
-                  className="cursor-pointer hover:text-blue-400"
-                />
-              )}
-            </div>
-          </div>
-
-          {/* Stellar Wallet Address */}
-          {user?.stellarAccountId && (
-            <div className="flex flex-col">
-              <label className="text-[#909090] p-1 text-sm flex items-center gap-2">
-                🌟 Stellar Wallet Address
-              </label>
-              <div className="flex justify-between items-center border border-[#0795B0] rounded-lg p-3 bg-gradient-to-r from-purple-900/30 to-blue-900/30 text-white">
-                <span className="flex-1 mr-2 text-sm font-mono">
-                  {formatWalletAddress(user.stellarAccountId)}
-                </span>
-                <Copy 
-                  size={20} 
-                  color="#ffffff" 
-                  onClick={() => copyToClipboard(user.stellarAccountId!, "Stellar wallet address copied!")}
-                  className="cursor-pointer hover:text-purple-400"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* BOT Chain receive addresses */}
-        {botNetworks.length > 0 && (
-          <div className="mt-6 space-y-4">
-            {botNetworks.map(network => {
-              const account = botBalances[network.id];
-              return (
-                <div key={network.id} className="flex flex-col">
-                  <label className="text-[#909090] p-1 text-sm flex items-center gap-2">
-                    ⛓️ {network.name} Address {network.testnet && <span className="text-yellow-400 text-xs">Testnet</span>}
-                  </label>
-                  <div className="flex justify-between items-center border border-cyan-700 rounded-lg p-3 bg-[#0A0E0E] text-white">
-                    <span className="flex-1 mr-2 text-sm font-mono break-all">
-                      {account ? `${account.address.substring(0, 10)}...${account.address.slice(-8)}` : botFailed[network.id] ? 'Address unavailable' : 'Loading…'}
-                    </span>
-                    {account ? (
-                      <Copy
-                        size={20}
-                        color="#ffffff"
-                        onClick={() => copyToClipboard(account.address, `${network.name} address copied!`)}
-                        className="cursor-pointer hover:text-cyan-400"
-                      />
-                    ) : botFailed[network.id] ? (
-                      <button type="button" onClick={() => setBotAttempt(x => x + 1)} className="ml-2 text-sm text-cyan-400 underline">Retry</button>
-                    ) : null}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Send only {network.name} assets to this address. {network.transfers ? 'Transfers are enabled.' : 'Receiving only; transfers are not enabled yet.'}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Phone Number */}
-          {phoneNumber && (
-            <div className="flex flex-col">
-              <label className="text-[#909090] p-1 text-sm">
-                Phone Number
-              </label>
-              <div className="flex justify-between items-center border border-[#0795B0] rounded-lg p-3 bg-[#0A0E0E] text-white">
-                <span className="flex-1 mr-2">{phoneNumber}</span>
-                <Copy 
-                  size={20} 
-                  color="#ffffff" 
-                  onClick={() => copyToClipboard(phoneNumber, "Phone number copied!")}
-                  className="cursor-pointer hover:text-blue-400"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Email */}
-          {email && (
-            <div className="flex flex-col">
-              <label className="text-[#909090] p-1 text-sm">
-                Email Address
-              </label>
-              <div className="flex justify-between items-center border border-[#0795B0] rounded-lg p-3 bg-[#0A0E0E] text-white">
-                <span className="flex-1 mr-2">{email}</span>
-                <Copy 
-                  size={20} 
-                  color="#ffffff" 
-                  onClick={() => copyToClipboard(email, "Email copied!")}
-                  className="cursor-pointer hover:text-blue-400"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Supported Chains — Arbitrum, Base, Botchain only (others filtered, not removed) */}
-        {filterVisibleChains(supportedChains).length > 0 && (
-          <div className="mt-6 p-4 bg-gray-800 rounded-lg">
-            <h4 className="text-white font-semibold mb-3">Supported Networks:</h4>
-            <div className="grid grid-cols-2 gap-2">
-              {filterVisibleChains(supportedChains).map((chain) => (
-                <div key={chain.id} className="flex items-center space-x-2 p-2 bg-gray-700 rounded">
-                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                  <span className="text-sm text-gray-300">{chain.name}</span>
-                </div>
+              {[user?.phoneNumber, user?.email].filter(Boolean).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => copy(value!)}
+                  className="flex w-full items-center justify-between gap-3 rounded-xl border border-white/10 p-3 text-left"
+                >
+                  <span className="break-all">{value}</span>
+                  <Copy size={18} className="shrink-0" />
+                </button>
               ))}
             </div>
-          </div>
-        )}
-
-        {/* Note */}
-        {note && (
-          <div className="mt-4 p-4 bg-blue-900/30 border border-blue-500/30 rounded-lg">
-            <p className="text-sm text-blue-200">{note}</p>
-          </div>
-        )}
-
-
+          )}
+        </div>
       </section>
     </AuthGuard>
   );
-};
-
-export default Receive;
+}

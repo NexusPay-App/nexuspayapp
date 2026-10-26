@@ -41,6 +41,7 @@ export function clearBotRequest(scope: 'send' | 'merchant'): void {
   try { sessionStorage.removeItem(`nexuspay_bot_request_${scope}`); } catch { /* Storage unavailable. */ }
 }
 export const botAPI = {
+  account: async (network: BotNetwork, signal?: AbortSignal) => (await api.get<{ data: Pick<BotBalance, 'network' | 'address' | 'gasMode'> }>(`/botchain/${network}/account`, { signal })).data.data,
   // Consumer wallets expose mainnet only, including when a stale API advertises testnet.
   networks: async () => (await api.get<{ data: BotCapability[] }>('/botchain/networks')).data.data
     .filter(network => network.id === 'botchain' && !network.testnet),

@@ -38,21 +38,24 @@ export const SendTokenForm: React.FC = () => {
 
   // Get current user's wallet address automatically
   useEffect(() => {
+    let active = true;
     const fetchWalletAddress = async () => {
       try {
         setLoadingWallet(true);
-        const address = await getCurrentUserAddress();
-        setCurrentUserAddress(address);
+        setCurrentUserAddress('');
+        const address = await getCurrentUserAddress(sendFormData.chain);
+        if (active) setCurrentUserAddress(address);
       } catch (error) {
         console.error('Failed to fetch wallet address:', error);
-        setCurrentUserAddress('');
+        if (active) setCurrentUserAddress('');
       } finally {
-        setLoadingWallet(false);
+        if (active) setLoadingWallet(false);
       }
     };
 
     fetchWalletAddress();
-  }, [getCurrentUserAddress]);
+    return () => { active = false; };
+  }, [getCurrentUserAddress, sendFormData.chain]);
 
   // Handle form submission - just show auth modal
   const handleSubmit = async (e: React.FormEvent) => {
@@ -113,14 +116,11 @@ export const SendTokenForm: React.FC = () => {
     try {
       const response = await sendToken(requestData);
       
-      console.log('✅ Send crypto response:', response);
-
       if (response.success) {
         setShowAuthModal(false);
         setShowSuccess(true);
         resetSendForm();
         setAuthValue('');
-        console.log('🎉 Transaction successful!');
       }
     } catch (error: any) {
       setShowAuthModal(false);
@@ -188,7 +188,7 @@ export const SendTokenForm: React.FC = () => {
           {/* Token & Chain */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="tokenSymbol" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="tokenType" className="block text-sm font-medium text-gray-300 mb-2">
                 Token
               </label>
               <select

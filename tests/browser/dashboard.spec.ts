@@ -13,7 +13,7 @@ test('wallet keeps activity above the fold and preserves receipts, refresh and p
   let failHistory = false;
   let emptyHistory = false;
   const transactions = ['completed', 'pending', 'failed', 'error', 'processing'].map((status, index) => ({
-    id: `fixture-${index}`, type: 'token_transfer', transactionSubType: 'sent', status,
+    id: `fixture-${index}`, type: 'token_transfer', direction: index === 2 ? 'incoming' : 'outgoing', status,
     token: { symbol: 'USDT', name: 'Tether', amount: [100, 20, 50, 1, 2][index], decimals: 6 },
     values: { usd: { formatted: `$${[100, 20, 50, 1, 2][index].toFixed(2)}` }, kes: { formatted: 'KES 12,987' }, fiat: { formatted: 'KES 12,987' } },
     blockchain: { chain: 'botchain', network: 'BOT Chain', txHash: '0x123', explorerUrl: 'https://scan.botchain.ai/tx/0x123', explorerName: 'BOT Explorer' },
@@ -38,6 +38,8 @@ test('wallet keeps activity above the fold and preserves receipts, refresh and p
   const activity = page.getByRole('region', { name: 'Recent transactions' });
   const first = activity.getByRole('button', { name: /View details: Sent, 100 USDT/ });
   await expect(first).toBeInViewport();
+  // Direction is shown for every status, including failed rows.
+  await expect(activity.getByRole('button', { name: 'View details: Received, 50 USDT, Failed' })).toHaveCount(1);
   await expect(activity.getByText('Pending', { exact: true }).filter({ visible: true })).toBeVisible();
   await expect(activity.getByText('Failed', { exact: true }).filter({ visible: true })).toBeVisible();
   await expect(page.getByText(/API Status:|transactions loaded|Clear Cache/)).toHaveCount(0);
@@ -61,13 +63,13 @@ test('wallet keeps activity above the fold and preserves receipts, refresh and p
   emptyHistory = false;
   await page.getByRole('button', { name: 'Refresh transactions' }).click();
   await expect(first).toBeVisible();
-  await page.getByRole('combobox', { name: 'Select network' }).click();
-  await page.getByRole('option', { name: 'BOT Chain', exact: true }).click();
-  await page.getByRole('button', { name: 'Send', exact: true }).click();
-  await expect(page.getByLabel('Chain', { exact: true })).toHaveValue('botchain');
+  await page.getByRole('button', { name: 'Send', exact: true }).first().click();
+  const networkField = page.getByLabel('Network', { exact: true });
+  await networkField.selectOption('botchain');
+  await expect(networkField).toHaveValue('botchain');
   for (const [label, route] of [['Receive', '/receive'], ['Pay', '/pay'], ['Buy', '/buy-crypto']]) {
     await page.goto('/home');
-    await page.getByRole('button', { name: label, exact: true }).click();
+    await page.getByRole('button', { name: label, exact: true }).first().click();
     await expect(page).toHaveURL(new RegExp(`${route}$`));
   }
   expect(runtimeErrors).toEqual([]);

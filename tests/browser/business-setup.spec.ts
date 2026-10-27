@@ -279,11 +279,11 @@ for (const route of ['/login', '/signup']) {
 test('phone login returns to business setup after verification', async ({ page }) => {
   await prepare(page, { authenticated: false });
   await page.goto('/login?next=/signup/business');
-  await page.locator('input[name="phoneNumber"]').fill('0700000000');
-  await page.locator('input[name="password"]').fill('Fixture-only123!');
-  await page.getByRole('button', { name: 'Submit', exact: true }).click();
-  const inputs = page.getByRole('dialog').locator('input[maxlength="1"]');
-  for (let i = 0; i < 6; i++) await inputs.nth(i).fill(String(i + 1));
-  await page.getByRole('button', { name: 'Verify', exact: true }).click();
+  await page.locator('#login-phone').fill('0700000000');
+  await page.locator('#login-password').fill('Fixture-only123!');
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page.locator('#login-code')).toBeVisible();
+  await page.locator('#login-code').fill('123456');
+  await page.getByRole('button', { name: 'Verify and sign in', exact: true }).click();
   await expect(page).toHaveURL(/\/signup\/business$/);
 });

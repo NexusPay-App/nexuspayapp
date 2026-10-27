@@ -41,12 +41,12 @@ async function send(page: Page) {
   await page.getByLabel('NexusPay password').fill('fixture-password');
   await page.getByRole('button', { name: 'Confirm and send', exact: true }).click();
 }
-test('home network selection reaches the send form; one POST is followed by confirmation reads', async ({ page }) => {
+test('home quick access reaches the send form; one POST is followed by confirmation reads', async ({ page }) => {
   const calls = await setup(page);
   await page.goto('/home', {waitUntil: 'domcontentloaded'});
-  await page.getByRole('combobox').first().click();
-  await page.getByRole('option', { name: 'BOT Chain', exact: true }).click();
-  await page.getByRole('button', { name: 'Send', exact: true }).click();
+  await page.getByRole('button', { name: 'Send', exact: true }).first().click();
+  await expect(page).toHaveURL(/\/crypto$/);
+  await page.getByLabel('Network', { exact: true }).selectOption('botchain');
   await expect(page.getByLabel('Network', { exact: true })).toHaveValue('botchain');
   await send(page);
   await expect(page.getByText('Payment submitted', { exact: true })).toBeVisible();
@@ -67,9 +67,9 @@ test('password rejection preserves the selected network and explains the failure
 test('BOT mainnet uses the mainnet payment route, native fee notice and explorer', async ({ page }) => {
   const calls = await setup(page, false, 'botchain');
   await page.goto('/home', {waitUntil: 'domcontentloaded'});
-  await page.getByRole('combobox').first().click();
-  await page.getByRole('option', { name: 'BOT Chain', exact: true }).click();
-  await page.getByRole('button', { name: 'Send', exact: true }).click();
+  await page.getByRole('button', { name: 'Send', exact: true }).first().click();
+  await expect(page).toHaveURL(/\/crypto$/);
+  await page.getByLabel('Network', { exact: true }).selectOption('botchain');
   await expect(page.getByLabel('Network', { exact: true })).toHaveValue('botchain');
   await expect(page.getByText('Network fee paid separately in BOT.', { exact: false })).toBeVisible();
   await send(page);

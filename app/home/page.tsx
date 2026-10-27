@@ -1,22 +1,14 @@
 "use client";
-import { useChain } from '@/context/ChainContext';
 
 import PWAInstallButton from "@/components/pwa/PWAInstallButton";
 
-import { NexusLogo, UserIcon } from "@/constants/svg";
+import { NexusMark, UserIcon } from "@/constants/svg";
 import {
   ArrowCircleDown,
   CreditCard,
   List,
   PaperPlaneTilt,
 } from "@phosphor-icons/react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import {
@@ -27,7 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, Settings, User, UserPlus, Plus, RefreshCw, Wallet } from "lucide-react";
+import { LogOut, Settings, User, UserPlus, Plus, RefreshCw, Wallet, Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -66,15 +58,14 @@ const Home = () => {
     businessAccounts,
     loadBusinessAccounts
   } = useBusiness();
-  const { balance, chainBalance, loading, error, fetchAllBalances, fetchChainBalance } = useOptimizedBalance();
+  const { balance, loading, error, fetchAllBalances } = useOptimizedBalance();
 
   const [openLogoutDialog, setOpenLogoutDialog] = useState(false); // Opens the Logout Loading Dialog
-  const { setChain: setPaymentChain } = useChain();
-  const [selectedChain, setSelectedChain] = useState<string>('all');
+  const [balanceHidden, setBalanceHidden] = useState(false); // Hides balance amounts
   const [botNetworks, setBotNetworks] = useState<{ id: string; name: string }[]>([]);
   const router = useRouter();
 
-  // Enabled BOT networks join the same chain selector as every other network.
+  // Enabled BOT networks label matching assets with their chain names.
   useEffect(() => {
     let active = true;
     fetch(`${getApiBaseUrl()}/botchain/networks`)
@@ -129,33 +120,14 @@ const Home = () => {
     router.push("/settings");
   };
 
-  // Handle chain selection
-  const handleChainChange = (chain: string) => {
-    setSelectedChain(chain);
-    if (chain !== 'all') setPaymentChain(chain);
-    if (chain === 'all') {
-      fetchAllBalances();
-    } else {
-      fetchChainBalance(chain);
-    }
-  };
-
   // Handle manual refresh
   const handleRefresh = () => {
-    if (selectedChain === 'all') {
-      fetchAllBalances(true); // Force refresh
-    } else {
-      fetchChainBalance(selectedChain, true); // Force refresh
-    }
+    fetchAllBalances(true); // Force refresh
   };
 
   // Get current balance data based on selection
   const getCurrentBalance = () => {
-    if (selectedChain === 'all') {
-      return balance;
-    } else {
-      return chainBalance;
-    }
+    return balance;
   };
 
   // Get total USD value
@@ -167,11 +139,7 @@ const Home = () => {
   // Get chain-specific balances
   const getChainBalances = () => {
     const currentBalance = getCurrentBalance();
-    if (selectedChain === 'all') {
-      return currentBalance?.balances || {};
-    } else {
-      return currentBalance?.balances ? { [selectedChain]: currentBalance.balances } : {};
-    }
+    return currentBalance?.balances || {};
   };
 
   // Dynamic USD→KES rate
@@ -198,9 +166,9 @@ const Home = () => {
 
 
   return (
-    <main className="min-h-screen bg-[#0A0E0E] text-white">
-      <header className="border-b border-white/10">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
+    <main className="flex h-dvh flex-col overflow-hidden bg-gradient-to-br from-[#102729] to-[#0D1718] text-white">
+      <header className="shrink-0 border-b border-white/10">
+        <div className="flex w-full items-center justify-between px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
           <Sheet>
             <SheetTrigger aria-label="Open navigation" className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-white/5">
@@ -232,7 +200,7 @@ const Home = () => {
             </SheetContent>
           </Sheet>
           <Link href="/home" aria-label="NexusPay home">
-            <Image src={NexusLogo} alt="NexusPay" className="h-8 w-auto" priority />
+            <Image src={NexusMark} alt="NexusPay" className="h-8 w-auto" priority />
           </Link>
           </div>
 
@@ -321,96 +289,102 @@ const Home = () => {
         </div>
       </header>
 
-      <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 sm:py-6">
-        <div className="mb-5 flex items-center justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Your wallet</h1>
-            <p className="mt-1 hidden text-sm text-white/50 sm:block">Your money, assets and activity in one place.</p>
-          </div>
-          <Select value={selectedChain} onValueChange={handleChainChange}>
-            <SelectTrigger aria-label="Select network" className="h-10 w-[170px] border border-[#0795B0]/40 bg-[#101919] text-sm sm:w-[200px]">
-              <SelectValue placeholder="Select network" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Chains</SelectItem>
-              <SelectItem value="arbitrum">Arbitrum</SelectItem>
-              <SelectItem value="base">Base</SelectItem>
-              {botNetworks.map(network => <SelectItem key={network.id} value={network.id}>{network.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
-          <section aria-label="Wallet balance and actions" className="min-w-0 rounded-2xl border border-[#0795B0]/30 bg-gradient-to-br from-[#102729] to-[#0D1718] p-5 sm:p-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-medium text-white/65">{currentBusiness ? `${currentBusiness.businessName} Balance` : 'Wallet Balance'}</h2>
-              <button type="button" onClick={handleRefresh} disabled={loading} aria-label="Refresh balance" className="flex h-8 w-8 items-center justify-center rounded-lg text-white/50 hover:bg-white/10 hover:text-white disabled:opacity-40">
+      <div className="flex min-h-0 w-full flex-1 flex-col">
+          <section aria-label="Wallet balance and actions" className="shrink-0 p-4 sm:p-5">
+            <div className="flex items-center justify-between gap-2">
+              <span
+                aria-hidden="true"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#0795B0]/15 text-[#39BED3] ring-1 ring-[#0795B0]/40"
+              >
+                <Wallet size={20} strokeWidth={1.75} />
+              </span>
+              <button type="button" onClick={handleRefresh} disabled={loading} aria-label="Refresh balance" className="flex h-10 w-10 items-center justify-center rounded-xl text-white/55 ring-1 ring-white/10 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-40">
                 <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               </button>
             </div>
             {currentBusiness && (
-              <p className="mb-2 text-xs text-[#39BED3]">Business account · {currentBusiness.merchantId}{!isPinVerified && ' · PIN required'}</p>
+              <p className="mt-3 text-xs text-[#39BED3]">Business account · {currentBusiness.merchantId}{!isPinVerified && ' · PIN required'}</p>
             )}
-            <div className="mt-2">
+            <div className="mt-3 text-center">
+              <h2 className="text-sm font-medium text-white/65">{currentBusiness ? `${currentBusiness.businessName} Balance` : 'Wallet Balance'}</h2>
               {loading && !getCurrentBalance() ? <BalanceSkeleton /> : error && !getCurrentBalance() ? (
                 <BalanceErrorState error={error} onRetry={handleRefresh} />
               ) : getCurrentBalance() ? (
-                <>
-                  <p className="text-4xl font-semibold tracking-tight tabular-nums sm:text-5xl">
-                    {getKESEquivalent().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    <span className="ml-2 text-lg font-medium text-white/60">KES</span>
-                  </p>
-                  <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
-                    <p className="text-sm font-medium text-white/80">${getTotalUSDValue().toFixed(2)} USD</p>
+                <div className="mt-2">
+                  <div className="flex items-center justify-center gap-3">
+                    <p className="text-4xl font-semibold tracking-tight tabular-nums sm:text-5xl">
+                      {balanceHidden ? '••••••' : getKESEquivalent().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      <span className="ml-2 text-lg font-medium text-white/60">KES</span>
+                    </p>
+                    <button type="button" onClick={() => setBalanceHidden(value => !value)} aria-label={balanceHidden ? 'Show balance' : 'Hide balance'} aria-pressed={balanceHidden} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white/50 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#39BED3]">
+                      {balanceHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+                    <p className="text-sm font-medium text-white/80">{balanceHidden ? '••••' : `$${getTotalUSDValue().toFixed(2)}`} USD</p>
                     <p className="text-xs text-white/45">1 USD ≈ {usdToKesRate.toFixed(2)} KES</p>
                   </div>
-                </>
+                </div>
               ) : <BalanceEmptyState />}
             </div>
-            <div className="mt-5 grid grid-cols-4 gap-2 border-t border-white/10 pt-4 sm:mt-6">
-              {[
-                { label: 'Send', icon: PaperPlaneTilt, action: handleSend },
-                { label: 'Receive', icon: ArrowCircleDown, action: handleReceive },
-                { label: 'Pay', icon: CreditCard, action: handlePay },
-                { label: 'Buy', icon: Plus, action: handleBuy },
-              ].map(({ label, icon: Icon, action }) => (
-                <button key={label} type="button" onClick={action} className={`flex min-h-14 flex-col items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#39BED3] sm:flex-row sm:gap-2 sm:text-sm ${label === 'Send' ? 'bg-[#0795B0] text-white hover:bg-[#06849C]' : 'bg-white/5 text-white/85 hover:bg-white/10'}`}>
+            <div className="mt-3 border-t border-white/10 pt-4">
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { label: 'Send', icon: PaperPlaneTilt, action: handleSend },
+                  { label: 'Receive', icon: ArrowCircleDown, action: handleReceive },
+                  { label: 'Pay', icon: CreditCard, action: handlePay },
+                  { label: 'Buy', icon: Plus, action: handleBuy },
+                ].map(({ label, icon: Icon, action }) => (
+                  <button key={label} type="button" onClick={action} className={`flex min-h-14 flex-col items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#39BED3] sm:flex-row sm:gap-2 sm:text-sm ${label === 'Send' ? 'bg-[#0795B0] text-white hover:bg-[#06849C]' : 'bg-white/5 text-white/85 hover:bg-white/10'}`}>
                   <Icon size={19} aria-hidden="true" />
                   {label}
                 </button>
               ))}
+              </div>
             </div>
-          </section>
-
-          <section aria-labelledby="assets-title" className="order-3 min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-[#0E1617] lg:order-2">
-            <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
-              <h2 id="assets-title" className="text-base font-semibold">Your assets</h2>
-              <Wallet className="h-4 w-4 text-[#39BED3]" aria-hidden="true" />
-            </div>
-            <div className="max-h-[220px] overflow-y-auto px-5">
-              {loading && !getCurrentBalance() ? <p className="py-6 text-sm text-white/50">Loading assets…</p> : error && !getCurrentBalance() ? (
-                <p className="py-6 text-sm text-white/50">Assets are unavailable. Refresh your balance to try again.</p>
-              ) : Object.values(getChainBalances()).every(tokens => Object.keys(tokens).length === 0) ? (
-                <div className="py-6 text-sm text-white/50">No assets yet. Receive crypto to get started.</div>
-              ) : Object.entries(getChainBalances()).flatMap(([chain, tokens]) => Object.entries(tokens).map(([token, amount]) => (
-                <div key={`${chain}-${token}`} className="flex items-center justify-between gap-4 border-b border-white/5 py-3.5 last:border-0">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0795B0]/10 text-sm font-semibold text-[#39BED3]">{token.slice(0, 1)}</span>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium">{token}</p>
-                      <p className="truncate text-xs text-white/45">{botNetworks.find(network => network.id === chain)?.name || chain.charAt(0).toUpperCase() + chain.slice(1)}</p>
-                    </div>
+            <div className="mt-5 border-t border-white/10 pt-4 pb-7">
+              <h2 className="text-sm font-medium text-white/65">Assets</h2>
+              <div className="mt-1 max-h-[176px] overflow-y-auto pr-1">
+                {loading && !getCurrentBalance() ? <p className="py-3 text-xs text-white/50">Loading assets…</p> : error && !getCurrentBalance() ? (
+                  <p className="py-3 text-xs text-white/50">Assets unavailable. Refresh your balance to try again.</p>
+                ) : Object.values(getChainBalances()).every(tokens => Object.keys(tokens).length === 0) ? (
+                  <p className="py-3 text-xs text-white/50">No assets yet. Receive crypto to get started.</p>
+                ) : Object.entries(getChainBalances()).flatMap(([chain, tokens]) => Object.entries(tokens).map(([token, amount]) => (
+                  <div key={`${chain}-${token}`} className="flex items-center justify-between gap-3 border-b border-white/5 py-2 last:border-0">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#0795B0]/10 text-xs font-semibold text-[#39BED3]">{token.slice(0, 1)}</span>
+                      <span className="min-w-0 truncate text-sm">{token} <span className="text-white/45">· {botNetworks.find(network => network.id === chain)?.name || chain.charAt(0).toUpperCase() + chain.slice(1)}</span></span>
+                    </span>
+                    <span className="shrink-0 text-right text-sm font-medium tabular-nums">{Number(amount).toLocaleString('en-US', { maximumFractionDigits: 8 })}</span>
                   </div>
-                  <p className="text-right text-sm font-medium tabular-nums">{Number(amount).toLocaleString('en-US', { maximumFractionDigits: 8 })}</p>
-                </div>
-              )))}
+                )))}
+              </div>
             </div>
           </section>
 
-          <section aria-label="Recent transactions" className="order-2 min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-[#0E1617] lg:order-3 lg:col-span-2">
-            <RecentTransactions />
+          <section aria-label="Recent transactions" className="relative flex min-h-0 flex-1 flex-col border-t border-white/10 px-1 pt-7">
+            <section aria-label="Quick access" className="absolute left-1/2 top-0 z-10 flex -translate-x-1/2 -translate-y-1/2 items-center gap-3 rounded-full border border-[#0795B0]/40 bg-[#0D1718] px-3 py-1 shadow-[0_6px_20px_rgba(0,0,0,0.45)]">
+              {[
+                { label: 'Send', icon: PaperPlaneTilt, action: handleSend },
+                { label: 'Receive', icon: ArrowCircleDown, action: handleReceive },
+                { label: 'Buy', icon: Plus, action: handleBuy },
+              ].map(({ label, icon: Icon, action }) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={action}
+                  aria-label={label}
+                  title={label}
+                  className="flex h-10 w-10 items-center justify-center rounded-full text-[#39BED3] transition-colors hover:bg-[#0795B0]/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#39BED3]"
+                >
+                  <Icon size={20} aria-hidden="true" />
+                </button>
+              ))}
+            </section>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <RecentTransactions />
+            </div>
           </section>
-        </div>
       </div>
     </main>
   );

@@ -8,8 +8,8 @@ import { SendCryptoToMpesaForm } from '@/components/crypto/SendCryptoToMpesaForm
 
 export default function CryptoPage() {
   const [destination, setDestination] = useState<'wallet' | 'mpesa'>('wallet');
-  return <main className="min-h-screen bg-[#0A0E0E] px-4 pb-16 pt-6 text-white sm:pt-10">
-    <div className="mx-auto max-w-lg">
+  return <main className="min-h-screen bg-[#0A0E0E] pb-16 pt-6 text-white sm:pt-10">
+    <div className="mx-auto max-w-6xl px-4 sm:px-6">
       <Link href="/home" className="mb-7 inline-flex items-center gap-2 text-sm text-white/50 transition hover:text-white"><ArrowLeft size={16} />Wallet</Link>
       <div className="mb-6 flex items-center justify-between gap-4">
         <div><h1 className="text-3xl font-semibold tracking-tight">Send money</h1><p className="mt-2 text-sm text-white/45">Send to a phone number, email or wallet.</p></div>

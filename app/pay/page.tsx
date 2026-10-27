@@ -22,8 +22,8 @@ export default function PayPage() {
     { id: "withdraw" as const, label: "Withdraw", icon: ArrowUpRight },
   ];
   return (
-    <main className="min-h-[80dvh] bg-[#0A0E0E] px-5 py-6 sm:py-10">
-      <div className="mx-auto max-w-lg">
+    <main className="min-h-[80dvh] bg-[#0A0E0E] py-6 sm:py-10">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="mb-6 flex items-center justify-between">
           <Link
             href="/home"

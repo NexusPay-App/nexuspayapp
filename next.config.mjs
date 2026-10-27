@@ -9,7 +9,12 @@ const nextConfig = {
   async rewrites() {
     // Keep browser API calls same-origin so the Vercel app can reach the live API
     // without requiring the API host to whitelist each frontend deployment URL.
-    return [{ source: '/api/:path*', destination: 'https://nexuspay-backend-test.vercel.app/api/:path*' }];
+    return [
+      // Bare tx-dashboard.nexuspayapp.xyz serves the public dashboard (add the host
+      // to this Vercel project). Same path keeps working on the main app domain.
+      { source: '/', has: [{ type: 'host', value: 'tx-dashboard.nexuspayapp.xyz' }], destination: '/tx-dashboard' },
+      { source: '/api/:path*', destination: 'https://nexuspay-backend-test.vercel.app/api/:path*' },
+    ];
   },
   async redirects() {
     // BOT Chain is served through the shared multi-chain screens; keep old links working.

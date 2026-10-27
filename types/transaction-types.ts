@@ -90,6 +90,9 @@ export interface Transaction {
   status: 'pending' | 'processing' | 'completed' | 'failed' | 'error' | 'reserved';
   transactionCategory?: 'onchain' | 'onramp' | 'offramp' | 'cardpayment';
   transactionSubType?: 'sent' | 'received' | 'swap';
+  // Which way value moved for this account, as stored by the backend.
+  // null/absent means the record does not say; never inferred client-side.
+  direction?: 'incoming' | 'outgoing' | null;
   amount: number;
   token: TransactionToken;
   values: TransactionValues;

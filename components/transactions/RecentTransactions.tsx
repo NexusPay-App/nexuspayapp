@@ -14,6 +14,9 @@ function networkName(chain: string) {
 }
 
 function transactionLabel(transaction: Transaction) {
+  // Direction first: every row reads as money in or money out, including failed ones.
+  if (transaction.direction === 'incoming') return { label: 'Received', Icon: ArrowDownLeft };
+  if (transaction.direction === 'outgoing') return { label: 'Sent', Icon: ArrowUpRight };
   if (transaction.type === 'fiat_to_crypto') return { label: 'Crypto purchase', Icon: Plus };
   if (transaction.type === 'crypto_to_fiat') return { label: 'Withdrawal', Icon: ArrowUpRight };
   if (transaction.type === 'crypto_to_paybill' || transaction.type === 'crypto_to_till') return { label: 'Payment', Icon: CreditCard };

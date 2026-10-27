@@ -99,8 +99,8 @@ export default function Receive() {
 
   return (
     <AuthGuard>
-      <section className="home-background min-h-screen px-5 py-6 text-white">
-        <div className="mx-auto max-w-lg">
+      <section className="home-background min-h-screen py-6 text-white">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <header className="mb-8 flex items-center gap-4">
             <Link
               href="/home"

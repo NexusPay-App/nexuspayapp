@@ -25,8 +25,8 @@ export default function PayPage() {
   return (
     <main className="min-h-dvh bg-gradient-to-br from-[#102729] to-[#0D1718] text-white">
       <AppHeader />
-      <div className="w-full px-4 pt-6 pb-16 sm:px-5 sm:pt-8">
-        <div className="mb-7 flex items-center justify-between">
+      <div className="mx-auto w-full max-w-[112rem] px-4 py-5 sm:px-6 sm:py-8 md:w-[92%] lg:w-[86%] lg:px-8 2xl:w-[82%]">
+        <div className="mb-5 flex items-center justify-between">
           <Link
             href="/home"
             className="inline-flex items-center gap-2 text-sm text-white/55 transition hover:text-white"
@@ -42,14 +42,14 @@ export default function PayPage() {
             Scan QR
           </button>
         </div>
-        <h1 className="mb-2 text-3xl font-semibold tracking-tight text-white">
+        <h1 className="mb-2 text-2xl font-semibold tracking-tight sm:text-3xl text-white">
           Pay & withdraw
         </h1>
-        <p className="mb-6 text-sm text-white/50">
+        <p className="mb-5 text-sm text-white/50">
           Pay a business or move money to M-Pesa.
         </p>
         <div
-          className="mb-6 grid grid-cols-3 gap-1 border-b border-white/10"
+          className="mb-5 grid grid-cols-3 gap-1 border-b border-white/10"
           role="group"
           aria-label="Payment type"
         >
@@ -59,7 +59,7 @@ export default function PayPage() {
               type="button"
               aria-pressed={tab === id}
               onClick={() => setTab(id)}
-              className={`flex flex-col items-center gap-2 border-b-2 px-2 py-3 text-xs font-medium transition sm:flex-row sm:justify-center ${tab === id ? "border-[#39BED3] text-white" : "border-transparent text-white/50 hover:text-white"}`}
+              className={`flex items-center justify-center gap-2 border-b-2 px-1 py-3 text-xs font-medium transition sm:text-sm ${tab === id ? "border-[#39BED3] text-white" : "border-transparent text-white/50 hover:text-white"}`}
             >
               <Icon size={17} />
               {label}

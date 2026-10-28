@@ -26,9 +26,9 @@ import {
 } from "@/components/ui/dialog";
 
 const field =
-  "w-full rounded-xl border border-white/20 bg-transparent [color-scheme:dark] [&>option]:bg-[#0D1718] px-4 py-3.5 text-sm text-white outline-none focus:border-[#39BED3] focus:ring-2 focus:ring-[#0795B0]/20 disabled:opacity-50";
+  "w-full rounded-xl border border-white/20 bg-transparent [color-scheme:dark] [&>option]:bg-[#0D1718] px-3.5 py-3 text-sm text-white outline-none focus:border-[#39BED3] focus:ring-2 focus:ring-[#0795B0]/20 disabled:opacity-50";
 const primary =
-  "flex w-full items-center justify-center gap-2 rounded-xl bg-[#0795B0] px-5 py-3.5 text-sm font-semibold text-white hover:bg-[#06849C] disabled:cursor-not-allowed disabled:opacity-40";
+  "flex w-full items-center justify-center gap-2 rounded-xl bg-[#0795B0] px-5 py-3 text-sm font-semibold text-white hover:bg-[#06849C] disabled:cursor-not-allowed disabled:opacity-40";
 const message = (error: any) =>
   error?.response?.data?.error?.message ||
   error?.response?.data?.message ||
@@ -276,10 +276,10 @@ export function PayMerchantForm({
   return (
     <section className="w-full text-white">
       <h2 className="text-xl font-semibold">Pay a business</h2>
-      <p className="mb-6 mt-2 text-sm text-white/50">
+      <p className="mb-4 mt-1 text-sm text-white/50">
         Enter a merchant ID. You’ll see the business name before paying.
       </p>
-      <form onSubmit={openReview} className="space-y-5">
+      <form onSubmit={openReview} className="space-y-4">
         <div>
           <label
             className="mb-2 block text-sm text-white/65"

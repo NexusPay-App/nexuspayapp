@@ -20,9 +20,9 @@ import { amountUnits } from "@/lib/amounts";
 import api from "@/lib/api";
 
 const field =
-  "w-full rounded-xl border border-white/20 bg-transparent [color-scheme:dark] [&>option]:bg-[#0D1718] px-4 py-3.5 text-sm text-white outline-none focus:border-[#39BED3] focus:ring-2 focus:ring-[#0795B0]/20 disabled:opacity-50";
+  "w-full rounded-xl border border-white/20 bg-transparent [color-scheme:dark] [&>option]:bg-[#0D1718] px-3.5 py-3 text-sm text-white outline-none focus:border-[#39BED3] focus:ring-2 focus:ring-[#0795B0]/20 disabled:opacity-50";
 const primary =
-  "flex w-full items-center justify-center gap-2 rounded-xl bg-[#0795B0] px-5 py-3.5 text-sm font-semibold text-white hover:bg-[#06849C] disabled:cursor-not-allowed disabled:opacity-40";
+  "flex w-full items-center justify-center gap-2 rounded-xl bg-[#0795B0] px-5 py-3 text-sm font-semibold text-white hover:bg-[#06849C] disabled:cursor-not-allowed disabled:opacity-40";
 const message = (error: any) =>
   error?.response?.data?.error?.message ||
   error?.response?.data?.message ||
@@ -333,8 +333,8 @@ export function RampForm({ mode }: { mode: RampMode }) {
     );
   return (
     <section className="w-full text-white">
-      <div className="mb-6">
-        <div className="mb-4 flex size-10 items-center justify-center rounded-xl bg-[#0795B0]/15 text-[#39BED3]">
+      <div className="mb-5 flex items-start gap-3">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl text-[#39BED3]">
           {mode === "buy" ? (
             <ArrowDownLeft size={21} />
           ) : mode === "withdraw" ? (
@@ -343,14 +343,16 @@ export function RampForm({ mode }: { mode: RampMode }) {
             <Smartphone size={21} />
           )}
         </div>
-        <h2 className="text-xl font-semibold">
-          {review ? "Review payment" : titles[mode]}
-        </h2>
-        <p className="mt-2 text-sm leading-6 text-white/50">
-          {review
-            ? "Check the amount and destination before confirming."
-            : descriptions[mode]}
-        </p>
+        <div className="min-w-0">
+          <h2 className="text-lg font-semibold">
+            {review ? "Review payment" : titles[mode]}
+          </h2>
+          <p className="mt-1 text-sm leading-5 text-white/50">
+            {review
+              ? "Check the amount and destination before confirming."
+              : descriptions[mode]}
+          </p>
+        </div>
       </div>
       {!enabled && (
         <div
@@ -524,88 +526,9 @@ export function RampForm({ mode }: { mode: RampMode }) {
               setReview(true);
             }
           }}
-          className="space-y-5"
+          className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:gap-x-8"
         >
-          {mode === "bills" && (
-            <>
-              <div className="grid grid-cols-2 gap-2 border-b border-white/10">
-                {["till", "paybill"].map((type) => (
-                  <button
-                    key={type}
-                    type="button"
-                    aria-pressed={targetType === type}
-                    onClick={() => setTargetType(type)}
-                    className={`border-b-2 px-4 py-2.5 text-sm transition ${targetType === type ? "border-[#39BED3] text-white" : "border-transparent text-white/55 hover:text-white"}`}
-                  >
-                    {type === "till" ? "Buy goods · Till" : "Paybill"}
-                  </button>
-                ))}
-              </div>
-              <div>
-                <label
-                  htmlFor="ramp-target"
-                  className="mb-2 block text-sm text-white/65"
-                >
-                  {targetType === "till" ? "Till number" : "Paybill number"}
-                </label>
-                <input
-                  id="ramp-target"
-                  className={field}
-                  inputMode="numeric"
-                  value={targetNumber}
-                  onChange={(event) =>
-                    setTargetNumber(
-                      event.target.value.replace(/\D/g, "").slice(0, 7),
-                    )
-                  }
-                  required
-                />
-              </div>
-              {targetType === "paybill" && (
-                <div>
-                  <label
-                    htmlFor="ramp-account"
-                    className="mb-2 block text-sm text-white/65"
-                  >
-                    Account number
-                  </label>
-                  <input
-                    id="ramp-account"
-                    className={field}
-                    value={account}
-                    onChange={(event) => setAccount(event.target.value)}
-                    maxLength={50}
-                    required
-                  />
-                </div>
-              )}
-            </>
-          )}
-          <div>
-            <label
-              htmlFor="ramp-amount"
-              className="mb-2 block text-sm text-white/65"
-            >
-              {mode === "withdraw" ? `Amount (${asset})` : "Amount (KES)"}
-            </label>
-            <input
-              id="ramp-amount"
-              className={`${field} text-2xl`}
-              inputMode={mode === "withdraw" ? "decimal" : "numeric"}
-              value={amount}
-              onChange={(event) => setAmount(event.target.value)}
-              placeholder="0.00"
-              required
-            />
-            <p className="mt-2 text-xs text-white/45">
-              {mode === "buy"
-                ? "Minimum 10 KES · Maximum 150,000 KES"
-                : balance === undefined
-                  ? "Balance will appear when this payment option is available."
-                  : `Available: ${balance} ${asset}`}
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-5 sm:col-span-2 lg:gap-x-8">
             <div>
               <label
                 htmlFor="ramp-network"
@@ -654,6 +577,85 @@ export function RampForm({ mode }: { mode: RampMode }) {
               </select>
             </div>
           </div>
+          {mode === "bills" && (
+            <>
+              <div className="grid grid-cols-2 gap-2 border-b border-white/10 sm:col-span-2">
+                {["till", "paybill"].map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    aria-pressed={targetType === type}
+                    onClick={() => setTargetType(type)}
+                    className={`border-b-2 px-4 py-2.5 text-sm transition ${targetType === type ? "border-[#39BED3] text-white" : "border-transparent text-white/55 hover:text-white"}`}
+                  >
+                    {type === "till" ? "Buy goods · Till" : "Paybill"}
+                  </button>
+                ))}
+              </div>
+              <div className={targetType === "till" ? "sm:col-span-2" : undefined}>
+                <label
+                  htmlFor="ramp-target"
+                  className="mb-2 block text-sm text-white/65"
+                >
+                  {targetType === "till" ? "Till number" : "Paybill number"}
+                </label>
+                <input
+                  id="ramp-target"
+                  className={field}
+                  inputMode="numeric"
+                  value={targetNumber}
+                  onChange={(event) =>
+                    setTargetNumber(
+                      event.target.value.replace(/\D/g, "").slice(0, 7),
+                    )
+                  }
+                  required
+                />
+              </div>
+              {targetType === "paybill" && (
+                <div>
+                  <label
+                    htmlFor="ramp-account"
+                    className="mb-2 block text-sm text-white/65"
+                  >
+                    Account number
+                  </label>
+                  <input
+                    id="ramp-account"
+                    className={field}
+                    value={account}
+                    onChange={(event) => setAccount(event.target.value)}
+                    maxLength={50}
+                    required
+                  />
+                </div>
+              )}
+            </>
+          )}
+          <div className={mode === "bills" ? "sm:col-span-2" : undefined}>
+            <label
+              htmlFor="ramp-amount"
+              className="mb-2 block text-sm text-white/65"
+            >
+              {mode === "withdraw" ? `Amount (${asset})` : "Amount (KES)"}
+            </label>
+            <input
+              id="ramp-amount"
+              className={`${field} text-2xl`}
+              inputMode={mode === "withdraw" ? "decimal" : "numeric"}
+              value={amount}
+              onChange={(event) => setAmount(event.target.value)}
+              placeholder="0.00"
+              required
+            />
+            <p className="mt-2 text-xs text-white/45">
+              {mode === "buy"
+                ? "Minimum 10 KES · Maximum 150,000 KES"
+                : balance === undefined
+                  ? "Balance will appear when this payment option is available."
+                  : `Available: ${balance} ${asset}`}
+            </p>
+          </div>
           {mode !== "bills" && (
             <div>
               <label
@@ -677,7 +679,7 @@ export function RampForm({ mode }: { mode: RampMode }) {
             </div>
           )}
           <button
-            className={primary}
+            className={`${primary} sm:col-span-2`}
             disabled={
               !enabled ||
               !amountValid ||

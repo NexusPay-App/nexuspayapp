@@ -19,8 +19,8 @@ function message(error: unknown): string {
   return failure.response?.data?.error?.message || failure.response?.data?.message || failure.message || 'Unable to complete this request. Please try again.';
 }
 
-const field = 'w-full rounded-xl border border-white/20 bg-transparent [color-scheme:dark] [&>option]:bg-[#0D1718] px-4 py-3.5 text-sm text-white outline-none transition focus:border-[#39BED3] focus:ring-2 focus:ring-[#0795B0]/20 disabled:opacity-50';
-const primary = 'flex w-full items-center justify-center gap-2 rounded-xl bg-[#0795B0] px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-[#06849C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#39BED3] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0E1617] disabled:cursor-not-allowed disabled:opacity-40';
+const field = 'w-full rounded-xl border border-white/20 bg-transparent [color-scheme:dark] [&>option]:bg-[#0D1718] px-3.5 py-3 text-sm text-white outline-none transition focus:border-[#39BED3] focus:ring-2 focus:ring-[#0795B0]/20 disabled:opacity-50';
+const primary = 'flex w-full items-center justify-center gap-2 rounded-xl bg-[#0795B0] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#06849C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#39BED3] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0E1617] disabled:cursor-not-allowed disabled:opacity-40';
 
 export const SendTokenForm = () => {
   const { user } = useAuth();
@@ -160,8 +160,8 @@ export const SendTokenForm = () => {
   }
 
   return <section className="w-full text-white">
-    <form onSubmit={openReview} className="space-y-6">
-      <div className="grid grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] gap-3">
+    <form onSubmit={openReview} className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
         <div><label htmlFor="chain" className="mb-2 block text-xs font-medium text-white/55">Network</label>
           <select id="chain" className={field} value={chain} onChange={event => change('chain', event.target.value)} disabled={!networks.length}>
             {!networks.length && <option>Loading networks…</option>}
@@ -179,13 +179,13 @@ export const SendTokenForm = () => {
         <input id="recipientIdentifier" className={field} value={recipientIdentifier} onChange={event => change('recipientIdentifier', event.target.value)} placeholder="Phone, email or wallet address" autoComplete="off" autoCapitalize="none" spellCheck={false} maxLength={254} required aria-describedby="recipient-help" />
         <p id="recipient-help" className="mt-2 text-xs leading-5 text-white/40">Use a NexusPay phone or email, or an address on {network?.name || 'this network'}.</p>
       </div>
-      <div className="rounded-2xl border border-white/20 bg-transparent p-4 sm:p-5 focus-within:border-[#0795B0]/70">
+      <div className="rounded-2xl border border-white/20 bg-transparent p-4 focus-within:border-[#0795B0]/70">
         <label htmlFor="amount" className="block text-sm font-medium text-white/65">Amount</label>
-        <div className="mt-3 flex items-center gap-3">
-          <input id="amount" type="text" inputMode="decimal" autoComplete="off" className="min-w-0 flex-1 bg-transparent py-1 text-4xl font-medium tracking-tight text-white outline-none placeholder:text-white/20 sm:text-5xl" placeholder="0.00" value={amount} onChange={event => { if (/^\d*\.?\d*$/.test(event.target.value) && event.target.value.length <= 80) change('amount', event.target.value); }} required aria-describedby="available-balance amount-error" aria-invalid={overBalance || (!!amount && amountUnits === null)} />
+        <div className="mt-2 flex items-center gap-3">
+          <input id="amount" type="text" inputMode="decimal" autoComplete="off" className="min-w-0 flex-1 bg-transparent py-1 text-3xl font-medium tracking-tight text-white outline-none placeholder:text-white/20 sm:text-4xl" placeholder="0.00" value={amount} onChange={event => { if (/^\d*\.?\d*$/.test(event.target.value) && event.target.value.length <= 80) change('amount', event.target.value); }} required aria-describedby="available-balance amount-error" aria-invalid={overBalance || (!!amount && amountUnits === null)} />
           <span className="text-base font-medium text-white/60">{tokenType}</span>
         </div>
-        <div className="mt-4 flex items-start justify-between gap-3 border-t border-white/5 pt-3">
+        <div className="mt-3 flex items-start justify-between gap-3 border-t border-white/5 pt-3">
           <div className="min-w-0 text-xs leading-5 text-white/50" id="available-balance" aria-live="polite">
             {wallet.isPending ? 'Checking balance…' : balance === undefined ? 'Balance unavailable' : <>Available <span className="break-all text-white/80">{balance} {tokenType}</span></>}
             <button type="button" aria-label="Refresh available balance" title="Refresh balance" disabled={wallet.isFetching || maxLoading} onClick={() => void wallet.refetch()} className="ml-2 inline-flex align-middle text-white/40 hover:text-[#39BED3] disabled:opacity-40"><RefreshCw size={12} className={wallet.isFetching ? 'animate-spin' : ''} /></button>

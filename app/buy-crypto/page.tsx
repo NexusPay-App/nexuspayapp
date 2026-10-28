@@ -9,16 +9,16 @@ export default function BuyCryptoPage() {
   return (
     <main className="min-h-dvh bg-gradient-to-br from-[#102729] to-[#0D1718] text-white">
       <AppHeader />
-      <div className="w-full px-4 pt-6 pb-16 sm:px-5 sm:pt-8">
+      <div className="mx-auto w-full max-w-[112rem] px-4 py-5 sm:px-6 sm:py-8 md:w-[92%] lg:w-[86%] lg:px-8 2xl:w-[82%]">
         <Link
           href="/home"
-          className="mb-7 inline-flex items-center gap-2 text-sm text-white/55 transition hover:text-white"
+          className="mb-5 inline-flex items-center gap-2 text-sm text-white/55 transition hover:text-white"
         >
           <ArrowLeft size={16} />
           Wallet
         </Link>
-        <div className="mb-6">
-          <h1 className="text-3xl font-semibold tracking-tight text-white">Buy crypto</h1>
+        <div className="mb-5">
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl text-white">Buy crypto</h1>
         </div>
         <RampForm mode="buy" />
       </div>

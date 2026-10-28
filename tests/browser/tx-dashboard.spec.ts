@@ -26,26 +26,18 @@ const incomingFailed = {
   createdAt: '2026-10-12T09:00:00.000Z',
 };
 
-const arbitrumRow = {
-  id: 'tx-legacy-1',
-  network: 'arbitrum',
-  token: 'USDT',
-  amount: '4',
-  direction: 'outgoing',
-  status: 'completed',
-  type: 'token_transfer',
-  txHash: '0xdef',
-  explorerUrl: 'https://arbiscan.io/tx/0xdef',
-  createdAt: '2026-10-20T09:00:00.000Z',
-};
-
 async function serveFeed(page: Page) {
   const searches: string[] = [];
   await page.route('**/api/public/transactions*', async route => {
     const url = new URL(route.request().url());
     searches.push(url.search);
     const network = url.searchParams.get('network');
-    const rows = network === 'arbitrum' ? [arbitrumRow] : [outgoing, incomingFailed];
+    const rows =
+      network === 'botchain'
+        ? [outgoing]
+        : network === 'botchain-testnet'
+          ? [incomingFailed]
+          : [outgoing, incomingFailed];
     await route.fulfill({
       json: { success: true, data: { transactions: rows, summary: { total: rows.length, returned: rows.length, network: network || 'all' } } },
     });
@@ -53,13 +45,14 @@ async function serveFeed(page: Page) {
   return searches;
 }
 
-test('shows the public feed without a password and labels direction', async ({ page }) => {
+test('shows the public BOT feed without a password and labels direction', async ({ page }) => {
   // Deliberately no token, no localStorage session: the dashboard must work logged out.
   const searches = await serveFeed(page);
   await page.goto('/tx-dashboard', { waitUntil: 'domcontentloaded' });
 
   await expect(page.getByRole('heading', { name: 'NexusPay transactions' })).toBeVisible();
   await expect(page).toHaveURL(/\/tx-dashboard$/);
+  await expect(page.getByText(/BOT Chain mainnet and testnet/)).toBeVisible();
 
   const feed = page.getByRole('region', { name: 'Public transaction feed' });
   await expect(feed.getByText('Sent', { exact: true })).toBeVisible();
@@ -72,10 +65,14 @@ test('shows the public feed without a password and labels direction', async ({ p
     page.getByRole('link', { name: 'View transaction on explorer' }),
   ).toHaveAttribute('href', 'https://scan.botchain.ai/tx/0xabc');
 
-  await page.getByRole('button', { name: 'Arbitrum', exact: true }).click();
-  await expect.poll(() => searches.some(search => search.includes('network=arbitrum'))).toBe(true);
-  await expect(feed.getByText('-4 USDT', { exact: true })).toBeVisible();
-  await expect(feed.getByText('BOT Chain', { exact: true })).toHaveCount(0);
+  // Only BOT filters are offered — other chains are not queried from this page.
+  await expect(page.getByRole('button', { name: 'Arbitrum', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Base', exact: true })).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'BOT Chain', exact: true }).click();
+  await expect.poll(() => searches.some(search => search.includes('network=botchain'))).toBe(true);
+  await expect(feed.getByText('-0.5 USDT', { exact: true })).toBeVisible();
+  await expect(feed.getByText('+0.02 BOT', { exact: true })).toHaveCount(0);
 });
 
 test('keeps the feed fresh with automatic polling and a manual refresh', async ({ page }) => {

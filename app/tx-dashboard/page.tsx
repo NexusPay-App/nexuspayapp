@@ -8,8 +8,10 @@ import { getApiBaseUrl } from "@/lib/config";
  * Public transaction dashboard, intended for tx-dashboard.nexuspayapp.xyz.
  *
  * Password-free and read-only: it calls the unauthenticated /api/public/transactions
- * feed, which returns public-safe fields only (never addresses, phones, emails or
- * account identities) and is rate limited on the backend.
+ * feed, which is BOT Chain–only (mainnet + testnet). Other-chain ledgers are not
+ * queried here — they remain on authenticated history routes. The feed returns
+ * public-safe fields only (never addresses, phones, emails or account identities)
+ * and is rate limited on the backend.
  */
 
 const REFRESH_MS = 15_000;
@@ -27,12 +29,10 @@ interface PublicTransaction {
   createdAt: string;
 }
 
-const NETWORK_FILTERS = [
-  { value: "all", label: "All networks" },
+const NETWORK_FILTERS: { value: string; label: string }[] = [
+  { value: "all", label: "All BOT networks" },
   { value: "botchain", label: "BOT Chain" },
   { value: "botchain-testnet", label: "BOT Chain Testnet" },
-  { value: "arbitrum", label: "Arbitrum" },
-  { value: "base", label: "Base" },
 ];
 
 function networkName(chain: string) {
@@ -40,9 +40,6 @@ function networkName(chain: string) {
     {
       "botchain-testnet": "BOT Chain Testnet",
       botchain: "BOT Chain",
-      arbitrum: "Arbitrum",
-      base: "Base",
-      stellar: "Stellar",
     } as Record<string, string>
   )[chain] || chain;
 }
@@ -123,7 +120,7 @@ export default function TxDashboard() {
           <div className="min-w-0">
             <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">NexusPay transactions</h1>
             <p className="mt-1 max-w-2xl text-sm text-white/55">
-              Public, read-only feed of NexusPay payments across every supported network. No account or
+              Public, read-only feed of NexusPay payments on BOT Chain mainnet and testnet. No account or
               password required.
             </p>
           </div>

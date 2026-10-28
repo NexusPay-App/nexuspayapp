@@ -19,7 +19,7 @@ function message(error: unknown): string {
   return failure.response?.data?.error?.message || failure.response?.data?.message || failure.message || 'Unable to complete this request. Please try again.';
 }
 
-const field = 'w-full rounded-xl border border-white/10 bg-[#141E20] px-4 py-3.5 text-sm text-white outline-none transition focus:border-[#39BED3] focus:ring-2 focus:ring-[#0795B0]/20 disabled:opacity-50';
+const field = 'w-full rounded-xl border border-white/20 bg-transparent [color-scheme:dark] [&>option]:bg-[#0D1718] px-4 py-3.5 text-sm text-white outline-none transition focus:border-[#39BED3] focus:ring-2 focus:ring-[#0795B0]/20 disabled:opacity-50';
 const primary = 'flex w-full items-center justify-center gap-2 rounded-xl bg-[#0795B0] px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-[#06849C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#39BED3] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0E1617] disabled:cursor-not-allowed disabled:opacity-40';
 
 export const SendTokenForm = () => {
@@ -143,7 +143,7 @@ export const SendTokenForm = () => {
     const status = payment.botStatus || payment.transaction?.status;
     const confirmed = status === 'confirmed' || status === 'success' || status === 'completed';
     const failed = status === 'failed';
-    return <section className="rounded-3xl border border-white/10 bg-[#0E1617] p-6 sm:p-8" aria-live="polite">
+    return <section className="w-full text-white" aria-live="polite">
       <div className={`mb-6 flex h-12 w-12 items-center justify-center rounded-full ${failed ? 'bg-red-400/10 text-red-300' : 'bg-[#0795B0]/15 text-[#39BED3]'}`}>
         {confirmed ? <Check size={24} /> : failed ? <span className="text-2xl">×</span> : <Loader2 className="animate-spin" size={24} />}
       </div>
@@ -159,7 +159,7 @@ export const SendTokenForm = () => {
     </section>;
   }
 
-  return <section className="rounded-3xl border border-white/10 bg-[#0E1617] p-5 shadow-xl shadow-black/10 sm:p-8">
+  return <section className="w-full text-white">
     <form onSubmit={openReview} className="space-y-6">
       <div className="grid grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] gap-3">
         <div><label htmlFor="chain" className="mb-2 block text-xs font-medium text-white/55">Network</label>
@@ -179,7 +179,7 @@ export const SendTokenForm = () => {
         <input id="recipientIdentifier" className={field} value={recipientIdentifier} onChange={event => change('recipientIdentifier', event.target.value)} placeholder="Phone, email or wallet address" autoComplete="off" autoCapitalize="none" spellCheck={false} maxLength={254} required aria-describedby="recipient-help" />
         <p id="recipient-help" className="mt-2 text-xs leading-5 text-white/40">Use a NexusPay phone or email, or an address on {network?.name || 'this network'}.</p>
       </div>
-      <div className="rounded-2xl border border-white/10 bg-[#101B1D] p-4 sm:p-5 focus-within:border-[#0795B0]/70">
+      <div className="rounded-2xl border border-white/20 bg-transparent p-4 sm:p-5 focus-within:border-[#0795B0]/70">
         <label htmlFor="amount" className="block text-sm font-medium text-white/65">Amount</label>
         <div className="mt-3 flex items-center gap-3">
           <input id="amount" type="text" inputMode="decimal" autoComplete="off" className="min-w-0 flex-1 bg-transparent py-1 text-4xl font-medium tracking-tight text-white outline-none placeholder:text-white/20 sm:text-5xl" placeholder="0.00" value={amount} onChange={event => { if (/^\d*\.?\d*$/.test(event.target.value) && event.target.value.length <= 80) change('amount', event.target.value); }} required aria-describedby="available-balance amount-error" aria-invalid={overBalance || (!!amount && amountUnits === null)} />
@@ -202,7 +202,7 @@ export const SendTokenForm = () => {
       <button type="submit" className={primary} disabled={!canReview}>Review payment <ArrowRight size={16} /></button>
     </form>
     <Dialog open={review} onOpenChange={open => { if (!sending.current) { setReview(open); setPasswordVisible(false); setPassword(''); setError(''); } }}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto rounded-2xl border-white/10 bg-[#0E1617] p-6 text-white sm:p-7">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto rounded-2xl border-white/10 bg-gradient-to-br from-[#102729] to-[#0D1718] p-6 text-white sm:p-7">
         <DialogTitle className="text-xl">Review payment</DialogTitle>
         <DialogDescription className="text-sm text-white/50">Check the recipient and network before confirming.</DialogDescription>
         <div className="my-3"><p className="break-all text-3xl font-semibold tracking-tight">{amount} <span className="text-lg text-white/45">{tokenType}</span></p></div>

@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/dialog";
 
 const field =
-  "w-full rounded-xl border border-white/10 bg-[#141E20] px-4 py-3.5 text-sm text-white outline-none focus:border-[#39BED3] focus:ring-2 focus:ring-[#0795B0]/20 disabled:opacity-50";
+  "w-full rounded-xl border border-white/20 bg-transparent [color-scheme:dark] [&>option]:bg-[#0D1718] px-4 py-3.5 text-sm text-white outline-none focus:border-[#39BED3] focus:ring-2 focus:ring-[#0795B0]/20 disabled:opacity-50";
 const primary =
   "flex w-full items-center justify-center gap-2 rounded-xl bg-[#0795B0] px-5 py-3.5 text-sm font-semibold text-white hover:bg-[#06849C] disabled:cursor-not-allowed disabled:opacity-40";
 const message = (error: any) =>
@@ -219,7 +219,7 @@ export function PayMerchantForm({
       : payMerchantData.success;
     const failed = payment?.status === "failed";
     return (
-      <div className="rounded-2xl border border-white/10 bg-[#0E1617] p-6 text-white sm:p-8">
+      <div className="w-full text-white">
         <div className="mb-5 flex size-12 items-center justify-center rounded-full bg-[#0795B0]/15 text-[#39BED3]">
           {confirmed ? <Check /> : <Clock3 />}
         </div>
@@ -274,7 +274,7 @@ export function PayMerchantForm({
     );
   }
   return (
-    <section className="rounded-2xl border border-white/10 bg-[#0E1617] p-6 text-white sm:p-8">
+    <section className="w-full text-white">
       <h2 className="text-xl font-semibold">Pay a business</h2>
       <p className="mb-6 mt-2 text-sm text-white/50">
         Enter a merchant ID. You’ll see the business name before paying.
@@ -400,7 +400,7 @@ export function PayMerchantForm({
           }
         }}
       >
-        <DialogContent className="max-h-[90dvh] overflow-y-auto rounded-2xl border-white/10 bg-[#0E1617] p-6 text-white">
+        <DialogContent className="max-h-[90dvh] overflow-y-auto rounded-2xl border-white/10 bg-gradient-to-br from-[#102729] to-[#0D1718] p-6 text-white">
           <DialogTitle>Review payment</DialogTitle>
           <DialogDescription className="text-white/50">
             Check the business and amount before confirming.

@@ -20,7 +20,7 @@ import { amountUnits } from "@/lib/amounts";
 import api from "@/lib/api";
 
 const field =
-  "w-full rounded-xl border border-white/10 bg-[#141E20] px-4 py-3.5 text-sm text-white outline-none focus:border-[#39BED3] focus:ring-2 focus:ring-[#0795B0]/20 disabled:opacity-50";
+  "w-full rounded-xl border border-white/20 bg-transparent [color-scheme:dark] [&>option]:bg-[#0D1718] px-4 py-3.5 text-sm text-white outline-none focus:border-[#39BED3] focus:ring-2 focus:ring-[#0795B0]/20 disabled:opacity-50";
 const primary =
   "flex w-full items-center justify-center gap-2 rounded-xl bg-[#0795B0] px-5 py-3.5 text-sm font-semibold text-white hover:bg-[#06849C] disabled:cursor-not-allowed disabled:opacity-40";
 const message = (error: any) =>
@@ -254,7 +254,7 @@ export function RampForm({ mode }: { mode: RampMode }) {
   }
   if (payment || uncertain)
     return (
-      <section className="rounded-2xl border border-white/10 bg-[#0E1617] p-6 text-white sm:p-8">
+      <section className="w-full text-white">
         <div className="mb-5 flex size-12 items-center justify-center rounded-full bg-[#0795B0]/15 text-[#39BED3]">
           {completed ? <Check /> : <Clock3 />}
         </div>
@@ -282,7 +282,7 @@ export function RampForm({ mode }: { mode: RampMode }) {
                   ? "Enter your M-Pesa PIN on your phone. We’ll update this screen when your stablecoins arrive."
                   : "Your request is being processed. Keep this reference until the recipient has received the payment."}
         </p>
-        <div className="my-6 rounded-xl bg-white/[0.04] p-4">
+        <div className="my-6 border-y border-white/10 py-4">
           <p className="text-xs text-white/40">Payment reference</p>
           <p className="mt-1 break-all font-mono text-xs text-white/75">
             {payment?.transactionId || requestKey.current}
@@ -332,7 +332,7 @@ export function RampForm({ mode }: { mode: RampMode }) {
       </section>
     );
   return (
-    <section className="rounded-2xl border border-white/10 bg-[#0E1617] p-6 text-white sm:p-8">
+    <section className="w-full text-white">
       <div className="mb-6">
         <div className="mb-4 flex size-10 items-center justify-center rounded-xl bg-[#0795B0]/15 text-[#39BED3]">
           {mode === "buy" ? (
@@ -355,7 +355,7 @@ export function RampForm({ mode }: { mode: RampMode }) {
       {!enabled && (
         <div
           role="status"
-          className="mb-5 rounded-xl border border-white/10 bg-white/[0.04] p-4 text-sm leading-6 text-white/65"
+          className="mb-5 border-l-2 border-[#39BED3]/50 pl-4 text-sm leading-6 text-white/65"
         >
           {capabilities.isPending
             ? "Checking M-Pesa availability…"
@@ -379,7 +379,7 @@ export function RampForm({ mode }: { mode: RampMode }) {
       )}
       {review ? (
         <form onSubmit={submit} className="space-y-5">
-          <dl className="space-y-4 rounded-xl bg-white/[0.03] p-4 text-sm">
+          <dl className="space-y-4 border-y border-white/10 py-5 text-sm">
             <div className="flex justify-between gap-4">
               <dt className="text-white/45">
                 {mode === "buy" ? "You pay" : "You send"}
@@ -528,14 +528,14 @@ export function RampForm({ mode }: { mode: RampMode }) {
         >
           {mode === "bills" && (
             <>
-              <div className="grid grid-cols-2 gap-2 rounded-xl bg-black/20 p-1">
+              <div className="grid grid-cols-2 gap-2 border-b border-white/10">
                 {["till", "paybill"].map((type) => (
                   <button
                     key={type}
                     type="button"
                     aria-pressed={targetType === type}
                     onClick={() => setTargetType(type)}
-                    className={`rounded-lg px-4 py-2.5 text-sm ${targetType === type ? "bg-[#0795B0] text-white" : "text-white/55"}`}
+                    className={`border-b-2 px-4 py-2.5 text-sm transition ${targetType === type ? "border-[#39BED3] text-white" : "border-transparent text-white/55 hover:text-white"}`}
                   >
                     {type === "till" ? "Buy goods · Till" : "Paybill"}
                   </button>

@@ -10,6 +10,7 @@ import {
   ScanLine,
 } from "lucide-react";
 import { PayMerchantForm } from "@/components/crypto/PayMerchantForm";
+import AppHeader from "@/components/layout/AppHeader";
 import { RampForm } from "@/components/mpesa/RampForm";
 import { QRCodeScanner } from "@/components/crypto/QRCodeScanner";
 
@@ -22,12 +23,13 @@ export default function PayPage() {
     { id: "withdraw" as const, label: "Withdraw", icon: ArrowUpRight },
   ];
   return (
-    <main className="min-h-[80dvh] bg-[#0A0E0E] py-6 sm:py-10">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <div className="mb-6 flex items-center justify-between">
+    <main className="min-h-dvh bg-gradient-to-br from-[#102729] to-[#0D1718] text-white">
+      <AppHeader />
+      <div className="w-full px-4 pt-6 pb-16 sm:px-5 sm:pt-8">
+        <div className="mb-7 flex items-center justify-between">
           <Link
             href="/home"
-            className="inline-flex items-center gap-2 text-sm text-white/55 hover:text-white"
+            className="inline-flex items-center gap-2 text-sm text-white/55 transition hover:text-white"
           >
             <ArrowLeft size={16} />
             Wallet
@@ -47,7 +49,7 @@ export default function PayPage() {
           Pay a business or move money to M-Pesa.
         </p>
         <div
-          className="mb-5 grid grid-cols-3 gap-1 rounded-2xl border border-white/10 bg-[#0E1617] p-1"
+          className="mb-6 grid grid-cols-3 gap-1 border-b border-white/10"
           role="group"
           aria-label="Payment type"
         >
@@ -57,7 +59,7 @@ export default function PayPage() {
               type="button"
               aria-pressed={tab === id}
               onClick={() => setTab(id)}
-              className={`flex flex-col items-center gap-2 rounded-xl px-2 py-3 text-xs font-medium transition sm:flex-row sm:justify-center ${tab === id ? "bg-[#0795B0] text-white" : "text-white/50 hover:bg-white/5 hover:text-white"}`}
+              className={`flex flex-col items-center gap-2 border-b-2 px-2 py-3 text-xs font-medium transition sm:flex-row sm:justify-center ${tab === id ? "border-[#39BED3] text-white" : "border-transparent text-white/50 hover:text-white"}`}
             >
               <Icon size={17} />
               {label}

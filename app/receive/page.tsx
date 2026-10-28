@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Copy } from "@phosphor-icons/react";
+import { ArrowLeft, Copy } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { useAuth } from "@/context/AuthContext";
 import { useWallet } from "@/context/WalletContext";
 import { useChain } from "@/context/ChainContext";
 import AuthGuard from "@/components/auth/AuthGuard";
+import AppHeader from "@/components/layout/AppHeader";
 import { botAPI } from "@/lib/botchain";
 import toast from "react-hot-toast";
 
@@ -99,18 +100,20 @@ export default function Receive() {
 
   return (
     <AuthGuard>
-      <section className="home-background min-h-screen py-6 text-white">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <header className="mb-8 flex items-center gap-4">
-            <Link
-              href="/home"
-              aria-label="Back to wallet"
-              className="rounded-lg p-2 hover:bg-white/5"
-            >
-              <ArrowLeft size={24} />
-            </Link>
-            <h1 className="text-xl font-semibold">Receive crypto</h1>
-          </header>
+      <main className="min-h-dvh bg-gradient-to-br from-[#102729] to-[#0D1718] text-white">
+        <AppHeader />
+        <div className="w-full px-4 pt-6 pb-16 sm:px-5 sm:pt-8">
+          <Link
+            href="/home"
+            aria-label="Back to wallet"
+            className="mb-7 inline-flex items-center gap-2 text-sm text-white/55 transition hover:text-white"
+          >
+            <ArrowLeft size={16} />
+            Wallet
+          </Link>
+          <div className="mb-6">
+            <h1 className="text-3xl font-semibold tracking-tight">Receive crypto</h1>
+          </div>
           <label
             htmlFor="receive-network"
             className="mb-2 block text-sm text-gray-300"
@@ -121,7 +124,7 @@ export default function Receive() {
             id="receive-network"
             value={selected.id}
             onChange={(event) => setChain(event.target.value)}
-            className="mb-6 w-full rounded-xl border border-[#0795B0] bg-[#0A0E0E] p-3 text-white"
+            className="mb-6 w-full rounded-xl border border-white/20 bg-transparent [color-scheme:dark] [&>option]:bg-[#0D1718] px-4 py-3.5 text-sm text-white outline-none focus:border-[#39BED3] focus:ring-2 focus:ring-[#0795B0]/20"
           >
             {networks.map((network) => (
               <option key={network.id} value={network.id}>
@@ -129,7 +132,7 @@ export default function Receive() {
               </option>
             ))}
           </select>
-          <div className="rounded-2xl border border-[#0795B0]/40 bg-[#0A0E0E] p-5 text-center">
+          <div className="w-full text-center">
             <h2 className="mb-2 text-lg font-medium">
               Your {selected.name} address
             </h2>
@@ -147,7 +150,7 @@ export default function Receive() {
                   />
                 </div>
                 <p
-                  className="mt-5 break-all rounded-lg bg-white/5 p-3 text-left font-mono text-sm"
+                  className="mt-5 break-all rounded-xl border border-white/20 p-3 text-left font-mono text-sm"
                   data-testid="receive-address"
                 >
                   {address}
@@ -211,7 +214,7 @@ export default function Receive() {
             </div>
           )}
         </div>
-      </section>
+      </main>
     </AuthGuard>
   );
 }

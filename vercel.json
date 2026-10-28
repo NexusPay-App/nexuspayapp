@@ -12,10 +12,12 @@
   "git": {
     "deploymentEnabled": {
       "main": true,
-      "v2": true
+      "v2": true,
+      "feat/modernize-botchain": true
     }
   },
   "github": {
-    "autoAlias": true
+    "autoAlias": true,
+    "silent": true
   }
 }

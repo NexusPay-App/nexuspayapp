@@ -210,12 +210,12 @@ const Signup = () => {
               .required("Phone Number is Required"),
             password: Yup.string()
               .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, "Include an uppercase letter, a lowercase letter, and a number")
-              .max(20, "Must be 20 characters or less")
-              .min(8, "Use at least 8 characters")
+              .max(72, "Must be 72 characters or less")
+              .min(12, "Use at least 12 characters")
               .required("Password is Required"),
             confirmPassword: Yup.string()
-              .max(20, "Must be 20 characters or less")
-              .min(8, "Use at least 8 characters")
+              .max(72, "Must be 72 characters or less")
+              .min(12, "Use at least 12 characters")
               .oneOf([Yup.ref("password"), undefined], "Passwords must match")
               .required("Confirm Password is Required"),
           })}

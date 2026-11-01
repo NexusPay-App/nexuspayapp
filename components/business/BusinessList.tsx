@@ -82,10 +82,10 @@ export const BusinessList: React.FC<BusinessListProps> = ({
       console.log('Testing API call directly...');
       
       // Test the API call directly
-      const response = await fetch('http://localhost:8000/api/business/my-businesses', {
+      const response = await fetch('/api/business/my-businesses', {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('nexuspay_token')?.replace(/"/g, '')}`,
+          'X-NexusPay-Request': '1',
           'Content-Type': 'application/json'
         }
       });

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { authAPI, tokenUtils, userUtils, User } from "../lib/auth";
+import { authAPI, userUtils, User } from "../lib/auth";
 import toast from "react-hot-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { clearLegacyBalanceStorage } from "@/lib/balanceCache";
@@ -49,73 +49,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Initialize auth state on mount
   useEffect(() => {
-    const initializeAuth = () => {
-      try {
-        if (userUtils.isAuthenticated()) {
-          const userData = userUtils.getUser();
-          setUser(userData);
-        }
-      } catch (error) {
-        console.error("Auth initialization error:");
-        // Clear invalid data
-        tokenUtils.removeToken();
-        userUtils.removeUser();
-      } finally {
-        setLoading(false);
+    let active = true;
+    authUtils.clearAuth();
+    authAPI.getMe().then(response => {
+      if (active && response.success && response.data?.user) {
+        userUtils.setUser(response.data.user);
+        setUser(response.data.user);
       }
-    };
-
-    initializeAuth();
+    }).catch(() => { userUtils.removeUser(); }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, []);
 
-  // Helper function to handle successful authentication
-  const handleAuthSuccess = (response: any) => {
-    console.log("Processing auth success with response:");
-    
-    // Extract token from multiple possible locations
-    const token = (response as any)?.data?.token || 
-                 (response as any)?.token || 
-                 (response as any)?.data?.data?.token ||
-                 (response as any)?.data?.accessToken ||
-                 (response as any)?.accessToken;
-    
-    if (token) {
-      // Extract user data from response
-      const responseData = (response as any).data || response;
-      const userFromResponse = (responseData as any).user || responseData;
-      
-      const userData: User = {
-        id: userFromResponse?.id || userFromResponse?._id || responseData?.userId,
-        name: userFromResponse?.name || responseData?.name,
-        email: (responseData as any).email || userFromResponse?.email || '',
-        phoneNumber: (responseData as any).phoneNumber || userFromResponse?.phoneNumber || '',
-        arbitrumWallet: (responseData as any).arbitrumWallet || userFromResponse?.arbitrumWallet || (responseData as any).walletAddress || (responseData as any).wallets?.evm || '',
-        celoWallet: (responseData as any).celoWallet || userFromResponse?.celoWallet || (responseData as any).walletAddress || (responseData as any).wallets?.evm || '',
-        walletAddress: (responseData as any).walletAddress || (responseData as any).arbitrumWallet || userFromResponse?.arbitrumWallet || (responseData as any).wallets?.evm || '', // fallback for compatibility
-        stellarAccountId: (responseData as any).stellarAccountId || (responseData as any).wallets?.stellar || '',
-        token,
-      };
-      
-      
-      queryClient.clear();
-      clearLegacyBalanceStorage();
-      tokenUtils.setToken(token);
-      userUtils.setUser(userData);
-      setUser(userData);
-      
-      // Preload balance data in background for faster loading (temporarily disabled)
-      // preloadBalanceAfterLogin().catch(error => {
-      //   console.error('Failed to preload balance after login:', error);
-      // });
-      
-      toast.success((response as any).message || 'Authentication successful');
-      return userData;
-    } else {
-      console.error("No token found in response:");
-      throw new Error("Authentication failed - no token received");
-    }
+  const handleAuthSuccess = async (response: any) => {
+    if (!response.data?.sessionActive) throw new Error('Sign-in did not establish a session');
+    const profile = await authAPI.getMe();
+    const userData: User = profile.data.user;
+    if (!profile.success || !userData?.id) throw new Error('Session could not be verified');
+    queryClient.clear();
+    clearLegacyBalanceStorage();
+    userUtils.setUser(userData);
+    setUser(userData);
+    toast.success(response.message || 'Signed in');
+    return userData;
   };
 
   // Registration (using initiate for backward compatibility)
@@ -141,7 +97,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const completeRegistration = async (data: any) => {
     const response = await authAPI.register(data);
-    if (!response.success || !response.data?.token) throw new Error(response.message || 'Registration did not complete');
+    if (!response.success || !response.data?.sessionActive) throw new Error(response.message || 'Registration did not complete');
     return handleAuthSuccess(response);
   };
 
@@ -151,7 +107,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(true);
       const response = await authAPI.verifyEmail(data);
       
-      if (response.success && response.data.token) {
+      if (response.success && response.data.sessionActive) {
         return handleAuthSuccess(response);
       }
       
@@ -171,7 +127,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(true);
       const response = await authAPI.verifyPhone(data);
       
-      if (response.success && response.data.token) {
+      if (response.success && response.data.sessionActive) {
         return handleAuthSuccess(response);
       }
       
@@ -187,13 +143,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const login = async (data: any) => {
     const response = await authAPI.login(data);
-    if (response.success && response.data?.token) handleAuthSuccess(response);
+    if (response.success && response.data?.sessionActive) await handleAuthSuccess(response);
     return response;
   };
 
   const verifyLogin = async (data: any) => {
     const response = await authAPI.verifyLogin(data);
-    if (!response.success || !response.data?.token) throw new Error('Sign-in could not be verified. Please request a new code.');
+    if (!response.success || !response.data?.sessionActive) throw new Error('Sign-in could not be verified. Please request a new code.');
     return handleAuthSuccess(response);
   };
 
@@ -243,7 +199,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(true);
       const response = await authAPI.googleAuth(data);
       
-      if (response.success && response.data.token) {
+      if (response.success && response.data.sessionActive) {
         return handleAuthSuccess(response);
       }
       
@@ -319,18 +275,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Logout
   const logout = async () => {
     try {
-      // Call logout endpoint to invalidate token on server
       await authAPI.logout();
-    } catch (error) {
-      // Continue with local logout even if server call fails
-      console.error('Server logout failed:', error);
-    } finally {
-      authUtils.clearAuth();
-      clearLegacyBalanceStorage();
-      queryClient.clear();
-      setUser(null);
+      authUtils.clearAuth(); userUtils.removeUser(); clearLegacyBalanceStorage(); queryClient.clear(); setUser(null);
       toast.success('Logged out successfully');
-    }
+    } catch { toast.error('Could not revoke this session. Please retry logout.'); }
   };
 
   const value: AuthContextType = {

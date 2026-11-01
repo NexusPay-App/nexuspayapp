@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint app components context hooks lib",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "jest --runInBand"
+    "test": "jest --runInBand",
+    "check:secrets": "node tools/security-scan.mjs"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "7.3.1",
@@ -22,6 +23,7 @@
     "@radix-ui/react-slot": "1.4.0",
     "@radix-ui/react-toast": "1.2.24",
     "@reclaimprotocol/js-sdk": "5.8.3",
+    "@simplewebauthn/browser": "13.3.0",
     "@tanstack/react-query": "5.104.1",
     "@vercel/queue": "0.10.0",
     "axios": "1.20.0",

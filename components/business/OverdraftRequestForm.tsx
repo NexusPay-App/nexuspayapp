@@ -1,4 +1,5 @@
 "use client";
+import { userUtils } from '@/lib/auth';
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -35,20 +36,20 @@ export const OverdraftRequestForm: React.FC = () => {
 
   const fetchCreditAssessment = async () => {
     try {
-      const token = localStorage.getItem('nexuspay_token');
-      const user = localStorage.getItem('nexuspay_user');
+
+      const user = userUtils.getUser();
       
-      if (!token || !user) {
+      if (!user?.id) {
         router.push('/login');
         return;
       }
 
-      const userData = JSON.parse(user);
-      setBusinessId(userData.id);
+      const userData = user;
+      setBusinessId(user.id);
 
-      const response = await fetch(`${process.env.NODE_ENV === 'production' ? 'https://api.nexuspaydefi.xyz' : 'http://localhost:8000'}/api/business/overdraft/assessment/${userData.id}`, {
+      const response = await fetch(`/api/business/overdraft/assessment/${userData.id}`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'X-NexusPay-Request': '1',
           'Content-Type': 'application/json',
         },
       });
@@ -79,17 +80,11 @@ export const OverdraftRequestForm: React.FC = () => {
     setError(null);
 
     try {
-      const token = localStorage.getItem('nexuspay_token');
-      
-      if (!token) {
-        router.push('/login');
-        return;
-      }
 
-      const response = await fetch(`${process.env.NODE_ENV === 'production' ? 'https://api.nexuspaydefi.xyz' : 'http://localhost:8000'}/api/business/overdraft/request`, {
+      const response = await fetch(`/api/business/overdraft/request`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'X-NexusPay-Request': '1',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({

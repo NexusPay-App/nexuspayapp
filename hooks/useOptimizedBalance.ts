@@ -37,7 +37,7 @@ export const useOptimizedBalance = () => {
   const [chain, setChain] = useState<string | null>(null);
   const owner = user?.walletAddress || user?.email || user?.phoneNumber || '';
   const environment = getApiBaseUrl();
-  const enabled = isAuthenticated && !!owner;
+  const enabled = isAuthenticated && !!user?.walletAddress && user.walletStatus !== "pending";
   const allKey = ['wallet-balance', environment, owner] as const;
   const all = useQuery<WalletBalanceData>({
     queryKey: allKey,

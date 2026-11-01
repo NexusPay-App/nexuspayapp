@@ -1,4 +1,5 @@
 "use client";
+import api from '@/lib/api';
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -9,6 +10,7 @@ interface GoogleSignInProps {
   mode: "login" | "signup" | "continue";
   redirectTo?: "/home" | "/signup/business";
   onSuccess?: () => void;
+  onCredential?: (credential: string) => Promise<void>;
   onError?: (error: string) => void;
 }
 
@@ -23,6 +25,7 @@ export default function GoogleSignIn({
   mode,
   redirectTo,
   onSuccess,
+  onCredential,
   onError,
 }: GoogleSignInProps) {
   const { googleAuth, getGoogleConfig } = useAuth();
@@ -33,6 +36,7 @@ export default function GoogleSignIn({
     googleAuth,
     getGoogleConfig,
     onSuccess,
+    onCredential,
     onError,
     redirectTo,
   });
@@ -46,6 +50,7 @@ export default function GoogleSignIn({
       googleAuth,
       getGoogleConfig,
       onSuccess,
+      onCredential,
       onError,
       redirectTo,
     };
@@ -81,29 +86,38 @@ export default function GoogleSignIn({
         fail("Google sign-in is unavailable. Continue with your phone.");
         return;
       }
+      const nonce = handlers.current.onCredential ? (await api.post('/auth/reauth/google/options', {})).data.data.nonce : undefined;
       initialize = () => {
         if (!active || !window.google?.accounts?.id || !button.current) return;
         clearTimeout(timeout);
         window.google.accounts.id.initialize({
           client_id: clientId,
           auto_select: false,
+          ...(nonce ? { nonce } : {}),
           cancel_on_tap_outside: true,
           callback: async ({ credential }: { credential: string }) => {
             if (!active || busy.current) return;
             busy.current = true;
             setStatus("authenticating");
             try {
+              if (handlers.current.onCredential) {
+                await handlers.current.onCredential(credential);
+                handlers.current.onSuccess?.();
+                setStatus('ready');
+                return;
+              }
               const result = await handlers.current.googleAuth({
                 idToken: credential,
               });
-              if (!result?.token)
+              if (!result?.id)
                 throw new Error(
                   "Google sign-in did not complete. Please try again.",
                 );
               handlers.current.onSuccess?.();
               router.replace(handlers.current.redirectTo || getPostAuthPath());
-            } catch {
-              fail("Google sign-in did not complete. Please try again.");
+            } catch (error) {
+              const detail = (error as { response?: { data?: { message?: string } } }).response?.data?.message;
+              fail(detail || "Google sign-in did not complete. Please try again.");
             } finally {
               busy.current = false;
             }

@@ -1,4 +1,5 @@
 "use client";
+import { PasswordInput } from "@/components/ui/password-input";
 
 import React, { useState, useEffect } from 'react';
 import { useBusiness } from '@/context/BusinessContext';
@@ -338,8 +339,7 @@ export const BusinessPinDialog: React.FC<BusinessPinDialogProps> = ({
           </p>
           <div>
             <label className="block text-sm text-gray-700 mb-2">PIN</label>
-            <input
-              type="password"
+            <PasswordInput visibilityLabel="PIN"
               value={pin}
               onChange={(e) => handlePinInput(e.target.value, setPin)}
               placeholder="123456"
@@ -403,8 +403,7 @@ export const BusinessPinDialog: React.FC<BusinessPinDialogProps> = ({
             </div>
             <div>
               <label className="block text-sm text-gray-700 mb-2">New PIN</label>
-              <input
-                type="password"
+              <PasswordInput visibilityLabel="PIN"
                 value={pin}
                 onChange={(e) => handlePinInput(e.target.value, setPin)}
                 placeholder="123456"
@@ -414,8 +413,7 @@ export const BusinessPinDialog: React.FC<BusinessPinDialogProps> = ({
             </div>
             <div>
               <label className="block text-sm text-gray-700 mb-2">Confirm PIN</label>
-              <input
-                type="password"
+              <PasswordInput visibilityLabel="PIN"
                 value={confirmPin}
                 onChange={(e) => handlePinInput(e.target.value, setConfirmPin)}
                 placeholder="123456"
@@ -443,8 +441,7 @@ export const BusinessPinDialog: React.FC<BusinessPinDialogProps> = ({
           </p>
           <div>
             <label className="block text-sm text-gray-700 mb-2">Current PIN</label>
-            <input
-              type="password"
+            <PasswordInput visibilityLabel="PIN"
               value={oldPin}
               onChange={(e) => handlePinInput(e.target.value, setOldPin)}
               placeholder="123456"
@@ -454,8 +451,7 @@ export const BusinessPinDialog: React.FC<BusinessPinDialogProps> = ({
           </div>
           <div>
             <label className="block text-sm text-gray-700 mb-2">New PIN</label>
-            <input
-              type="password"
+            <PasswordInput visibilityLabel="PIN"
               value={newPin}
               onChange={(e) => handlePinInput(e.target.value, setNewPin)}
               placeholder="123456"
@@ -465,8 +461,7 @@ export const BusinessPinDialog: React.FC<BusinessPinDialogProps> = ({
           </div>
           <div>
             <label className="block text-sm text-gray-700 mb-2">Confirm New PIN</label>
-            <input
-              type="password"
+            <PasswordInput visibilityLabel="PIN"
               value={confirmPin}
               onChange={(e) => handlePinInput(e.target.value, setConfirmPin)}
               placeholder="123456"
@@ -538,8 +533,7 @@ export const BusinessPinDialog: React.FC<BusinessPinDialogProps> = ({
             </div>
             <div>
               <label className="block text-sm text-gray-700 mb-2">New PIN</label>
-              <input
-                type="password"
+              <PasswordInput visibilityLabel="PIN"
                 value={newPin}
                 onChange={(e) => handlePinInput(e.target.value, setNewPin)}
                 placeholder="123456"
@@ -549,8 +543,7 @@ export const BusinessPinDialog: React.FC<BusinessPinDialogProps> = ({
             </div>
             <div>
               <label className="block text-sm text-gray-700 mb-2">Confirm New PIN</label>
-              <input
-                type="password"
+              <PasswordInput visibilityLabel="PIN"
                 value={confirmPin}
                 onChange={(e) => handlePinInput(e.target.value, setConfirmPin)}
                 placeholder="123456"

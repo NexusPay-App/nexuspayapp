@@ -36,7 +36,6 @@ const SettingsPage = () => {
   const [showPhoneLinkDialog, setShowPhoneLinkDialog] = useState(false);
   const [showOTPDialog, setShowOTPDialog] = useState(false);
   const [pendingPhoneNumber, setPendingPhoneNumber] = useState("");
-  const [pendingPassword, setPendingPassword] = useState("");
   const [showGoogleSignIn, setShowGoogleSignIn] = useState(false);
   const api = useAxios();
 
@@ -66,7 +65,7 @@ const SettingsPage = () => {
       loadUserProfile(); // Refresh user profile
     },
     onError: (error: any) => {
-      console.error("Failed to link Google account:", error);
+      console.error("Failed to link Google account:");
       if (error?.response?.status === 409) {
         toast.error("This Google account is already linked to another user");
       } else {
@@ -77,21 +76,21 @@ const SettingsPage = () => {
 
   // Mutation to add phone and password
   const addPhonePasswordMutation = useMutation({
-    mutationFn: async (data: { phoneNumber: string; password: string }) => {
+    mutationFn: async (data: { phoneNumber: string; password: string; currentPassword: string }) => {
       return api.post("auth/settings/add-phone-password", {
         phoneNumber: data.phoneNumber,
-        password: data.password
+        password: data.password,
+        currentPassword: data.currentPassword
       });
     },
     onSuccess: (data, variables) => {
       toast.success("OTP sent to your phone number");
       setPendingPhoneNumber(variables.phoneNumber);
-      setPendingPassword(variables.password);
       setShowPhoneLinkDialog(false);
       setShowOTPDialog(true);
     },
     onError: (error: any) => {
-      console.error("Failed to add phone and password:", error);
+      console.error("Failed to add phone and password:");
       if (error?.response?.status === 409) {
         const msg = error?.response?.data?.message || 'Phone already linked or credentials conflict';
         toast.error(msg);
@@ -117,7 +116,7 @@ const SettingsPage = () => {
       loadUserProfile(); // Refresh user profile
     },
     onError: (error: any) => {
-      console.error("Failed to verify phone and password:", error);
+      console.error("Failed to verify phone and password:");
       toast.error("Invalid OTP. Please try again.");
     }
   });
@@ -164,7 +163,7 @@ const SettingsPage = () => {
           cancel_on_tap_outside: true
         });
       } catch (e) {
-        console.error('Failed to initialize GSI on settings page', e);
+        console.error('Failed to initialize GSI on settings page');
       }
     };
     initGsi();
@@ -194,7 +193,7 @@ const SettingsPage = () => {
       });
       toast.success("Profile loaded successfully");
     } catch (error) {
-      console.error("Failed to load profile:", error);
+      console.error("Failed to load profile:");
       toast.error("Failed to load profile - using cached data");
       // Fallback to user data
       setUserProfile({
@@ -221,7 +220,7 @@ const SettingsPage = () => {
         toast.success("User ID copied to clipboard!");
         setTimeout(() => setCopied(false), 2000);
       } catch (error) {
-        console.error('Failed to copy user ID:', error);
+        console.error('Failed to copy user ID:');
         toast.error("Failed to copy user ID");
       }
     }
@@ -233,7 +232,7 @@ const SettingsPage = () => {
         await navigator.clipboard.writeText(text);
         toast.success("Copied to clipboard!");
       } catch (error) {
-        console.error('Failed to copy to clipboard:', error);
+        console.error('Failed to copy to clipboard:');
         toast.error("Failed to copy to clipboard");
       }
     }
@@ -286,7 +285,7 @@ const SettingsPage = () => {
         setShowGoogleSignIn(false);
       }
     } catch (error) {
-      console.error("Failed to link Google:", error);
+      console.error("Failed to link Google:");
       toast.error("Failed to link Google account");
       setShowGoogleSignIn(false);
     }
@@ -297,7 +296,7 @@ const SettingsPage = () => {
       setProfileLoading(true);
       setShowPhoneLinkDialog(true);
     } catch (error) {
-      console.error("Failed to link phone:", error);
+      console.error("Failed to link phone:");
       toast.error("Failed to link phone number");
     } finally {
       setProfileLoading(false);
@@ -328,6 +327,7 @@ const SettingsPage = () => {
 
   return (
     <AuthGuard>
+      <a href="/settings/security" className="mx-auto mt-5 block max-w-5xl px-5 text-sm font-medium text-[#0795B0]">Manage passkeys and signed-in devices →</a>
       <section className="home-background min-h-screen">
         {/* Top bar to match app theme */}
         <article className="bg-[#0A0E0E] flex flex-col p-5 xl:px-[200px] border-0 border-b border-[#0795B0]">
@@ -639,13 +639,14 @@ const SettingsPage = () => {
                 phoneNumber: "",
                 password: "",
                 confirmPassword: "",
+                currentPassword: "",
               }}
               validationSchema={Yup.object({
                 phoneNumber: Yup.string()
                   .required("Phone Number is Required"),
                 password: Yup.string()
-                  .min(5, "Password must be at least 5 characters")
-                  .max(20, "Password must be 20 characters or less")
+                  .min(12, "Password must be at least 12 characters")
+                  .max(72, "Password must be 72 characters or less")
                   .required("Password is Required"),
                 confirmPassword: Yup.string()
                   .oneOf([Yup.ref('password')], 'Passwords must match')
@@ -664,12 +665,15 @@ const SettingsPage = () => {
 
                 addPhonePasswordMutation.mutate({
                   phoneNumber: formattedPhoneNumber,
-                  password: values.password
+                  password: values.password,
+                  currentPassword: values.currentPassword
                 });
                 setSubmitting(false);
               }}
             >
               <Form>
+                <PasswordInput label="Current password" name="currentPassword" placeholder="Verify your existing password" />
+                <a href="/settings/security" className="mb-4 block text-sm text-[#0795B0]">Or verify your existing passkey or Google account in Security settings</a>
                 <TextInput
                   label="Phone Number"
                   name="phoneNumber"

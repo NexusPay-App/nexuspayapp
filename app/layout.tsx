@@ -1,3 +1,4 @@
+import PageActivity from '@/components/security/PageActivity';
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
@@ -158,6 +159,7 @@ export default function RootLayout({
         <ReactQueryClientProvider>
           <PWAProvider>
             <AuthProvider>
+            <PageActivity />
               <BusinessProvider>
                 <WalletProvider>
                   <ChainProvider>

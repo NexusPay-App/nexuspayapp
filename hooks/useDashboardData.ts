@@ -142,7 +142,7 @@ interface UseDashboardDataReturn {
   refreshData: () => Promise<void>;
 }
 
-const API_BASE_URL = 'http://localhost:8000/api/dashboard';
+const API_BASE_URL = '/api/dashboard';
 
 export const useDashboardData = (selectedPeriod: '24h' | '7d' | '30d' = '7d'): UseDashboardDataReturn => {
   const [platformStats, setPlatformStats] = useState<PlatformStats | null>(null);

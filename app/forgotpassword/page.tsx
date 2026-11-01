@@ -87,7 +87,7 @@ const ForgotPassword: React.FC = () => {
     },
     onError: (error: any, variables, context) => {
       // Handle errors, e.g., show a message to the user
-      console.error("Failed to request password reset:", error);
+      console.error("Failed to request password reset:");
       
       const errorData = error?.response?.data;
       const errorCode = errorData?.error?.code;
@@ -150,7 +150,7 @@ const ForgotPassword: React.FC = () => {
     },
     onError: (error: any, variables, context) => {
       // Handle errors, e.g., show a message to the user
-      console.error("Failed to reset password:", error);
+      console.error("Failed to reset password:");
       
       const errorData = error?.response?.data;
       const errorCode = errorData?.error?.code;
@@ -272,7 +272,7 @@ const ForgotPassword: React.FC = () => {
               
               // Validate the formatted phone number
               if (!validateE164PhoneNumber(formattedPhoneNumber)) {
-                console.error('Invalid phone number format:', formattedPhoneNumber);
+                console.error('Invalid phone number format:');
                 setErrorMessage("Invalid phone number format. Please enter a valid Kenyan phone number.");
                 setOpenLoading(false);
                 setOpenAccErr(true);
@@ -345,7 +345,7 @@ const ForgotPassword: React.FC = () => {
                     .matches(/^\d{6}$/, "OTP must be 6 digits")
                     .required("OTP is Required"),
                   newPassword: Yup.string()
-                    .min(8, "Password must be at least 8 characters")
+                    .min(12, "Password must be at least 12 characters")
                     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, "Password must contain uppercase, lowercase, and number")
                     .required("Password is Required"),
                   confirmPassword: Yup.string()

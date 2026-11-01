@@ -39,16 +39,10 @@ export const BusinessDashboard: React.FC = () => {
   const fetchBusinessData = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('nexuspay_token');
-      
-      if (!token) {
-        router.push('/login');
-        return;
-      }
 
-      const response = await fetch(`${process.env.NODE_ENV === 'production' ? 'https://api.nexuspaydefi.xyz' : 'http://localhost:8000'}/api/business/details`, {
+      const response = await fetch(`/api/business/details`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'X-NexusPay-Request': '1',
           'Content-Type': 'application/json',
         },
       });

@@ -1,43 +1,38 @@
-import { Eye, EyeSlash } from '@phosphor-icons/react';
-import { useField } from 'formik';
-import React, { useState } from 'react'
+"use client";
+import { useField } from "formik";
+import { PasswordInput as PasswordField } from "@/components/ui/password-input";
+import type { InputHTMLAttributes } from "react";
 
-const PasswordInput = ({ label, ...props }: any) => {
-    const [field, meta] = useField(props);
-    const [passwordVisibility, setPasswordVisibility] = useState("password");
-    return (
-      <article className="my-5">
-        <label htmlFor={props.id || props.name} className="text-white">
-          {label}
-        </label>
-        <div className="flex justify-between bg-white rounded-full py-2 px-6 w-full focus:outline-none ring-offset-[#0CAF60] focus-visible:bg-transparent">
-          <input
-            type={passwordVisibility}
-            {...field}
-            {...props}
-            id=""
-            className="py-1 w-full focus:outline-none bg-transparent"
-          />
-          <button
-            type="button"
-            onClick={() => {
-              passwordVisibility == "password"
-                ? setPasswordVisibility("text")
-                : setPasswordVisibility("password");
-            }}
-          >
-            {passwordVisibility == "password" ? (
-              <EyeSlash size={24} />
-            ) : (
-              <Eye size={24} />
-            )}
-          </button>
-        </div>
-        {meta.touched && meta.error ? (
-          <div className="error text-red-500 text-sm mt-1">{meta.error}</div>
-        ) : null}
-      </article>
-    );
-  };
-
-export default PasswordInput
+type Props = Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & {
+  name: string;
+  label: string;
+};
+export default function PasswordInput({ label, ...props }: Props) {
+  const [field, meta] = useField(props.name);
+  const id = props.id || props.name;
+  return (
+    <article className="my-5">
+      <label htmlFor={id} className="text-white">
+        {label}
+      </label>
+      <div className="mt-2 text-black">
+        <PasswordField
+          {...field}
+          {...props}
+          id={id}
+          visibilityLabel={label.toLowerCase()}
+          aria-invalid={meta.touched && !!meta.error}
+          aria-describedby={
+            meta.touched && meta.error ? `${id}-error` : undefined
+          }
+          className="w-full rounded-full bg-white py-3 pl-6 outline-none focus:ring-2 focus:ring-[#0795B0]"
+        />
+      </div>
+      {meta.touched && meta.error && (
+        <p id={`${id}-error`} className="mt-1 text-sm text-red-400">
+          {meta.error}
+        </p>
+      )}
+    </article>
+  );
+}

@@ -1,4 +1,5 @@
 "use client";
+import { PasswordInput } from "@/components/ui/password-input";
 
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
@@ -32,7 +33,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
         setStep('verify');
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Login error:');
     }
   };
 
@@ -45,11 +46,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
         otp: formData.otp,
       });
       
-      if (response.success && response.token) {
+      if (response?.id) {
         router.push('/dashboard');
       }
     } catch (error) {
-      console.error('Verification error:', error);
+      console.error('Verification error:');
     }
   };
 
@@ -130,8 +131,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
           <label htmlFor="password" className="block text-sm font-medium text-gray-700">
             Password
           </label>
-          <input
-            type="password"
+          <PasswordInput
             id="password"
             name="password"
             value={formData.password}

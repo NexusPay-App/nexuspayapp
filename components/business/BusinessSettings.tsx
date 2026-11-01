@@ -1,4 +1,5 @@
 "use client";
+import { PasswordInput } from "@/components/ui/password-input";
 
 import React, { useState } from 'react';
 import { useBusiness } from '@/context/BusinessContext';
@@ -505,8 +506,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ className = 
                 </div>
                 <div>
                   <label className="block text-sm text-gray-700 mb-2">New PIN</label>
-                  <input
-                    type="password"
+                  <PasswordInput visibilityLabel="PIN"
                     value={pin}
                     onChange={(e) => handlePinInput(e.target.value, setPin)}
                     placeholder="123456"
@@ -516,8 +516,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ className = 
                 </div>
                 <div>
                   <label className="block text-sm text-gray-700 mb-2">Confirm PIN</label>
-                  <input
-                    type="password"
+                  <PasswordInput visibilityLabel="PIN"
                     value={confirmPin}
                     onChange={(e) => handlePinInput(e.target.value, setConfirmPin)}
                     placeholder="123456"
@@ -609,8 +608,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ className = 
                 </div>
                 <div>
                   <label className="block text-sm text-gray-700 mb-2">New PIN</label>
-                  <input
-                    type="password"
+                  <PasswordInput visibilityLabel="PIN"
                     value={newPin}
                     onChange={(e) => handlePinInput(e.target.value, setNewPin)}
                     placeholder="123456"
@@ -620,8 +618,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ className = 
                 </div>
                 <div>
                   <label className="block text-sm text-gray-700 mb-2">Confirm New PIN</label>
-                  <input
-                    type="password"
+                  <PasswordInput visibilityLabel="PIN"
                     value={confirmPin}
                     onChange={(e) => handlePinInput(e.target.value, setConfirmPin)}
                     placeholder="123456"

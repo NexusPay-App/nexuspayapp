@@ -1,5 +1,6 @@
 "use client";
 
+import { AccountSecurityNotice } from "@/components/security/AccountSecurityPanel";
 import PWAInstallButton from "@/components/pwa/PWAInstallButton";
 
 import { NexusMark, UserIcon } from "@/constants/svg";
@@ -51,7 +52,7 @@ import { cryptoConverter } from "@/lib/crypto-converter";
 import { getApiBaseUrl } from "@/lib/config";
 
 const Home = () => {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, loading: authLoading, logout } = useAuth();
   const { 
     currentBusiness, 
     isPinVerified, 
@@ -60,6 +61,7 @@ const Home = () => {
   } = useBusiness();
   const { balance, loading, error, fetchAllBalances } = useOptimizedBalance();
 
+  const walletPending = !user?.walletAddress || user.walletStatus === "pending";
   const [openLogoutDialog, setOpenLogoutDialog] = useState(false); // Opens the Logout Loading Dialog
   const [balanceHidden, setBalanceHidden] = useState(false); // Hides balance amounts
   const [botNetworks, setBotNetworks] = useState<{ id: string; name: string }[]>([]);
@@ -84,11 +86,11 @@ const Home = () => {
 
   useEffect(() => {
     // Check if the user is authenticated using the auth context
-    if (!isAuthenticated) {
+    if (!authLoading && !isAuthenticated) {
       // If not logged in, redirect to the login page
       router.replace("/login");
     }
-  }, [router, isAuthenticated, user, businessAccounts, currentBusiness]);
+  }, [router, isAuthenticated, authLoading]);
 
   const handleSend = () => {
     router.replace("/crypto");
@@ -291,6 +293,7 @@ const Home = () => {
 
       <div className="flex min-h-0 w-full flex-1 flex-col">
           <section aria-label="Wallet balance and actions" className="shrink-0 p-4 sm:p-5">
+            <div className="mb-4"><AccountSecurityNotice /></div>
             <div className="flex items-center justify-between gap-2">
               <span
                 aria-hidden="true"
@@ -298,7 +301,7 @@ const Home = () => {
               >
                 <Wallet size={20} strokeWidth={1.75} />
               </span>
-              <button type="button" onClick={handleRefresh} disabled={loading} aria-label="Refresh balance" className="flex h-10 w-10 items-center justify-center rounded-xl text-white/55 ring-1 ring-white/10 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-40">
+              <button type="button" onClick={handleRefresh} disabled={loading || walletPending} aria-label="Refresh balance" className="flex h-10 w-10 items-center justify-center rounded-xl text-white/55 ring-1 ring-white/10 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-40">
                 <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               </button>
             </div>
@@ -307,7 +310,7 @@ const Home = () => {
             )}
             <div className="mt-3 text-center">
               <h2 className="text-sm font-medium text-white/65">{currentBusiness ? `${currentBusiness.businessName} Balance` : 'Wallet Balance'}</h2>
-              {loading && !getCurrentBalance() ? <BalanceSkeleton /> : error && !getCurrentBalance() ? (
+              {walletPending ? <div className="mt-3"><p className="text-4xl font-semibold text-white/40">—</p><p className="mt-2 text-xs text-white/50">Wallet activation pending · payments unavailable</p></div> : loading && !getCurrentBalance() ? <BalanceSkeleton /> : error && !getCurrentBalance() ? (
                 <BalanceErrorState error={error} onRetry={handleRefresh} />
               ) : getCurrentBalance() ? (
                 <div className="mt-2">
@@ -335,7 +338,7 @@ const Home = () => {
                   { label: 'Pay', icon: CreditCard, action: handlePay },
                   { label: 'Buy', icon: Plus, action: handleBuy },
                 ].map(({ label, icon: Icon, action }) => (
-                  <button key={label} type="button" onClick={action} className={`flex min-h-14 flex-col items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#39BED3] sm:flex-row sm:gap-2 sm:text-sm ${label === 'Send' ? 'bg-[#0795B0] text-white hover:bg-[#06849C]' : 'bg-white/5 text-white/85 hover:bg-white/10'}`}>
+                  <button key={label} type="button" onClick={action} disabled={walletPending} className={`disabled:opacity-40 disabled:cursor-not-allowed flex min-h-14 flex-col items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#39BED3] sm:flex-row sm:gap-2 sm:text-sm ${label === 'Send' ? 'bg-[#0795B0] text-white hover:bg-[#06849C]' : 'bg-white/5 text-white/85 hover:bg-white/10'}`}>
                   <Icon size={19} aria-hidden="true" />
                   {label}
                 </button>
@@ -345,7 +348,7 @@ const Home = () => {
             <div className="mt-5 border-t border-white/10 pt-4 pb-7">
               <h2 className="text-sm font-medium text-white/65">Assets</h2>
               <div className="mt-1 max-h-[176px] overflow-y-auto pr-1">
-                {loading && !getCurrentBalance() ? <p className="py-3 text-xs text-white/50">Loading assets…</p> : error && !getCurrentBalance() ? (
+                {walletPending ? <p className="py-3 text-xs text-white/50">Your assets will appear once your wallet is activated.</p> : loading && !getCurrentBalance() ? <p className="py-3 text-xs text-white/50">Loading assets…</p> : error && !getCurrentBalance() ? (
                   <p className="py-3 text-xs text-white/50">Assets unavailable. Refresh your balance to try again.</p>
                 ) : Object.values(getChainBalances()).every(tokens => Object.keys(tokens).length === 0) ? (
                   <p className="py-3 text-xs text-white/50">No assets yet. Receive crypto to get started.</p>
@@ -373,16 +376,17 @@ const Home = () => {
                   key={label}
                   type="button"
                   onClick={action}
+                  disabled={walletPending}
                   aria-label={label}
                   title={label}
-                  className="flex h-10 w-10 items-center justify-center rounded-full text-[#39BED3] transition-colors hover:bg-[#0795B0]/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#39BED3]"
+                  className="disabled:opacity-40 disabled:cursor-not-allowed flex h-10 w-10 items-center justify-center rounded-full text-[#39BED3] transition-colors hover:bg-[#0795B0]/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#39BED3]"
                 >
                   <Icon size={20} aria-hidden="true" />
                 </button>
               ))}
             </section>
             <div className="min-h-0 flex-1 overflow-y-auto">
-              <RecentTransactions />
+              {walletPending ? <div className="px-4 py-4"><h2 className="text-sm font-medium text-white/65">Recent transactions</h2><p className="mt-4 text-sm text-white/45">No transactions yet.</p></div> : <RecentTransactions />}
             </div>
           </section>
       </div>

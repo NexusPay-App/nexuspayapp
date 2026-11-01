@@ -71,7 +71,7 @@ export interface AuthResponse {
     success: boolean;
     message: string;
     data: {
-        token?: string;
+        sessionActive?: boolean;
         arbitrumWallet?: string;
         celoWallet?: string;
         walletAddress?: string;
@@ -84,6 +84,9 @@ export interface AuthResponse {
 }
 
 export interface User {
+    walletStatus?: 'pending' | 'ready';
+    hasPassword?: boolean;
+    authMethods?: ('phone' | 'email' | 'google')[];
     name?: string;
     id?: string; // User ID for business account creation
     email: string;
@@ -93,7 +96,7 @@ export interface User {
     celoWallet?: string;
     walletAddress?: string;
     stellarAccountId?: string; // Stellar wallet address
-    token: string;
+    token?: never;
 }
 
 // Authentication API functions
@@ -194,54 +197,12 @@ export const authAPI = {
     },
 };
 
-// Token management utilities
-export const tokenUtils = {
-    setToken: (token: string) => {
-        if (typeof window !== 'undefined') localStorage.setItem('nexuspay_token', token);
-    },
-
-    getToken: (): string | null => {
-        return typeof window === 'undefined' ? null : localStorage.getItem('nexuspay_token');
-    },
-
-    removeToken: () => {
-        if (typeof window !== 'undefined') localStorage.removeItem('nexuspay_token');
-    },
-
-    isTokenValid: (): boolean => {
-        const token = tokenUtils.getToken();
-        if (!token) return false;
-
-        try {
-            // Basic JWT validation (check if it's not expired)
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            const currentTime = Date.now() / 1000;
-            return payload.exp > currentTime;
-        } catch {
-            return false;
-        }
-    },
-};
-
-// User data management
+let currentUser: User | null = null;
 export const userUtils = {
-    setUser: (user: User) => {
-        if (typeof window !== 'undefined') localStorage.setItem('nexuspay_user', JSON.stringify(user));
-    },
-
-    getUser: (): User | null => {
-        if (typeof window === 'undefined') return null;
-        const userData = localStorage.getItem('nexuspay_user');
-        return userData ? JSON.parse(userData) : null;
-    },
-
-    removeUser: () => {
-        if (typeof window !== 'undefined') localStorage.removeItem('nexuspay_user');
-    },
-
-    isAuthenticated: (): boolean => {
-        return tokenUtils.isTokenValid() && userUtils.getUser() !== null;
-    },
+    setUser: (user: User) => { currentUser = user; },
+    getUser: (): User | null => currentUser,
+    removeUser: () => { currentUser = null; },
+    isAuthenticated: () => currentUser !== null,
 };
 export function getPostAuthPath(): '/home' | '/signup/business' {
     if (typeof window === 'undefined') return '/home';

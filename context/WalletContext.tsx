@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef } from "react";
 import { walletAPI, WalletDetails, BalanceData, SendTokenData, PayMerchantData, TransferEvent } from "../lib/wallet";
 import { mpesaAPI, DepositData, WithdrawData, PayWithCryptoData } from "../lib/mpesa";
 import { liquidityAPI, LiquidityPosition, ProvideLiquidityData } from "../lib/liquidity";
@@ -76,6 +76,8 @@ const WalletContext = createContext<WalletContextType | null>(null);
 // Provider component
 export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, user } = useAuth();
+  const currentUserId = useRef(user?.id);
+  currentUserId.current = user?.id;
   const [wallet, setWallet] = useState<WalletDetails | null>(null);
   const [balance, setBalance] = useState<BalanceData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -118,86 +120,45 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Initialize wallet data when authenticated
   useEffect(() => {
-    if (isAuthenticated && user) {
-      console.log("User authenticated, attempting to refresh wallets");
+    if (isAuthenticated && user?.walletAddress && user.walletStatus !== "pending") {
       refreshWallet();
-      refreshStellarWallet();
+      if (user.stellarAccountId) refreshStellarWallet();
     } else {
       setWallet(null);
       setStellarWallet(null);
-      console.log("User not authenticated or no user data");
+      setBalance(null);
+      setRefreshing(false);
     }
   }, [isAuthenticated, user]);
 
-  // Refresh wallet data
   const refreshWallet = async () => {
-    if (!isAuthenticated || !user) return;
-    
+    if (!isAuthenticated || !user?.walletAddress || user.walletStatus === "pending") {
+      setWallet(null);
+      setBalance(null);
+      return;
+    }
+    const owner = user.id;
+    setRefreshing(true);
     try {
-      setRefreshing(true);
-      
-      // Get both wallet info and balance data
       const [walletResponse, balanceResponse] = await Promise.allSettled([
-        walletAPI.getReceiveInfo(),
-        walletAPI.getBalance()
+        walletAPI.getReceiveInfo(), walletAPI.getBalance(),
       ]);
-      
-      // Handle wallet info
-      if (walletResponse.status === 'fulfilled' && walletResponse.value.success) {
-        const walletData: WalletDetails = {
-          walletAddress: walletResponse.value.data.walletAddress,
-          phoneNumber: walletResponse.value.data.phoneNumber,
-          email: walletResponse.value.data.email,
-          supportedChains: walletResponse.value.data.supportedChains,
-          note: walletResponse.value.data.note,
-          // Legacy compatibility fields
-          address: walletResponse.value.data.walletAddress,
-          chains: walletResponse.value.data.supportedChains.map(chain => chain.id),
-          totalUsdValue: "0",
-          balances: []
-        };
-        setWallet(walletData);
-        console.log('Wallet data loaded:', walletData);
-      } else if (walletResponse.status === 'rejected') {
-        console.error("Failed to load wallet info:");
-        
-        // Check if it's a 403 error - user might need wallet setup
-        if (walletResponse.reason?.response?.status === 403) {
-          console.log("User needs wallet setup - 403 error on /token/receive");
-          // Don't show error toast, this is expected for new Google users
-        } else {
-          console.error("Unexpected error loading wallet:");
-        }
-      }
-      
-      // Handle balance data
-      if (balanceResponse.status === 'fulfilled' && balanceResponse.value.success) {
-        setBalance(balanceResponse.value.data);
-        console.log("Balance data loaded:");
-      } else if (balanceResponse.status === 'rejected') {
-        console.error("Failed to load balance data:");
-        
-        // Check if it's a 403 error - user might need wallet setup
-        if (balanceResponse.reason?.response?.status === 403) {
-          console.log("User needs wallet setup - 403 error on /token/balance");
-          // Don't show error toast, this is expected for new Google users
-        } else {
-          console.error("Unexpected error loading balance:");
-        }
-      }
-      
-    } catch (error: any) {
-      console.error('Failed to refresh wallet:', error);
-      
-      // Check if it's an authentication error
-      if (error.response?.status === 400 || error.response?.status === 401) {
-        console.log("Authentication issue - user may not have wallet yet");
-        // Don't show error toast for auth issues, just log it
-      } else {
-        toast.error(error.message || 'Failed to load wallet data');
-      }
+      if (currentUserId.current !== owner) return;
+      if (walletResponse.status === "fulfilled" && walletResponse.value.success) {
+        const data = walletResponse.value.data;
+        setWallet({ ...data, address: data.walletAddress, chains: data.supportedChains.map(chain => chain.id), totalUsdValue: "0", balances: [] });
+      } else setWallet(null);
+      if (balanceResponse.status === "fulfilled" && balanceResponse.value.success) setBalance(balanceResponse.value.data);
+      else setBalance(null);
+      const failures = [walletResponse, balanceResponse].filter(result => result.status === "rejected");
+      const unexpected = failures.some(result => {
+        if (result.status !== "rejected") return false;
+        const response = result.reason?.response;
+        return response?.status !== 401 && response?.data?.error?.code !== "WALLET_PROVISIONING_PENDING";
+      });
+      if (unexpected) toast.error("Wallet data is unavailable. Please try again.", { id: "wallet-refresh" });
     } finally {
-      setRefreshing(false);
+      if (currentUserId.current === owner) setRefreshing(false);
     }
   };
 

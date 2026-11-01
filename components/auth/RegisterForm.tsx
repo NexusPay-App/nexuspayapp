@@ -1,4 +1,5 @@
 "use client";
+import { PasswordInput } from "@/components/ui/password-input";
 
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
@@ -46,7 +47,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) =
         }
       }
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error('Registration error:');
     }
   };
 
@@ -59,11 +60,11 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) =
         otp: formData.otp,
       });
 
-      if (response.success && response.token) {
+      if (response?.id) {
         router.push('/dashboard');
       }
     } catch (error) {
-      console.error('Email verification error:', error);
+      console.error('Email verification error:');
     }
   };
 
@@ -76,11 +77,11 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) =
         otp: formData.otp,
       });
 
-      if (response.success && response.token) {
+      if (response?.id) {
         router.push('/dashboard');
       }
     } catch (error) {
-      console.error('Phone verification error:', error);
+      console.error('Phone verification error:');
     }
   };
 
@@ -208,8 +209,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) =
           <label htmlFor="password" className="block text-sm font-medium text-gray-700">
             Password
           </label>
-          <input
-            type="password"
+          <PasswordInput
             id="password"
             name="password"
             value={formData.password}
@@ -224,8 +224,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) =
           <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
             Confirm Password
           </label>
-          <input
-            type="password"
+          <PasswordInput
             id="confirmPassword"
             name="confirmPassword"
             value={formData.confirmPassword}

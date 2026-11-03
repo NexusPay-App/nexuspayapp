@@ -53,12 +53,10 @@ export default function AppHeader() {
   const [openLogoutDialog, setOpenLogoutDialog] = useState(false);
 
   // Logs out the User
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setOpenLogoutDialog(true);
-    logout();
-    setTimeout(() => {
-      router.replace("/");
-    }, 1000);
+    await logout();
+    router.replace("/onboarding");
   };
 
   // Handle settings click

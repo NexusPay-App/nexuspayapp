@@ -37,7 +37,7 @@ export interface AuthContextType {
   getUserProfile: () => Promise<any>;
   
   // Logout
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 // Create context
@@ -274,11 +274,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Logout
   const logout = async () => {
+    let revokeFailed = false;
     try {
       await authAPI.logout();
-      authUtils.clearAuth(); userUtils.removeUser(); clearLegacyBalanceStorage(); queryClient.clear(); setUser(null);
+    } catch {
+      revokeFailed = true;
+    } finally {
+      authUtils.clearAuth();
+      userUtils.removeUser();
+      clearLegacyBalanceStorage();
+      queryClient.clear();
+      setUser(null);
+    }
+    if (revokeFailed) {
+      toast.error('Signed out here, but this session could not be revoked on the server.');
+    } else {
       toast.success('Logged out successfully');
-    } catch { toast.error('Could not revoke this session. Please retry logout.'); }
+    }
   };
 
   const value: AuthContextType = {

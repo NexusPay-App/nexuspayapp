@@ -11,7 +11,7 @@ interface AuthGuardProps {
 
 const AuthGuard: React.FC<AuthGuardProps> = ({ 
   children, 
-  redirectTo = "/login" 
+  redirectTo = "/onboarding"
 }) => {
   const { isAuthenticated, loading, user } = useAuth();
   const router = useRouter();

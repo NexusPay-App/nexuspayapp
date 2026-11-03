@@ -163,7 +163,7 @@ export const authAPI = {
 
     // Logout
     logout: async (): Promise<AuthResponse> => {
-        const response = await apiClient.post('/auth/logout');
+        const response = await apiClient.post('/auth/logout', {}, { timeout: 5000 });
         return response.data;
     },
 

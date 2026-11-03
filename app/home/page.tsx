@@ -87,8 +87,8 @@ const Home = () => {
   useEffect(() => {
     // Check if the user is authenticated using the auth context
     if (!authLoading && !isAuthenticated) {
-      // If not logged in, redirect to the login page
-      router.replace("/login");
+      // Return unauthenticated users to onboarding.
+      router.replace("/onboarding");
     }
   }, [router, isAuthenticated, authLoading]);
 
@@ -109,12 +109,10 @@ const Home = () => {
   };
 
   // Logs out the User
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setOpenLogoutDialog(true);
-    logout();
-    setTimeout(() => {
-      router.replace("/");
-    }, 1000);
+    await logout();
+    router.replace("/onboarding");
   };
 
   // Handle settings click

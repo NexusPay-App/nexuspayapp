@@ -67,6 +67,7 @@ const names: Record<number, string> = {
   677: "BOT Chain",
   8453: "Base",
   42161: "Arbitrum",
+  1: "Ethereum",
 };
 const sources: Record<string, { label: string; description: string }> = {
   server: {
@@ -167,6 +168,22 @@ export default function SecurityDashboard() {
           bootstrapToken: bootstrap,
         });
         setBootstrap("");
+        try {
+          const login = await api.post("/security/login/options", { adminId });
+          const authResponse = await startAuthentication({
+            optionsJSON: login.data.data.options,
+          });
+          const result = await api.post("/security/login/verify", {
+            challengeId: login.data.data.challengeId,
+            response: authResponse,
+          });
+          setAdmin(result.data.data);
+        } catch {
+          setError(
+            "Passkey enrolled successfully. Sign in with “Continue with passkey”.",
+          );
+        }
+        return;
       }
       const { data } = await api.post("/security/login/options", { adminId });
       const response = await startAuthentication({
@@ -178,7 +195,22 @@ export default function SecurityDashboard() {
       });
       setAdmin(result.data.data);
     } catch (e) {
-      setError(message(e));
+      const failure = e as {
+        response?: { status?: number; data?: { message?: string } };
+      };
+      const enrollRejected =
+        enroll &&
+        failure.response?.status === 403 &&
+        (failure.response.data?.message ===
+          "Enrollment authorization invalid or expired." ||
+          !failure.response.data?.message);
+      if (enrollRejected) {
+        setError(
+          "Enrollment code already used or invalid. If you created a passkey, sign in with “Continue with passkey”.",
+        );
+      } else {
+        setError(message(e));
+      }
     } finally {
       setBusy(false);
     }

@@ -175,3 +175,5 @@ jspm_packages/
 /test-results/
 /playwright-report/
 .env*
+
+**/.codebuffignore

@@ -40,6 +40,9 @@ function networkName(chain: string) {
     {
       "botchain-testnet": "BOT Chain Testnet",
       botchain: "BOT Chain",
+      arbitrum: "Arbitrum",
+      base: "Base",
+      ethereum: "Ethereum",
     } as Record<string, string>
   )[chain] || chain;
 }

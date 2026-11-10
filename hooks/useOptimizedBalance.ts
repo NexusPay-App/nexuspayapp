@@ -37,12 +37,12 @@ export const useOptimizedBalance = () => {
   const [chain, setChain] = useState<string | null>(null);
   const owner = user?.walletAddress || user?.email || user?.phoneNumber || '';
   const environment = getApiBaseUrl();
-  const enabled = isAuthenticated && !!user?.walletAddress && user.walletStatus !== "pending";
+  const enabled = isAuthenticated && !!user?.walletAddress;
   const allKey = ['wallet-balance', environment, owner] as const;
   const all = useQuery<WalletBalanceData>({
     queryKey: allKey,
     queryFn: async ({ signal }) => {
-      const response = await api.get('/token/balance', { signal });
+      const response = await api.get('/token/balance', { params: { refresh: true }, signal });
       if (!response.data.success) throw new Error(response.data.message || 'Unable to load balances');
       return response.data.data;
     },

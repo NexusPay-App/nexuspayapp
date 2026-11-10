@@ -11,10 +11,10 @@ import toast from "react-hot-toast";
 import { stellarWalletAPI, StellarBalance } from "../lib/stellar";
 
 // Supported chains and tokens
-// Visible: Arbitrum, Base, Botchain. Others commented, not removed.
+// Visible: Arbitrum, Base, Ethereum, Botchain. Others commented, not removed.
 export const SUPPORTED_CHAINS = [
-  'arbitrum', 'base', 'botchain',
-  // 'celo', 'polygon', 'optimism', 'ethereum',
+  'arbitrum', 'base', 'ethereum', 'botchain',
+  // 'celo', 'polygon', 'optimism',
   // 'bnb', 'avalanche', 'fantom', 'gnosis', 'scroll', 'moonbeam',
   // 'fuse', 'aurora', 'lisk', 'somnia', 'stellar'
 ];
@@ -120,7 +120,7 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Initialize wallet data when authenticated
   useEffect(() => {
-    if (isAuthenticated && user?.walletAddress && user.walletStatus !== "pending") {
+    if (isAuthenticated && user?.walletAddress) {
       refreshWallet();
       if (user.stellarAccountId) refreshStellarWallet();
     } else {
@@ -132,7 +132,7 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
   }, [isAuthenticated, user]);
 
   const refreshWallet = async () => {
-    if (!isAuthenticated || !user?.walletAddress || user.walletStatus === "pending") {
+    if (!isAuthenticated || !user?.walletAddress) {
       setWallet(null);
       setBalance(null);
       return;

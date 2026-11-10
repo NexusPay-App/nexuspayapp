@@ -208,9 +208,9 @@ export const BusinessWithdrawal: React.FC<BusinessWithdrawalProps> = ({ onSucces
               </p>
             </div>
             <div>
-              <p className="text-white/60">Celo</p>
+              <p className="text-white/60">Ethereum</p>
               <p className="text-white font-medium">
-                USDC: {businessBalance.balances.celo?.USDC?.balance?.toFixed(2) || '0.00'}
+                USDC: {businessBalance.balances.ethereum?.USDC?.balance?.toFixed(2) || '0.00'}
               </p>
             </div>
           </div>
@@ -299,9 +299,10 @@ export const BusinessWithdrawal: React.FC<BusinessWithdrawalProps> = ({ onSucces
                   onChange={(e) => setChain(e.target.value)}
                   className="w-full px-3 py-2 bg-[#1A1E1E] border border-[#0795B0] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#0795B0] focus:border-transparent"
                 >
-                  {/* Visible: Arbitrum, Base, Botchain only. Others commented, not removed. */}
+                  {/* Visible: Arbitrum, Base, Ethereum, Botchain only. Others commented, not removed. */}
                   <option value="arbitrum">Arbitrum</option>
                   <option value="base">Base</option>
+                  <option value="ethereum">Ethereum</option>
                   {/* <option value="celo">Celo</option> */}
                   <option value="botchain">BOT Chain</option>
                 </select>
@@ -396,9 +397,10 @@ export const BusinessWithdrawal: React.FC<BusinessWithdrawalProps> = ({ onSucces
                   onChange={(e) => setChain(e.target.value)}
                   className="w-full px-3 py-2 bg-[#1A1E1E] border border-[#0795B0] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#0795B0] focus:border-transparent"
                 >
-                  {/* Visible: Arbitrum, Base, Botchain only. Others commented, not removed. */}
+                  {/* Visible: Arbitrum, Base, Ethereum, Botchain only. Others commented, not removed. */}
                   <option value="arbitrum">Arbitrum</option>
                   <option value="base">Base</option>
+                  <option value="ethereum">Ethereum</option>
                   {/* <option value="celo">Celo</option> */}
                   <option value="botchain">BOT Chain</option>
                 </select>

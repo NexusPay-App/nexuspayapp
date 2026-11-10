@@ -1,12 +1,60 @@
-import api from './api';
-import type { PayMerchantResponse, SendTokenResponse } from './crypto';
-export type BotNetwork = 'botchain' | 'botchain-testnet';
-export type BotToken = 'BOT' | 'USDT';
-export interface BotCapability { id: BotNetwork; name: string; chainId: number; enabled: boolean; transfers: boolean; merchantPayments: boolean; deposits?: boolean; explorer: string; testnet: boolean; tokens?: { symbol: BotToken; decimals: number; address: string | null }[]; }
-export interface BotBalance { network: BotNetwork; address: string; gasMode: string; balances: { symbol: BotToken; decimals: number; balance: string; balanceUnits: string }[]; }
-export interface BotFeeQuote { recipient: string; amount: string; tokenSymbol: BotToken; feeCurrency: string; maxNetworkFee: string; walletFee: string; totalBotDebit: string; expiresAt: string; }
-export interface BotPayment { id: string; network: BotNetwork; sender: string; recipient: string; amount: string; tokenSymbol: BotToken; status: 'preparing' | 'submitted' | 'pending' | 'confirmed' | 'failed' | 'review'; userOpHash?: string; transactionHash?: string; explorerUrl?: string; failureReason?: string; failureCode?: string; createdAt: string; merchantId?: string; direction?: 'outgoing' | 'incoming'; actualNetworkFee?: string; }
-export const BOT_NETWORK_IDS: BotNetwork[] = ['botchain', 'botchain-testnet'];
+import api from "./api";
+import type { PayMerchantResponse, SendTokenResponse } from "./crypto";
+export type BotNetwork = "botchain" | "botchain-testnet";
+export type BotToken = "BOT" | "USDT";
+export interface BotCapability {
+  id: BotNetwork;
+  name: string;
+  chainId: number;
+  enabled: boolean;
+  transfers: boolean;
+  merchantPayments: boolean;
+  deposits?: boolean;
+  explorer: string;
+  testnet: boolean;
+  tokens?: { symbol: BotToken; decimals: number; address: string | null }[];
+}
+export interface BotBalance {
+  network: BotNetwork;
+  address: string;
+  gasMode: string;
+  balances: {
+    symbol: BotToken;
+    decimals: number;
+    balance: string;
+    balanceUnits: string;
+  }[];
+}
+export interface BotFeeQuote {
+  recipient: string;
+  amount: string;
+  tokenSymbol: BotToken;
+  feeCurrency: string;
+  maxNetworkFee: string;
+  walletFee: string;
+  totalBotDebit: string;
+  expiresAt: string;
+}
+export interface BotPayment {
+  id: string;
+  network: BotNetwork;
+  sender: string;
+  recipient: string;
+  amount: string;
+  tokenSymbol: BotToken;
+  status:
+    "preparing" | "submitted" | "pending" | "confirmed" | "failed" | "review";
+  userOpHash?: string;
+  transactionHash?: string;
+  explorerUrl?: string;
+  failureReason?: string;
+  failureCode?: string;
+  createdAt: string;
+  merchantId?: string;
+  direction?: "outgoing" | "incoming";
+  actualNetworkFee?: string;
+}
+export const BOT_NETWORK_IDS: BotNetwork[] = ["botchain", "botchain-testnet"];
 export function isBotNetwork(value: string): value is BotNetwork {
   return (BOT_NETWORK_IDS as string[]).includes(value);
 }
@@ -18,7 +66,10 @@ export function isBotNetwork(value: string): value is BotNetwork {
 // In-memory fallback for environments without sessionStorage (SSR, jest).
 // Scoped by fingerprint, and the backend additionally scopes idempotency by user.
 const memoryKeys = new Map<string, string>();
-export function botRequestKey(scope: 'send' | 'merchant', fingerprint: unknown): string {
+export function botRequestKey(
+  scope: "send" | "merchant",
+  fingerprint: unknown,
+): string {
   const serialized = JSON.stringify(fingerprint);
   const storageKey = `nexuspay_bot_request_${scope}`;
   const memoryKey = `${storageKey}:${serialized}`;
@@ -26,84 +77,197 @@ export function botRequestKey(scope: 'send' | 'merchant', fingerprint: unknown):
   if (existing) return existing;
   const key = (() => {
     try {
-      const previous = JSON.parse(sessionStorage.getItem(storageKey) || 'null');
-      if (previous?.fingerprint === serialized && typeof previous.key === 'string' && previous.key) return previous.key as string;
+      const previous = JSON.parse(sessionStorage.getItem(storageKey) || "null");
+      if (
+        previous?.fingerprint === serialized &&
+        typeof previous.key === "string" &&
+        previous.key
+      )
+        return previous.key as string;
       const fresh = crypto.randomUUID();
-      sessionStorage.setItem(storageKey, JSON.stringify({ fingerprint: serialized, key: fresh }));
+      sessionStorage.setItem(
+        storageKey,
+        JSON.stringify({ fingerprint: serialized, key: fresh }),
+      );
       return fresh;
-    } catch { return crypto.randomUUID(); }
+    } catch {
+      return crypto.randomUUID();
+    }
   })();
   memoryKeys.set(memoryKey, key);
   return key;
 }
-export function clearBotRequest(scope: 'send' | 'merchant'): void {
+export function clearBotRequest(scope: "send" | "merchant"): void {
   const prefix = `nexuspay_bot_request_${scope}:`;
-  for (const memoryKey of [...memoryKeys.keys()]) if (memoryKey.startsWith(prefix)) memoryKeys.delete(memoryKey);
-  try { sessionStorage.removeItem(`nexuspay_bot_request_${scope}`); } catch { /* Storage unavailable. */ }
+  for (const memoryKey of [...memoryKeys.keys()])
+    if (memoryKey.startsWith(prefix)) memoryKeys.delete(memoryKey);
+  try {
+    sessionStorage.removeItem(`nexuspay_bot_request_${scope}`);
+  } catch {
+    /* Storage unavailable. */
+  }
 }
 export const botAPI = {
-  account: async (network: BotNetwork, signal?: AbortSignal) => (await api.get<{ data: Pick<BotBalance, 'network' | 'address' | 'gasMode'> }>(`/botchain/${network}/account`, { signal })).data.data,
+  account: async (network: BotNetwork, signal?: AbortSignal) =>
+    (
+      await api.get<{
+        data: Pick<BotBalance, "network" | "address" | "gasMode">;
+      }>(`/botchain/${network}/account`, { signal })
+    ).data.data,
   // Consumer wallets expose mainnet only, including when a stale API advertises testnet.
-  networks: async () => (await api.get<{ data: BotCapability[] }>('/botchain/networks')).data.data
-    .filter(network => network.id === 'botchain' && !network.testnet),
-  balance: async (network: BotNetwork, signal?: AbortSignal) => (await api.get<{ data: BotBalance }>(`/botchain/${network}/balances`, { signal })).data.data,
-  quote: async (network: BotNetwork, input: { recipientIdentifier?: string; merchantId?: string; amount: string; tokenSymbol: string }, signal?: AbortSignal) => (await api.post<{ data: BotFeeQuote }>(`/botchain/${network}/quote`, input, { signal, timeout: 60000 })).data.data,
-  max: async (network: BotNetwork, recipientIdentifier: string, signal?: AbortSignal) => (await api.post<{ data: { amount: string; gasReserve: string; balance: string; recipient: string } }>(`/botchain/${network}/max`, { recipientIdentifier }, { signal })).data.data,
-  history: async (network: BotNetwork, signal?: AbortSignal) => (await api.get<{ data: BotPayment[] }>(`/botchain/${network}/transfers`, { signal })).data.data,
-  status: async (network: BotNetwork, id: string) => (await api.get<{ data: BotPayment }>(`/botchain/${network}/transfers/${id}`)).data.data,
-  send: async (network: BotNetwork, input: { amount: string; tokenSymbol: BotToken; password: string; recipientIdentifier?: string; merchantId?: string; senderAddress?: string; maxNetworkFee?: string }, key: string) => (await api.post<{ data: BotPayment }>(`/botchain/${network}/transfers`, input, { headers: { 'Idempotency-Key': key } })).data.data,
+  networks: async () =>
+    (
+      await api.get<{ data: BotCapability[] }>("/botchain/networks")
+    ).data.data.filter(
+      (network) => network.id === "botchain" && !network.testnet,
+    ),
+  balance: async (network: BotNetwork, signal?: AbortSignal) =>
+    (
+      await api.get<{ data: BotBalance }>(`/botchain/${network}/balances`, {
+        signal,
+      })
+    ).data.data,
+  quote: async (
+    network: BotNetwork,
+    input: {
+      recipientIdentifier?: string;
+      merchantId?: string;
+      amount: string;
+      tokenSymbol: string;
+    },
+    signal?: AbortSignal,
+  ) =>
+    (
+      await api.post<{ data: BotFeeQuote }>(
+        `/botchain/${network}/quote`,
+        input,
+        { signal, timeout: 60000 },
+      )
+    ).data.data,
+  max: async (
+    network: BotNetwork,
+    recipientIdentifier: string,
+    signal?: AbortSignal,
+  ) =>
+    (
+      await api.post<{
+        data: {
+          amount: string;
+          gasReserve: string;
+          balance: string;
+          recipient: string;
+        };
+      }>(`/botchain/${network}/max`, { recipientIdentifier }, { signal })
+    ).data.data,
+  history: async (network: BotNetwork, signal?: AbortSignal) =>
+    (
+      await api.get<{ data: BotPayment[] }>(`/botchain/${network}/transfers`, {
+        signal,
+      })
+    ).data.data,
+  status: async (network: BotNetwork, id: string) =>
+    (
+      await api.get<{ data: BotPayment }>(
+        `/botchain/${network}/transfers/${id}`,
+      )
+    ).data.data,
+  send: async (
+    network: BotNetwork,
+    input: {
+      amount: string;
+      tokenSymbol: BotToken;
+      password?: string;
+      passkeyApproval?: { challengeId: string; response: unknown };
+      recipientIdentifier?: string;
+      merchantId?: string;
+      senderAddress?: string;
+      maxNetworkFee?: string;
+    },
+    key: string,
+  ) =>
+    (
+      await api.post<{ data: BotPayment }>(
+        `/botchain/${network}/transfers`,
+        input,
+        { headers: { "Idempotency-Key": key } },
+      )
+    ).data.data,
 };
 export function botPaymentLabel(payment: BotPayment): string {
-  if (payment.status === 'confirmed') return 'Payment confirmed';
-  if (payment.status === 'failed') return 'Payment failed';
-  if (payment.status === 'review') return 'Checking submission outcome';
-  return 'Payment pending confirmation';
+  if (payment.status === "confirmed") return "Payment confirmed";
+  if (payment.status === "failed") return "Payment failed";
+  if (payment.status === "review") return "Checking submission outcome";
+  return "Payment pending confirmation";
 }
 /** Map a BOT payment onto the legacy send-response shape the existing success cards render. */
-export function botPaymentToSendResponse(payment: BotPayment, recipientIdentifier: string): SendTokenResponse {
+export function botPaymentToSendResponse(
+  payment: BotPayment,
+  recipientIdentifier: string,
+): SendTokenResponse {
   const createdAt = new Date(payment.createdAt);
   return {
-    success: payment.status !== 'failed',
-    message: payment.status === 'failed' ? payment.failureReason || 'Payment failed' : botPaymentLabel(payment),
+    success: payment.status !== "failed",
+    message:
+      payment.status === "failed"
+        ? payment.failureReason || "Payment failed"
+        : botPaymentLabel(payment),
     data: {
       transactionCode: payment.id,
-      transactionHash: payment.transactionHash || '',
-      explorerUrl: payment.explorerUrl || '',
+      transactionHash: payment.transactionHash || "",
+      explorerUrl: payment.explorerUrl || "",
       amount: payment.amount,
       actualNetworkFee: payment.actualNetworkFee,
       tokenSymbol: payment.tokenSymbol,
       chain: payment.network,
       sender: { address: payment.sender },
-      recipient: { identifier: recipientIdentifier, address: payment.recipient },
-      timestamp: { iso: payment.createdAt, local: createdAt.toLocaleString(), unix: Math.floor(createdAt.getTime() / 1000) },
+      recipient: {
+        identifier: recipientIdentifier,
+        address: payment.recipient,
+      },
+      timestamp: {
+        iso: payment.createdAt,
+        local: createdAt.toLocaleString(),
+        unix: Math.floor(createdAt.getTime() / 1000),
+      },
       transaction: {
-        hash: payment.transactionHash || '',
-        explorerUrl: payment.explorerUrl || '',
+        hash: payment.transactionHash || "",
+        explorerUrl: payment.explorerUrl || "",
         chain: payment.network,
         token: payment.tokenSymbol,
         amount: payment.amount,
         amountDisplay: `${payment.amount} ${payment.tokenSymbol}`,
         status: payment.status,
-        confirmations: payment.status === 'confirmed' ? 'confirmed' : 'pending',
-        gasUsed: '',
-        blockNumber: '',
+        confirmations: payment.status === "confirmed" ? "confirmed" : "pending",
+        gasUsed: "",
+        blockNumber: "",
       },
-      security: { level: 'password', authMethod: 'account password', verified: true, transactionType: 'botchain_transfer' },
+      security: {
+        level: "password",
+        authMethod: "account password",
+        verified: true,
+        transactionType: "botchain_transfer",
+      },
       notifications: [],
       botStatus: payment.status,
     },
   };
 }
 /** Map a BOT merchant payment onto the legacy merchant-response shape. */
-export function botPaymentToMerchantResponse(payment: BotPayment, merchantId: string): PayMerchantResponse {
+export function botPaymentToMerchantResponse(
+  payment: BotPayment,
+  merchantId: string,
+): PayMerchantResponse {
   return {
-    success: payment.status !== 'failed',
-    message: payment.status === 'failed' ? payment.failureReason || 'Payment failed' : botPaymentLabel(payment),
+    success: payment.status !== "failed",
+    message:
+      payment.status === "failed"
+        ? payment.failureReason || "Payment failed"
+        : botPaymentLabel(payment),
     data: {
       botPayment: payment,
       businessName: payment.merchantId || merchantId,
-      transactionHash: payment.transactionHash || payment.userOpHash || '',
-      authenticationMethod: 'account password',
+      transactionHash: payment.transactionHash || payment.userOpHash || "",
+      authenticationMethod: "account password",
       botStatus: payment.status,
     },
   };

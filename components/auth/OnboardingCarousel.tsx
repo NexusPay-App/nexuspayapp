@@ -76,7 +76,6 @@ export default function OnboardingCarousel() {
             </button>
           ))}
         </div>
-        <span className="text-xs tabular-nums text-white/60" aria-hidden="true">{activeSlide + 1} / {onboardingSource.length}</span>
       </div>
     </Carousel>
   );

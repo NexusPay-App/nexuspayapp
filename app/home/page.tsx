@@ -7,7 +7,6 @@ import { NexusMark, UserIcon } from "@/constants/svg";
 import {
   ArrowCircleDown,
   CreditCard,
-  List,
   PaperPlaneTilt,
 } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
@@ -23,12 +22,6 @@ import {
 import { LogOut, Settings, User, UserPlus, Plus, RefreshCw, Wallet, Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import {
   Dialog,
   DialogContent,
@@ -61,7 +54,7 @@ const Home = () => {
   } = useBusiness();
   const { balance, loading, error, fetchAllBalances } = useOptimizedBalance();
 
-  const walletPending = !user?.walletAddress || user.walletStatus === "pending";
+  const walletPending = !user?.walletAddress;
   const [openLogoutDialog, setOpenLogoutDialog] = useState(false); // Opens the Logout Loading Dialog
   const [balanceHidden, setBalanceHidden] = useState(false); // Hides balance amounts
   const [botNetworks, setBotNetworks] = useState<{ id: string; name: string }[]>([]);
@@ -170,35 +163,6 @@ const Home = () => {
       <header className="shrink-0 border-b border-white/10">
         <div className="flex w-full items-center justify-between px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
-          <Sheet>
-            <SheetTrigger aria-label="Open navigation" className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-white/5">
-              <List size={24} color="#ffffff" />
-            </SheetTrigger>
-            <SheetContent side="left">
-              <SheetHeader>
-                <ul className="flex flex-col justify-around items-start text-base font-DM text-black w-auto">
-                  <Link
-                    href="/home"
-                    className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer "
-                  >
-                    Home
-                  </Link>
-                  <Link
-                    href="/business"
-                    className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer "
-                  >
-                    Business
-                  </Link>
-                  <Link
-                    href="/reclaim"
-                    className="my-2 mx-2 min-w-[100px] text-black hover:text-aqua hover:cursor-pointer "
-                  >
-                    Reclaim
-                  </Link>
-                </ul>
-              </SheetHeader>
-            </SheetContent>
-          </Sheet>
           <Link href="/home" aria-label="NexusPay home">
             <Image src={NexusMark} alt="NexusPay" className="h-8 w-auto" priority />
           </Link>

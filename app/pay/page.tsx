@@ -72,12 +72,7 @@ export default function PayPage() {
           <RampForm key={tab} mode={tab} />
         )}
       </div>
-      {scan && (
-        <QRCodeScanner
-          onClose={() => setScan(false)}
-          onScanSuccess={() => setScan(false)}
-        />
-      )}
+      {scan && <QRCodeScanner onClose={() => setScan(false)} />}
     </main>
   );
 }

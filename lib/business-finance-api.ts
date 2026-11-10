@@ -45,6 +45,7 @@ export interface BusinessBalance {
   balances: {
     arbitrum: ChainBalances;
     base: ChainBalances;
+    ethereum: ChainBalances;
     celo: ChainBalances;
     polygon: ChainBalances;
     optimism: ChainBalances;

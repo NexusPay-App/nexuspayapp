@@ -8,6 +8,8 @@ import {
   Clock3,
   Eye,
   EyeOff,
+  Fingerprint,
+  LockKeyhole,
   Loader2,
   ArrowUpRight,
 } from "lucide-react";
@@ -18,6 +20,7 @@ import { usePaymentNetworks } from "@/hooks/usePaymentNetworks";
 import { botAPI, isBotNetwork } from "@/lib/botchain";
 import { amountUnits } from "@/lib/amounts";
 import api from "@/lib/api";
+import { approvePaymentWithPasskey } from "@/lib/paymentPasskeys";
 import {
   Dialog,
   DialogContent,
@@ -69,6 +72,9 @@ export function PayMerchantForm({
   const [checking, setChecking] = useState(false);
   const [password, setPassword] = useState("");
   const [visible, setVisible] = useState(false);
+  const [confirmationMethod, setConfirmationMethod] = useState<
+    "passkey" | "password"
+  >("password");
   const busy = useRef(false);
   useEffect(() => {
     if (initialMerchantId) updatePayForm("merchantId", initialMerchantId);
@@ -107,6 +113,14 @@ export function PayMerchantForm({
     staleTime: 15000,
     retry: 1,
   });
+  const passkeys = useQuery<{ id: string }[]>({
+    queryKey: ["account-passkeys", user?.id],
+    queryFn: async () => (await api.get("/auth/passkeys")).data.data,
+    enabled: !!user?.id,
+    staleTime: 60_000,
+    retry: 1,
+  });
+  const hasPasskey = !!passkeys.data?.length;
   const balance = wallet.isError ? undefined : wallet.data?.balances[symbol];
   const decimals =
     supportedTokens.find((token) => token.symbol === symbol)?.decimals ?? 6;
@@ -148,8 +162,11 @@ export function PayMerchantForm({
     available !== null &&
     !overBalance &&
     !wallet.isFetching &&
+    !passkeys.isFetching &&
     !!supportedTokens.find((token) => token.symbol === symbol) &&
-    !!networks.find((network) => network.id === chain && network.transfers !== false);
+    !!networks.find(
+      (network) => network.id === chain && network.transfers !== false,
+    );
 
   async function openReview(event: FormEvent) {
     event.preventDefault();
@@ -167,6 +184,7 @@ export function PayMerchantForm({
         merchantId: response.data.data.merchantId,
         businessName: response.data.data.businessName,
       });
+      setConfirmationMethod(hasPasskey ? "passkey" : "password");
       setReview(true);
     } catch (failure) {
       setError(message(failure));
@@ -180,7 +198,9 @@ export function PayMerchantForm({
     if (
       busy.current ||
       !merchant ||
-      !password ||
+      (confirmationMethod === "passkey"
+        ? !hasPasskey
+        : !password || !user?.hasPassword) ||
       !wallet.data?.address ||
       !feeReady
     )
@@ -188,6 +208,21 @@ export function PayMerchantForm({
     busy.current = true;
     setError("");
     try {
+      const maxNetworkFee = isBotNetwork(chain)
+        ? fee.data!.maxNetworkFee
+        : undefined;
+      const passkeyApproval =
+        confirmationMethod === "passkey"
+          ? await approvePaymentWithPasskey({
+              kind: "merchant",
+              senderAddress: wallet.data.address,
+              merchantId: merchant.merchantId,
+              chainName: chain,
+              tokenSymbol: symbol,
+              amount,
+              ...(maxNetworkFee ? { maxNetworkFee } : {}),
+            })
+          : undefined;
       const response = await payMerchant({
         senderAddress: wallet.data.address,
         merchantId: merchant.merchantId,
@@ -195,10 +230,9 @@ export function PayMerchantForm({
         tokenSymbol: symbol,
         amount,
         confirm: true,
-        password,
-        ...(isBotNetwork(chain)
-          ? { maxNetworkFee: fee.data!.maxNetworkFee }
-          : {}),
+        ...(confirmationMethod === "password" ? { password } : {}),
+        ...(passkeyApproval ? { passkeyApproval } : {}),
+        ...(maxNetworkFee ? { maxNetworkFee } : {}),
       });
       if (!response?.success)
         throw new Error(response?.message || "Payment could not complete.");
@@ -381,8 +415,12 @@ export function PayMerchantForm({
             {error}
           </p>
         )}
-        {networks.find((network) => network.id === chain)?.transfers === false && (
-          <p role="status" className="text-sm text-amber-200/80">Payments on this network are temporarily unavailable. Choose another network.</p>
+        {networks.find((network) => network.id === chain)?.transfers ===
+          false && (
+          <p role="status" className="text-sm text-amber-200/80">
+            Payments on this network are temporarily unavailable. Choose another
+            network.
+          </p>
         )}
         <button className={primary} disabled={!canReview || checking}>
           {checking && <Loader2 size={16} className="animate-spin" />}
@@ -446,35 +484,74 @@ export function PayMerchantForm({
             </p>
           )}
           <form className="space-y-4" onSubmit={confirm}>
-            <div>
-              <label
-                className="mb-2 block text-sm text-white/65"
-                htmlFor="merchant-password"
-              >
-                NexusPay password
-              </label>
-              <div className="relative">
-                <input
-                  id="merchant-password"
-                  className={`${field} pr-12`}
-                  type={visible ? "text" : "password"}
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  disabled={payMerchantLoading}
-                  required
-                />
+            {hasPasskey && user?.hasPassword && (
+              <div className="flex gap-2 rounded-xl border border-white/10 p-1">
                 <button
                   type="button"
-                  aria-label={visible ? "Hide password" : "Show password"}
-                  aria-pressed={visible}
-                  onClick={() => setVisible(!visible)}
-                  className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-white/55"
+                  aria-pressed={confirmationMethod === "passkey"}
+                  onClick={() => {
+                    setConfirmationMethod("passkey");
+                    setError("");
+                  }}
+                  className={`flex-1 rounded-lg px-3 py-2 text-sm ${confirmationMethod === "passkey" ? "bg-[#0795B0]/20 text-[#6AD8E8]" : "text-white/50"}`}
                 >
-                  {visible ? <EyeOff size={18} /> : <Eye size={18} />}
+                  <Fingerprint size={15} className="mr-2 inline" />
+                  Passkey
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={confirmationMethod === "password"}
+                  onClick={() => {
+                    setConfirmationMethod("password");
+                    setError("");
+                  }}
+                  className={`flex-1 rounded-lg px-3 py-2 text-sm ${confirmationMethod === "password" ? "bg-[#0795B0]/20 text-white" : "text-white/50"}`}
+                >
+                  <LockKeyhole size={14} className="mr-2 inline" />
+                  Password
                 </button>
               </div>
-            </div>
+            )}
+            {confirmationMethod === "password" && user?.hasPassword && (
+              <div>
+                <label
+                  className="mb-2 block text-sm text-white/65"
+                  htmlFor="merchant-password"
+                >
+                  NexusPay password
+                </label>
+                <div className="relative">
+                  <input
+                    id="merchant-password"
+                    className={`${field} pr-12`}
+                    type={visible ? "text" : "password"}
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    disabled={payMerchantLoading}
+                    required
+                  />
+                  <button
+                    type="button"
+                    aria-label={visible ? "Hide password" : "Show password"}
+                    aria-pressed={visible}
+                    onClick={() => setVisible(!visible)}
+                    className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-white/55"
+                  >
+                    {visible ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+            )}
+            {!hasPasskey && !user?.hasPassword && (
+              <p className="text-sm text-white/60">
+                Set up a passkey in{" "}
+                <Link href="/settings" className="text-[#39BED3]">
+                  Settings
+                </Link>{" "}
+                to confirm this payment.
+              </p>
+            )}
             {error && (
               <p role="alert" className="text-sm text-red-200">
                 {error}
@@ -482,9 +559,24 @@ export function PayMerchantForm({
             )}
             <button
               className={primary}
-              disabled={!password || payMerchantLoading || !feeReady}
+              disabled={
+                (confirmationMethod === "passkey"
+                  ? !hasPasskey
+                  : !password || !user?.hasPassword) ||
+                payMerchantLoading ||
+                !feeReady
+              }
             >
-              {payMerchantLoading ? "Submitting payment…" : "Confirm and pay"}
+              {payMerchantLoading ? (
+                "Submitting payment…"
+              ) : confirmationMethod === "passkey" ? (
+                <>
+                  <Fingerprint size={17} />
+                  Confirm with passkey
+                </>
+              ) : (
+                "Confirm and pay"
+              )}
             </button>
             <button
               className="w-full text-sm text-white/50"

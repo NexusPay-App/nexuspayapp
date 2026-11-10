@@ -6,11 +6,19 @@ import { cn } from "@/lib/utils";
 
 type Props = Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & {
   visibilityLabel?: string;
+  visibilityButtonClassName?: string;
 };
 
 export const PasswordInput = forwardRef<HTMLInputElement, Props>(
   (
-    { className, id, disabled, visibilityLabel = "password", ...props },
+    {
+      className,
+      id,
+      disabled,
+      visibilityLabel = "password",
+      visibilityButtonClassName,
+      ...props
+    },
     ref,
   ) => {
     const generatedId = useId();
@@ -34,7 +42,10 @@ export const PasswordInput = forwardRef<HTMLInputElement, Props>(
           disabled={disabled}
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => setVisible((value) => !value)}
-          className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-lg opacity-70 hover:opacity-100 focus-visible:outline-2 focus-visible:outline-[#39BED3] disabled:opacity-40"
+          className={cn(
+            "absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-lg opacity-70 hover:opacity-100 focus-visible:outline-2 focus-visible:outline-[#39BED3] disabled:opacity-40",
+            visibilityButtonClassName,
+          )}
         >
           {visible ? <EyeOff size={18} /> : <Eye size={18} />}
         </button>

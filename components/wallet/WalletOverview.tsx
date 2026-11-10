@@ -65,7 +65,7 @@ const WalletOverview: React.FC<WalletOverviewProps> = ({ className = "" }) => {
     }).format(amount);
   };
 
-  // Get available chains (visible set only: Arbitrum, Base, Botchain)
+  // Get available chains (visible set only: Arbitrum, Base, Ethereum, Botchain)
   const getAvailableChains = (): string[] => {
     if (!balance) return [];
     return Object.keys(balance.balances).filter(chain => VISIBLE_CHAIN_IDS.has(chain));
@@ -276,7 +276,7 @@ const WalletOverview: React.FC<WalletOverviewProps> = ({ className = "" }) => {
                     {chain}
                   </button>
                 ))}
-                {/* Stellar hidden — visible chains: Arbitrum, Base, Botchain only */}
+                {/* Stellar hidden — visible chains: Arbitrum, Base, Ethereum, Botchain only */}
                 {false && stellarBalances.length > 0 && (
                   <button
                     onClick={() => setSelectedChain("stellar")}

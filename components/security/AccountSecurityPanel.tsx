@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   startAuthentication,
@@ -40,10 +41,17 @@ function usePasskeys() {
   const { user } = useAuth();
   return useQuery<Passkey[]>({
     queryKey: ["account-passkeys", user?.id],
-    queryFn: async () => (await api.get("/auth/passkeys")).data.data,
+    queryFn: async () => {
+      const response = await api.get("/auth/passkeys");
+      const passkeys = response.data?.data;
+      if (!Array.isArray(passkeys))
+        throw new Error("Invalid passkey status response");
+      return passkeys;
+    },
     enabled: !!user?.id,
     staleTime: 60_000,
     retry: 1,
+    refetchOnMount: "always",
   });
 }
 function deviceName(agent: string) {
@@ -79,7 +87,7 @@ export function AccountSecurityNotice() {
   const [open, setOpen] = useState(false);
   return (
     <>
-      {(keys.isError || keys.data?.length === 0) && (
+      {keys.isSuccess && keys.data.length === 0 && (
         <button
           type="button"
           onClick={() => setOpen(true)}
@@ -87,7 +95,7 @@ export function AccountSecurityNotice() {
         >
           <ShieldCheck size={17} className="shrink-0" />
           <span className="flex-1 text-sm font-medium">
-            {keys.isError ? "Review account security" : "Secure your account"}
+            Secure your account
           </span>
           <ArrowRight size={16} />
         </button>
@@ -111,6 +119,7 @@ export default function AccountSecurityPanel({
   onDone?: () => void;
 }) {
   const { user } = useAuth();
+  const router = useRouter();
   const client = useQueryClient();
   const keys = usePasskeys();
   const [busy, setBusy] = useState(false);
@@ -206,7 +215,7 @@ export default function AccountSecurityPanel({
         {},
       );
       if (!id || sessions.data?.find((s) => s.id === id)?.current)
-        window.location.assign("/login");
+        router.replace("/login");
       else await sessions.refetch();
     } catch {
       setError("Couldn’t sign out that device. Please try again.");
@@ -224,16 +233,24 @@ export default function AccountSecurityPanel({
         )}
       </div>
       <h2 className="text-xl font-semibold tracking-tight">
-        {complete
-          ? "You’re all set"
-          : secured
-            ? "Device verification is on"
-            : "A little extra protection"}
+        {keys.isPending
+          ? "Checking passkeys"
+          : keys.isError
+            ? "Passkey status unavailable"
+            : complete
+              ? "Passkey added"
+              : secured
+                ? "Passkey is set up"
+                : "Set up a passkey"}
       </h2>
       <p className="mt-2 text-sm leading-6 text-white/60">
-        {complete || secured
-          ? "Your passkey protects sensitive account actions."
-          : "Use your fingerprint, face or device PIN to approve sensitive actions."}
+        {keys.isPending
+          ? "Loading your current passkey status."
+          : keys.isError
+            ? "We couldn’t confirm whether a passkey is active."
+            : complete || secured
+              ? "Use your device’s fingerprint, face or PIN to approve sensitive actions."
+              : "Set up with this device’s fingerprint, face or PIN."}
       </p>
       {error && (
         <p role="alert" className="mt-4 text-sm leading-5 text-rose-200">
@@ -245,12 +262,16 @@ export default function AccountSecurityPanel({
           Checking your account…
         </p>
       ) : keys.isError ? (
-        <button
-          className={`${primary} mt-5`}
-          onClick={() => void keys.refetch()}
-        >
-          Retry security check
-        </button>
+        <div className="mt-5">
+          <button
+            type="button"
+            className={`${primary} mt-4`}
+            disabled={keys.isFetching}
+            onClick={() => void keys.refetch()}
+          >
+            {keys.isFetching ? "Checking…" : "Try again"}
+          </button>
+        </div>
       ) : (
         <>
           {reauth && (
@@ -280,6 +301,7 @@ export default function AccountSecurityPanel({
                     disabled={busy}
                     required
                     className="w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 py-3"
+                    visibilityButtonClassName="text-[#39BED3] opacity-100 hover:text-white"
                   />
                   <button
                     disabled={busy || !password}
@@ -329,8 +351,8 @@ export default function AccountSecurityPanel({
                 : complete && onDone
                   ? "Back to wallet"
                   : secured
-                    ? "Add another device"
-                    : "Secure this device"}
+                    ? "Add another passkey"
+                    : "Set up a passkey"}
             </button>
           )}
           {!secured && !reauth && (

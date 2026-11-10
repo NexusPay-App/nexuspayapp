@@ -10,7 +10,7 @@ import { getApiBaseUrl } from '@/lib/config';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 
 function networkName(chain: string) {
-  return ({ 'botchain-testnet': 'BOT Chain Testnet', botchain: 'BOT Chain', arbitrum: 'Arbitrum', base: 'Base', stellar: 'Stellar' } as Record<string, string>)[chain] || chain;
+  return ({ 'botchain-testnet': 'BOT Chain Testnet', botchain: 'BOT Chain', arbitrum: 'Arbitrum', base: 'Base', ethereum: 'Ethereum', stellar: 'Stellar' } as Record<string, string>)[chain] || chain;
 }
 
 function transactionLabel(transaction: Transaction) {

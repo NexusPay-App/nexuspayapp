@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 export default function NetworkFeeNotice({ network }: { network: string }) {
-  const names: Record<string, string> = { base: 'Base', arbitrum: 'Arbitrum', botchain: 'BOT Chain', 'botchain-testnet': 'BOT Chain Testnet' };
+  const names: Record<string, string> = { base: 'Base', arbitrum: 'Arbitrum', ethereum: 'Ethereum', botchain: 'BOT Chain', 'botchain-testnet': 'BOT Chain Testnet' };
   if (!names[network]) return null;
   const bot = network.startsWith('botchain');
   return (

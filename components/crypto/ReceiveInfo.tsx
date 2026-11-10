@@ -121,7 +121,7 @@ export const ReceiveInfo: React.FC = () => {
           />
         </div>
 
-        {/* Supported Chains — Arbitrum, Base, Botchain only (others filtered, not removed) */}
+        {/* Supported Chains — Arbitrum, Base, Ethereum, Botchain only (others filtered, not removed) */}
         <div className="mb-6">
           <h3 className="text-lg font-semibold text-white mb-4">🌐 Supported Blockchains</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">

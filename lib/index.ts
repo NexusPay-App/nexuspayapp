@@ -9,10 +9,10 @@ export * from './transactions';
 export * from './auth';
 
 // Constants
-// Visible: Arbitrum, Base, Botchain. Others commented, not removed.
+// Visible: Arbitrum, Base, Ethereum, Botchain. Others commented, not removed.
 export const SUPPORTED_CHAINS = [
-  'arbitrum', 'base', 'botchain',
-  // 'celo', 'polygon', 'optimism', 'ethereum',
+  'arbitrum', 'base', 'ethereum', 'botchain',
+  // 'celo', 'polygon', 'optimism',
   // 'bnb', 'avalanche', 'fantom', 'gnosis', 'scroll', 'moonbeam',
   // 'fuse', 'aurora', 'lisk', 'somnia'
 ] as const;

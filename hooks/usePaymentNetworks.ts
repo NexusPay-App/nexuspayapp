@@ -1,18 +1,20 @@
 'use client';
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
-import { botAPI, isBotNetwork, type BotCapability, type BotToken } from '@/lib/botchain';
+import { botAPI, isBotNetwork, type BotCapability } from '@/lib/botchain';
 interface PaymentNetwork { id: string; name: string; chainId: number; tokens: { symbol: string; name: string; decimals: number }[]; transfers?: boolean; merchantPayments?: boolean; }
-const BOT_TOKEN_NAMES: Record<BotToken, { name: string; decimals: number }> = {
+const BOT_TOKEN_NAMES: Record<string, { name: string; decimals: number }> = {
   USDT: { name: 'Tether USD', decimals: 6 },
   BOT: { name: 'BOT Chain', decimals: 18 },
+  WBOT: { name: 'Wrapped BOT', decimals: 18 },
 };
-const DEFAULT_BOT_TOKENS: BotToken[] = ['USDT', 'BOT'];
+const DEFAULT_BOT_TOKENS: string[] = ['USDT', 'BOT', 'WBOT'];
 function toPaymentNetwork(capability: BotCapability): PaymentNetwork {
   const source = capability.tokens?.length
     ? capability.tokens.map(token => ({ symbol: token.symbol, decimals: token.decimals }))
     : DEFAULT_BOT_TOKENS.map(symbol => ({ symbol, decimals: BOT_TOKEN_NAMES[symbol].decimals }));
-  const tokens = source.filter(token => DEFAULT_BOT_TOKENS.includes(token.symbol)).map(token => ({
+  // Every token the network declares stays selectable (gas + asset tokens).
+  const tokens = source.map(token => ({
     symbol: token.symbol,
     name: BOT_TOKEN_NAMES[token.symbol]?.name || token.symbol,
     decimals: token.decimals,
@@ -23,10 +25,10 @@ function toPaymentNetwork(capability: BotCapability): PaymentNetwork {
  * Legacy chain list plus capability-driven BOT networks. Only enabled BOT
  * networks are selectable, so a disabled network never appears as an option.
  * The two fetches are held in separate state so arrival order cannot drop one.
- * Visible chains are limited to Arbitrum, Base, and Botchain; the rest stay
+ * Visible chains are limited to Arbitrum, Base, Ethereum, and Botchain; the rest stay
  * commented in SUPPORTED_CHAINS / filter lists rather than deleted.
  */
-const VISIBLE_LEGACY_CHAIN_IDS = new Set(['arbitrum', 'base']);
+const VISIBLE_LEGACY_CHAIN_IDS = new Set(['arbitrum', 'base', 'ethereum']);
 
 export function usePaymentNetworks(chain: string) {
   const [legacy, setLegacy] = useState<PaymentNetwork[]>([]);
@@ -40,7 +42,7 @@ export function usePaymentNetworks(chain: string) {
   const networks = [
     // Visible payment chains only. Uncomment others from the API list if product re-enables them.
     ...legacy.filter(n => VISIBLE_LEGACY_CHAIN_IDS.has(n.id)),
-    // 'celo', 'polygon', 'optimism', 'ethereum', 'bnb', 'avalanche', …
+    // 'celo', 'polygon', 'optimism', 'bnb', 'avalanche', …
     ...bot,
   ];
   const selected = networks.find(n => n.id === chain);

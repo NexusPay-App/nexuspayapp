@@ -31,6 +31,12 @@ const networks = [
     assets: "assets on Arbitrum",
     explorer: "https://arbiscan.io",
   },
+  {
+    id: "ethereum",
+    name: "Ethereum",
+    assets: "assets on Ethereum",
+    explorer: "https://etherscan.io",
+  },
 ];
 
 export default function Receive() {
@@ -191,9 +197,9 @@ export default function Receive() {
             )}
             {isBot && (
               <p className="mt-4 text-xs leading-5 text-gray-400">
-                Use this same BOT Chain address for USDT and BOT. Keep some BOT
-                here to pay network fees. Your Base and Arbitrum address is
-                different.
+                Use this same address for USDT and BOT. Keep some BOT here to
+                pay network fees — it is the same address you use on Ethereum,
+                Base and Arbitrum.
               </p>
             )}
           </div>

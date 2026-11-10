@@ -234,8 +234,8 @@ export const BusinessBalanceOverview: React.FC<BusinessBalanceOverviewProps> = (
             <Wallet className="h-4 w-4" />
             All Chains
           </button>
-          {/* Visible chains only: Arbitrum, Base, Botchain. Others commented, not removed. */}
-          {['arbitrum', 'base', 'botchain' /* , 'celo', 'polygon', 'optimism' */].map((chain) => {
+          {/* Visible chains only: Arbitrum, Base, Ethereum, Botchain. Others commented, not removed. */}
+          {['arbitrum', 'base', 'ethereum', 'botchain' /* , 'celo', 'polygon', 'optimism' */].map((chain) => {
             const chainTotal = getTotalForChain(chain);
             const hasBalance = chainTotal > 0;
             
